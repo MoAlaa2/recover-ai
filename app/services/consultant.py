@@ -190,6 +190,14 @@ def run_search(args, turn):
     mart = args.get("min_martindale")
     if turn.get("min_martindale") and not mart:
         mart = turn["min_martindale"]
+    if args.get("max_price") is not None:
+        turn.setdefault("budgets", [])
+        if args["max_price"] not in turn["budgets"]:
+            turn["budgets"].append(args["max_price"])
+    if args.get("tone"):
+        turn.setdefault("tones", [])
+        if args["tone"] not in turn["tones"]:
+            turn["tones"].append(args["tone"])
     wanted = args.get("limit", 6) or 6
     summaries, relaxed = search_catalog(
         usage=args.get("usage"), colors=_as_list(args.get("colors")),
@@ -304,17 +312,33 @@ def missing_relaxation(reply, relaxed, arabic):
     return missing
 
 
-def enrich(recommendations):
-    """Attach catalog details to validated recommendations."""
+def enrich(recommendations, turn):
+    """Attach catalog details plus trust receipts.
+
+    matched/relaxed are derived from the backend's real filters and
+    needs, never from the model's words.
+    """
+    needs = turn.get("needs_all", []) + turn.get("needs_any", [])
+    budgets = turn.get("budgets", [])
+    tones = turn.get("tones", [])
+    relaxed = list(turn.get("relaxed", []))
     out = []
     for rec in recommendations:
         item = get_fabric(rec["code"])
+        feats = set(item.get("features", []))
+        matched = [f for f in needs if f in feats]
+        if budgets and item["price_sar_per_m"] <= min(budgets):
+            matched.append("under-budget")
+        if tones and item.get("tone") in tones:
+            matched.append(item["tone"] + "-tone")
         out.append({"code": rec["code"],
                     "name_en": item["name_en"],
                     "name_ar": item["name_ar"],
                     "price_sar_per_m": item["price_sar_per_m"],
                     "image": item.get("image", ""),
-                    "reason": rec.get("reason", "")})
+                    "reason": rec.get("reason", ""),
+                    "matched": matched,
+                    "relaxed": relaxed})
     return out
 
 
@@ -556,7 +580,9 @@ def chat(session_id, message, image_path=None, chat_fn=None):
     history.append({"role": "assistant", "content": final_text})
 
     result = {"reply": reply,
-              "recommendations": enrich(recommendations)}
+              "recommendations": enrich(recommendations, turn)}
     if room_analysis is not None:
         result["room_analysis"] = room_analysis
+        if session.get("detected_piece"):
+            result["detected_piece"] = session["detected_piece"]
     return result

@@ -435,6 +435,17 @@ def test_uncertain_language_mirrors_user():
         "user"]
 
 
+def test_enrich_adds_trust_receipts():
+    turn = {"needs_all": ["easy-clean"], "needs_any": ["pet-friendly"],
+            "relaxed": ["max_price"], "budgets": [150], "tones": ["warm"]}
+    out = c.enrich([{"code": "FA-NL-02", "reason": "nice"}], turn)
+    assert "pet-friendly" in out[0]["matched"]
+    assert "easy-clean" in out[0]["matched"]
+    assert "under-budget" in out[0]["matched"]
+    assert out[0]["relaxed"] == ["max_price"]
+    assert "image" in out[0] and out[0]["image"].endswith(".jpg")
+
+
 def test_room_photo_language_rule():
     assert "never \"sounds\"" in c.SYSTEM_PROMPT
     assert "\"looks\"" in c.SYSTEM_PROMPT
