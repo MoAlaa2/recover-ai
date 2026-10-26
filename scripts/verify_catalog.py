@@ -128,15 +128,23 @@ def main(argv=None):
             raise SystemExit("unknown codes: %s" % ", ".join(sorted(missing)))
 
     api_key = load_api_key()
+    try:
+        with open(REPORT_PATH, encoding="utf-8") as f:
+            merged = {r["code"]: r for r in json.load(f)}
+    except FileNotFoundError:
+        merged = {}
     results = []
     total = len(specs)
     for n, item in enumerate(specs, 1):
-        results.append(verify_one(api_key, item))
+        result = verify_one(api_key, item)
+        results.append(result)
+        merged[item["code"]] = result
         print("(%d/%d) %s scored" % (n, total, item["code"]))
 
     with open(REPORT_PATH, "w", encoding="utf-8") as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
-    print("wrote %s with %d results" % (REPORT_PATH, len(results)))
+        json.dump([merged[c] for c in sorted(merged)], f,
+                  ensure_ascii=False, indent=2)
+    print("wrote %s with %d results" % (REPORT_PATH, len(merged)))
 
     weak = [r for r in results if min(r["color_match"], r["pattern_match"],
                                       r["material_look"]) < PASS_MARK]
