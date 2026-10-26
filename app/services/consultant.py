@@ -336,6 +336,8 @@ def enrich(recommendations, turn):
                     "name_ar": item["name_ar"],
                     "price_sar_per_m": item["price_sar_per_m"],
                     "image": item.get("image", ""),
+                    "features": item.get("features", []),
+                    "snag_risk": item.get("snag_risk", "unknown"),
                     "reason": rec.get("reason", ""),
                     "matched": matched,
                     "relaxed": relaxed})
