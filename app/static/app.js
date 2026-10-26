@@ -80,16 +80,17 @@
 
   var RELAX_LABELS = {
     "max_price": ["Budget", "الميزانية"],
-    "features": ["Features", "المواصفات"],
-    "any_features": ["Pet-friendly filter", "شرط مقاومة الحيوانات"],
-    "snag_levels": ["Claw-safe filter", "شرط تحمل المخالب"],
+    "features": ["Fabric features", "مواصفات القماش"],
+    "any_features": ["Pet protection", "الحماية من الحيوانات"],
+    "snag_levels": ["Claw-safe weave", "قماش آمن من الخدش"],
     "min_martindale": ["Durability", "المتانة"],
     "colors": ["Colors", "الألوان"],
-    "tone": ["Tone", "الدرجة"],
+    "tone": ["Color tone", "درجة اللون"],
     "styles": ["Style", "الستايل"],
-    "suitable_for": ["Use", "الاستخدام"],
+    "suitable_for": ["Intended use", "الاستخدام المقصود"],
     "plain_or_patterned": ["Pattern", "النقشة"],
-    "opacity": ["Opacity", "التعتيم"]
+    "opacity": ["Curtain opacity", "تعتيم الستارة"],
+    "usage": ["Fabric use", "استخدام القماش"]
   };
 
   var state = {

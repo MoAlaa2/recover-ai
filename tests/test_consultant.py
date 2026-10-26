@@ -214,7 +214,7 @@ def test_partial_mention_still_discloses_the_rest():
     with mock.patch.object(c, "search_catalog", wrapped):
         out = c.chat("test-partial", "my cat needs sofa fabric",
                      chat_fn=fake)
-    assert "claw-safe filter" in out["reply"]
+    assert "claw-safe weave" in out["reply"]
     assert len(out["recommendations"]) == 3
 
 

@@ -22,7 +22,9 @@ REPORT_PATH = os.path.join(BASE_DIR, "data", "eval_report.json")
 
 SNAG_RANK = {"low": 0, "medium": 1, "high": 2}
 DISCLOSURE_WORDS = ["relax", "note:", "خفف", "ملاحظة", "budget",
-                    "الميزانية"]
+                    "الميزانية", "to find these", "stretched",
+                    "widened", "eased", "slightly", "عشان ألقى",
+                    "الأنسب", "وسّعت", "فتحت", "شوي"]
 CARE_WORDS = ["extra care", "light-colored", "light colored", "stain",
               "عناية", "فاتح", "مقاوم للبقع"]
 DECLINE_MARKERS = ["outside my expertise", "خارج تخصصي"]

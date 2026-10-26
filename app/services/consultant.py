@@ -277,27 +277,82 @@ def strip_tip(text):
 
 RELAX_LABELS = {
     "max_price": ("budget", "الميزانية"),
-    "features": ("features", "المواصفات"),
-    "any_features": ("pet-friendly filter", "شرط مقاومة الحيوانات"),
-    "snag_levels": ("claw-safe filter", "شرط تحمل المخالب"),
-    "min_martindale": ("durability", "المتانة"),
-    "opacity": ("opacity", "التعتيم"),
+    "tone": ("color tone", "درجة اللون"),
     "colors": ("colors", "الألوان"),
-    "tone": ("tone", "الدرجة"),
-    "suitable_for": ("use", "الاستخدام"),
     "styles": ("style", "الستايل"),
+    "features": ("fabric features", "مواصفات القماش"),
+    "any_features": ("pet protection", "الحماية من الحيوانات"),
+    "snag_levels": ("claw-safe weave", "قماش آمن من الخدش"),
+    "min_martindale": ("durability", "المتانة"),
+    "opacity": ("curtain opacity", "تعتيم الستارة"),
+    "suitable_for": ("intended use", "الاستخدام المقصود"),
     "plain_or_patterned": ("pattern", "النقشة"),
+    "usage": ("fabric use", "استخدام القماش"),
+}
+
+RELAX_PHRASES = {
+    "max_price": ("stretched the budget", "وسّعت الميزانية"),
+    "tone": ("widened the color tone", "فتحت درجات اللون"),
+    "colors": ("widened the colors", "فتحت الألوان"),
+    "styles": ("widened the style", "فتحت الستايل"),
+    "features": ("eased the fabric features", "خففت شروط المواصفات"),
+    "any_features": ("eased the pet protection",
+                     "خففت شرط الحماية من الحيوانات"),
+    "snag_levels": ("eased the claw-safe weave",
+                    "خففت شرط القماش الآمن من الخدش"),
+    "min_martindale": ("lowered the durability bar", "نزّلت حد المتانة"),
+    "opacity": ("widened the curtain opacity", "فتحت التعتيم"),
+    "suitable_for": ("widened the intended use", "فتحت الاستخدام"),
+    "plain_or_patterned": ("opened up the pattern", "فتحت النقشة"),
+    "usage": ("widened the fabric use", "فتحت استخدام القماش"),
+}
+
+# Distinctive words showing the model already disclosed a relaxation.
+RELAX_MATCH = {
+    "max_price": (["budget"], ["الميزانية"]),
+    "tone": (["tone"], ["درجة اللون", "درجات اللون"]),
+    "colors": (["color"], ["الألوان", "ألوان"]),
+    "styles": (["style"], ["الستايل", "ستايل"]),
+    "features": (["feature"], ["المواصفات", "مواصفات"]),
+    "any_features": (["pet-friendly", "pet protection", "scratch-resistant"],
+                     ["الحماية", "الحيوانات", "مقاوم"]),
+    "snag_levels": (["claw", "snag", "weave"], ["الخدش", "خدش", "تشابك"]),
+    "min_martindale": (["martindale", "durability", "durable"],
+                       ["المتانة", "متانة"]),
+    "opacity": (["opacity", "blackout", "sheer"], ["التعتيم", "تعتيم"]),
+    "suitable_for": (["intended use", "hotel", "office", "restaurant"],
+                     ["الاستخدام", "فندق", "مكتب", "مطعم"]),
+    "plain_or_patterned": (["pattern"], ["النقشة", "نقشة"]),
+    "usage": (["upholstery", "curtains", "cushions"],
+              ["تنجيد", "ستائر", "وسائد"]),
 }
 
 
+def _relax_phrase(key, arabic):
+    pair = RELAX_PHRASES.get(key)
+    if pair:
+        return pair[1 if arabic else 0]
+    noun = RELAX_LABELS.get(key, (key, key))[1 if arabic else 0]
+    return ("عدّلت " + noun) if arabic else ("adjusted " + noun)
+
+
 def disclosure_note(relaxed, arabic):
-    names = [RELAX_LABELS.get(r, (r, r))[1 if arabic else 0]
-             for r in relaxed]
+    """Friendly one-line note naming what was relaxed, never raw keys."""
+    phrases = [_relax_phrase(r, arabic) for r in relaxed]
     if arabic:
-        return ("ملاحظة: خففت شرط (%s) لأجد لك خيارات مناسبة."
-                % "، ".join(names))
-    return ("Note: I relaxed the (%s) constraint to find you options."
-            % ", ".join(names))
+        if len(phrases) == 1:
+            return ("عشان ألقى لك الأنسب، %s شوي." % phrases[0])
+        if len(phrases) == 2:
+            return ("عشان ألقى لك الأنسب، %s و%s شوي."
+                    % (phrases[0], phrases[1]))
+        tail = "، ".join(phrases[:-1]) + "، و" + phrases[-1]
+        return "عشان ألقى لك الأنسب، %s شوي." % tail
+    if len(phrases) == 1:
+        return "To find these, I %s slightly." % phrases[0]
+    if len(phrases) == 2:
+        return "To find these, I %s and %s." % (phrases[0], phrases[1])
+    tail = ", ".join(phrases[:-1]) + ", and " + phrases[-1]
+    return "To find these, I %s." % tail
 
 
 def missing_relaxation(reply, relaxed, arabic):
@@ -306,8 +361,10 @@ def missing_relaxation(reply, relaxed, arabic):
     lowered = text.lower()
     missing = []
     for key in relaxed:
-        en, ar = RELAX_LABELS.get(key, (key, key))
-        if en.lower() not in lowered and ar not in text:
+        words = RELAX_MATCH.get(key, ([""], [""]))
+        markers = words[1] if arabic else [w.lower() for w in words[0]]
+        haystack = text if arabic else lowered
+        if not any(m and m in haystack for m in markers):
             missing.append(key)
     return missing
 
