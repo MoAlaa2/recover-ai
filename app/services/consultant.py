@@ -117,6 +117,9 @@ TOOLS = [
                              "description": "AT LEAST ONE must match; use "
                                             "for pet-friendly OR "
                                             "scratch-resistant"},
+            "snag_levels": {"type": "array", "items": {"type": "string"},
+                            "description": "allowed snag_risk values "
+                                           "(low, medium, high)"},
             "suitable_for": {"type": "array", "items": {"type": "string"}},
             "opacity": {"type": "string"},
             "max_price": {"type": "number"},
@@ -155,6 +158,9 @@ def run_search(args, turn):
                  if f not in model_any]
     needs_all = [f for f in turn.get("needs_all", [])
                  if f not in model_all]
+    snag = _as_list(args.get("snag_levels"))
+    if turn.get("pet_safe") and not snag:
+        snag = ["low"]
     summaries, relaxed = search_catalog(
         usage=args.get("usage"), colors=_as_list(args.get("colors")),
         tone=args.get("tone"),
@@ -166,7 +172,8 @@ def run_search(args, turn):
         opacity=args.get("opacity"), max_price=args.get("max_price"),
         limit=args.get("limit", 6) or 6,
         protected=turn.get("protected", ()),
-        pet_safe=turn.get("pet_safe", False))
+        pet_safe=turn.get("pet_safe", False),
+        snag_levels=snag or None)
     return {"fabrics": summaries, "relaxed_constraints": relaxed}
 
 
@@ -228,6 +235,7 @@ RELAX_LABELS = {
     "max_price": ("budget", "الميزانية"),
     "features": ("features", "المواصفات"),
     "any_features": ("pet-friendly filter", "شرط مقاومة الحيوانات"),
+    "snag_levels": ("claw-safe filter", "شرط تحمل المخالب"),
     "opacity": ("opacity", "التعتيم"),
     "colors": ("colors", "الألوان"),
     "tone": ("tone", "الدرجة"),
@@ -247,10 +255,16 @@ def disclosure_note(relaxed, arabic):
             % ", ".join(names))
 
 
-def mentioned_relaxation(text):
-    t = (text or "").lower()
-    return any(w in t for w in
-               ["relax", "خفف", "وسّع", "budget", "الميزانية"])
+def missing_relaxation(reply, relaxed, arabic):
+    """Relaxed constraints the reply does not already name."""
+    text = reply or ""
+    lowered = text.lower()
+    missing = []
+    for key in relaxed:
+        en, ar = RELAX_LABELS.get(key, (key, key))
+        if en.lower() not in lowered and ar not in text:
+            missing.append(key)
+    return missing
 
 
 def enrich(recommendations):
@@ -398,9 +412,11 @@ def chat(session_id, message, image_path=None, chat_fn=None):
         reply = strip_tip(reply)
     if confirm:
         reply = (reply + "\n\n" + confirm).strip()
-    if turn["relaxed"] and not mentioned_relaxation(reply):
+    missing = missing_relaxation(reply, turn["relaxed"],
+                                   is_arabic(user_text))
+    if missing:
         reply = (reply + "\n\n" + disclosure_note(
-            turn["relaxed"], is_arabic(user_text))).strip()
+            missing, is_arabic(user_text))).strip()
     history.append({"role": "assistant", "content": final_text})
 
     result = {"reply": reply,

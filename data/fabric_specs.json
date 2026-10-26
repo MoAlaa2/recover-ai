@@ -31,7 +31,8 @@
     "description_en": "A dense cotton velvet in emerald green with a deep lustrous pile built for statement sofas.",
     "description_ar": "قطيفة قطنية خضراء بكثافة عالية تمنح الكنب حضورا فاخرا في المجالس.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, emerald green, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-VL-01.jpg"
+    "image": "data/catalog/FA-VL-01.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-VL-02",
@@ -68,7 +69,8 @@
     "description_en": "A soft cotton chenille in sage green with a full textured hand made for everyday luxury seating.",
     "description_ar": "شنيل قطني بلون المريمية بملمس ممتلئ يليق بكنب الاستخدام اليومي الراقي.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton chenille, sage green, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-VL-02.jpg"
+    "image": "data/catalog/FA-VL-02.jpg",
+    "snag_risk": "medium"
   },
   {
     "code": "FA-VL-03",
@@ -104,7 +106,8 @@
     "description_en": "A silk-blend velvet in dusty rose with a radiant pile that shifts beautifully in daylight.",
     "description_ar": "مخمل حريري بلون وردي ترابي يعكس الضوء بطريقة ناعمة تناسب غرف الجلوس الراقية.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, silk-blend velvet, dusty rose, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-VL-03.jpg"
+    "image": "data/catalog/FA-VL-03.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-VL-04",
@@ -140,7 +143,8 @@
     "description_en": "A heavy cotton velvet in navy blue with a deep saturated pile for timeless formal seating.",
     "description_ar": "قطيفة قطنية كحلية ثقيلة بملمس عميق تناسب المجالس الرسمية والفنادق.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, navy blue, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-VL-04.jpg"
+    "image": "data/catalog/FA-VL-04.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-VL-05",
@@ -177,7 +181,8 @@
     "description_en": "A plush polyester chenille in champagne gold with a soft sheen that warms up dining chairs.",
     "description_ar": "شنيل بلون الشمبين الذهبي بلمعة ناعمة يضفي دفئا على كراسي السفرة والمجالس.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, polyester chenille, champagne gold, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-VL-05.jpg"
+    "image": "data/catalog/FA-VL-05.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-VL-06",
@@ -213,7 +218,8 @@
     "description_en": "A sumptuous cotton velvet in ivory with a tone-on-tone floral jacquard that catches the light with quiet drama.",
     "description_ar": "مخمل قطني عاجي بنقشة زهور بنفس الدرجة يمنح الكنب فخامة ناعمة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, ivory, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, tone-on-tone floral jacquard pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-VL-06.jpg"
+    "image": "data/catalog/FA-VL-06.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-VL-07",
@@ -250,7 +256,8 @@
     "description_en": "A weighty wool-blend velvet in terracotta with a rich matte depth for bold accent seating.",
     "description_ar": "مخمل صوفي بلون الطين المحروق بكثافة واضحة يليق بكراسي مميزة في المجالس.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, wool-blend velvet, terracotta, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-VL-07.jpg"
+    "image": "data/catalog/FA-VL-07.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-VL-08",
@@ -288,7 +295,8 @@
     "description_en": "A dense cotton velvet in deep charcoal with a firm pile that keeps modern seating sharp.",
     "description_ar": "قطيفة قطنية بلون رمادي عميق بنسيج متماسك يحافظ على شكل الكنب العصري.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, deep charcoal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-VL-08.jpg"
+    "image": "data/catalog/FA-VL-08.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-VL-09",
@@ -324,7 +332,8 @@
     "description_en": "A regal cotton jacquard damask in antique gold with a raised woven motif for grand seating.",
     "description_ar": "جاكار قطني بنقشة ديباج ذهبية بارزة يليق بكنب المجالس الفخمة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton jacquard, antique gold, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, damask pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-VL-09.jpg"
+    "image": "data/catalog/FA-VL-09.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-VL-10",
@@ -361,7 +370,8 @@
     "description_en": "A lush viscose jacquard with peacock florals in teal and gold woven for dramatic chairs.",
     "description_ar": "جاكار بنقشة طاووس بالتركوازي والذهبي يمنح الكراسي حضورا مسرحيا راقيا.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, viscose jacquard, teal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, floral pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-VL-10.jpg"
+    "image": "data/catalog/FA-VL-10.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-VL-11",
@@ -397,7 +407,8 @@
     "description_en": "A precise cotton jacquard with Andalusian stars in navy and silver for tailored upholstery.",
     "description_ar": "جاكار قطني بنجوم أندلسية كحلية وفضية يعطي التنجيد شكلا هندسيا متقنا.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton jacquard, navy blue, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, geometric pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-VL-11.jpg"
+    "image": "data/catalog/FA-VL-11.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-VL-12",
@@ -433,7 +444,8 @@
     "description_en": "A delicate silk-blend jacquard trellis in blush and gold for refined feminine seating.",
     "description_ar": "جاكار حريري بنقشة متعرجة وردية وذهبية يليق بكنب غرف النوم الفاخرة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, silk-blend jacquard, blush pink, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, trellis pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-VL-12.jpg"
+    "image": "data/catalog/FA-VL-12.jpg",
+    "snag_risk": "medium"
   },
   {
     "code": "FA-VL-13",
@@ -470,7 +482,8 @@
     "description_en": "A bold cotton chenille chevron in deep charcoal and camel built for modern family seating.",
     "description_ar": "شنيل قطني بنقشة شيفرون رمادية وجملية يتحمل الاستخدام العائلي اليومي.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton chenille, deep charcoal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, chevron pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-VL-13.jpg"
+    "image": "data/catalog/FA-VL-13.jpg",
+    "snag_risk": "high"
   },
   {
     "code": "FA-VL-14",
@@ -504,7 +517,8 @@
     "description_en": "A luminous viscose jacquard baroque in pearl ivory that dresses formal sofas softly.",
     "description_ar": "جاكار بنقشة باروكية بلون اللؤلؤ يكسو الكنب الرسمي بلمسة مضيئة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, viscose jacquard, pearl ivory, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, baroque pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-VL-14.jpg"
+    "image": "data/catalog/FA-VL-14.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-VL-15",
@@ -541,7 +555,8 @@
     "description_en": "A rich cotton velvet lattice in burgundy and gold cut for opulent dining chairs.",
     "description_ar": "قطيفة قطنية بنقشة شبكية عنابية وذهبية تليق بكراسي السفرة الفخمة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, burgundy, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, lattice pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-VL-15.jpg"
+    "image": "data/catalog/FA-VL-15.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-VL-16",
@@ -579,7 +594,8 @@
     "description_en": "A crisp polyester jacquard arabesque in ocean blue and silver for hardworking elegant seats.",
     "description_ar": "جاكار بنقشة أرابيسك زرقاء وفضية عملي وأنيق لكراسي المكاتب والفنادق.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, polyester jacquard, deep ocean blue, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, arabesque pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-VL-16.jpg"
+    "image": "data/catalog/FA-VL-16.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-NL-01",
@@ -618,7 +634,8 @@
     "description_en": "A cosy wool boucle in oatmeal with a nubby looped weave that hides everyday wear.",
     "description_ar": "بوكلية صوفية بلون الشوفان بنسيج معقود يتحمل استخدام العائلة اليومي.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, wool boucle, oatmeal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-NL-01.jpg"
+    "image": "data/catalog/FA-NL-01.jpg",
+    "snag_risk": "high"
   },
   {
     "code": "FA-NL-02",
@@ -655,7 +672,8 @@
     "description_en": "A hardworking performance linen in off-white with a dry slub texture for relaxed family sofas.",
     "description_ar": "كتان عملي بلون أبيض مائل للعاجي بنسيج طبيعي يناسب كنب العائلات.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, performance linen, off-white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-NL-02.jpg"
+    "image": "data/catalog/FA-NL-02.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-NL-03",
@@ -692,7 +710,8 @@
     "description_en": "A sturdy cotton canvas in olive green with a flat honest weave for casual seating.",
     "description_ar": "قماش قطني متين بلون الزيتون بنسيج مسطح يناسب الجلسات اليومية.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton canvas, olive green, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-NL-03.jpg"
+    "image": "data/catalog/FA-NL-03.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-NL-04",
@@ -728,7 +747,8 @@
     "description_en": "A smooth cotton chenille in warm sand with a soft dense hand for calm sitting rooms.",
     "description_ar": "شنيل قطني بلون الرمال الذهبية بملمس ناعم يليق بغرف المعيشة المريحة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton chenille, warm sand, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-NL-04.jpg"
+    "image": "data/catalog/FA-NL-04.jpg",
+    "snag_risk": "high"
   },
   {
     "code": "FA-NL-05",
@@ -767,7 +787,8 @@
     "description_en": "A sleek performance velvet in light grey with a short pile that shrugs off pets and spills.",
     "description_ar": "مخمل عملي بلون رمادي فاتح يقاوم البقع ويناسب البيوت التي فيها حيوانات.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, performance velvet, light grey, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-NL-05.jpg"
+    "image": "data/catalog/FA-NL-05.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-NL-06",
@@ -806,7 +827,8 @@
     "description_en": "A resilient performance linen in camel with a natural grain woven for busy living spaces.",
     "description_ar": "كتان عملي بلون الجملي بنسيج طبيعي مصمم للمساحات كثيرة الاستخدام.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, performance linen, camel, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-NL-06.jpg"
+    "image": "data/catalog/FA-NL-06.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-NL-07",
@@ -841,7 +863,8 @@
     "description_en": "A light cotton canvas in pure white, breathable and washable for kids rooms and slipcovers.",
     "description_ar": "قماش قطني أبيض خفيف قابل للغسل يناسب غرف الأطفال والأغطية.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton canvas, pure white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-NL-07.jpg"
+    "image": "data/catalog/FA-NL-07.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-NL-08",
@@ -879,7 +902,8 @@
     "description_en": "A friendly cotton chenille in chambray blue with a denim-like ease for family homes.",
     "description_ar": "شنيل قطني بلون أزرق فاتح بروح الدنيم يناسب بيوت العائلات.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton chenille, chambray blue, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-NL-08.jpg"
+    "image": "data/catalog/FA-NL-08.jpg",
+    "snag_risk": "medium"
   },
   {
     "code": "FA-NL-09",
@@ -918,7 +942,8 @@
     "description_en": "A crisp performance linen stripe in sand and white tailored for coastal upholstery.",
     "description_ar": "كتان عملي مخطط بالرملي والأبيض مصمم لتنجيد بطابع ساحلي أنيق.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, performance linen, sand beige, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, stripes pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-NL-09.jpg"
+    "image": "data/catalog/FA-NL-09.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-NL-10",
@@ -955,7 +980,8 @@
     "description_en": "A timeless cotton canvas check in light grey and ivory for smart versatile chairs.",
     "description_ar": "قماش قطني بمربعات رمادية وعاجية يليق بالكراسي العملية والأنيقة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton canvas, light grey, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, check pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-NL-10.jpg"
+    "image": "data/catalog/FA-NL-10.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-NL-11",
@@ -991,7 +1017,8 @@
     "description_en": "A sculptural wool boucle wave in warm taupe that adds quiet movement to armchairs.",
     "description_ar": "بوكلية صوفية بتموجات بلون ترابي تضفي حركة ناعمة على الكراسي.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, wool boucle, warm taupe, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, wave pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-NL-11.jpg"
+    "image": "data/catalog/FA-NL-11.jpg",
+    "snag_risk": "high"
   },
   {
     "code": "FA-NL-12",
@@ -1028,7 +1055,8 @@
     "description_en": "A breezy linen print of palm shadows in sage on cream for holiday-feel seating.",
     "description_ar": "كتان مطبوع بظلال النخيل بالمريمية على الكريمي يعطي الكنب إحساس الإجازات.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, linen print, sage green, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, palm pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-NL-12.jpg"
+    "image": "data/catalog/FA-NL-12.jpg",
+    "snag_risk": "medium"
   },
   {
     "code": "FA-NL-13",
@@ -1066,7 +1094,8 @@
     "description_en": "A tailored cotton chenille herringbone in deep charcoal and ivory for sharp office chairs.",
     "description_ar": "شنيل قطني بنقشة متعرجة رمادية وعاجية يمنح كراسي المكاتب مظهرا حادا.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton chenille, deep charcoal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, herringbone pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-NL-13.jpg"
+    "image": "data/catalog/FA-NL-13.jpg",
+    "snag_risk": "high"
   },
   {
     "code": "FA-NL-14",
@@ -1106,7 +1135,8 @@
     "description_en": "A playful polyester boucle speckle in cream with grey and caramel flecks for family sofas.",
     "description_ar": "بوكلية منقطة بالكريمي مع رشات رمادية تناسب كنب العائلات العملية.",
     "image_prompt": "Flat seamless fabric swatch, top-down view of cream polyester boucle fabric with seamless repeating pattern of speckle, clearly visible contrasting multicolor flecks in black, brown, grey and tan on cream background, textured looped boucle weave, square format, soft even studio lighting, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-NL-14.jpg"
+    "image": "data/catalog/FA-NL-14.jpg",
+    "snag_risk": "high"
   },
   {
     "code": "FA-NL-15",
@@ -1144,7 +1174,8 @@
     "description_en": "A fresh cotton canvas stripe in indigo and white, washable and neat for lively homes.",
     "description_ar": "قماش قطني مخطط بالنيلي والأبيض قابل للغسل يناسب البيوت النشيطة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton canvas, indigo blue, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, stripes pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-NL-15.jpg"
+    "image": "data/catalog/FA-NL-15.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-NL-16",
@@ -1182,7 +1213,8 @@
     "description_en": "A cheerful cotton chenille honeycomb in mustard and cream that lifts kids corners.",
     "description_ar": "شنيل قطني بنقشة سداسية بلون الخردل يضفي بهجة على أركان الأطفال.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton chenille, mustard yellow, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, honeycomb pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-NL-16.jpg"
+    "image": "data/catalog/FA-NL-16.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-LA-01",
@@ -1217,7 +1249,8 @@
     "description_en": "An airy polyester voile in soft white that filters daylight into a gentle glow.",
     "description_ar": "فوال خفيف بلون أبيض ناعم يمرر ضوء النهار بشكل مريح للغرف.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, polyester voile, soft white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-LA-01.jpg"
+    "image": "data/catalog/FA-LA-01.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-LA-02",
@@ -1254,7 +1287,8 @@
     "description_en": "A breezy polyester voile in pale aqua that keeps coastal windows light and fresh.",
     "description_ar": "فوال بلون مائي فاتح يبقي النوافذ الساحلية مشرقة ومنعشة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, polyester voile, pale aqua, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-LA-02.jpg"
+    "image": "data/catalog/FA-LA-02.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-LA-03",
@@ -1289,7 +1323,8 @@
     "description_en": "A natural sheer linen in ivory with an open weave that breathes with the room.",
     "description_ar": "كتان شفاف عاجي بنسيج مفتوح يمنح الغرفة إحساسا طبيعيا متجددا.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, sheer linen, natural ivory, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-LA-03.jpg"
+    "image": "data/catalog/FA-LA-03.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-LA-04",
@@ -1324,7 +1359,8 @@
     "description_en": "A smooth polyester voile in pearl grey that softens city light without weight.",
     "description_ar": "فوال بلون رمادي لؤلؤي يلطف إضاءة المدينة دون ثقل.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, polyester voile, pearl grey, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-LA-04.jpg"
+    "image": "data/catalog/FA-LA-04.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-LA-05",
@@ -1359,7 +1395,8 @@
     "description_en": "A tender sheer linen in pale blue, kind to sensitive skin and bright rooms.",
     "description_ar": "كتان شفاف بلون أزرق فاتح لطيف على البشرة ومناسب للغرف المشرقة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, sheer linen, pale blue, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-LA-05.jpg"
+    "image": "data/catalog/FA-LA-05.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-LA-06",
@@ -1396,7 +1433,8 @@
     "description_en": "A warm polyester voile in champagne sand that tints afternoon sun golden.",
     "description_ar": "فوال بلون رملي شمبين يمنح شمس العصر لونا ذهبيا ناعما.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, polyester voile, champagne sand, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-LA-06.jpg"
+    "image": "data/catalog/FA-LA-06.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-LA-07",
@@ -1431,7 +1469,8 @@
     "description_en": "A crisp sheer linen in white with a clean dry hand for serene galleries of light.",
     "description_ar": "كتان شفاف أبيض بملمس جاف ونظيف يليق بالمساحات الهادئة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, sheer linen, crisp white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-LA-07.jpg"
+    "image": "data/catalog/FA-LA-07.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-LA-08",
@@ -1465,7 +1504,8 @@
     "description_en": "A tender polyester voile in blush pink that blushes softly with morning light.",
     "description_ar": "فوال بلون وردي فاتح يزداد جمالا مع ضوء الصباح.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, polyester voile, blush pink, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-LA-08.jpg"
+    "image": "data/catalog/FA-LA-08.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-LA-09",
@@ -1501,7 +1541,8 @@
     "description_en": "An embroidered sheer with dainty daisy chains on white for joyful daylight windows.",
     "description_ar": "شيفون مطرز بزهور الأقحوان على الأبيض يبهج نوافذ النهار.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, embroidered sheer, white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, embroidery pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-LA-09.jpg"
+    "image": "data/catalog/FA-LA-09.jpg",
+    "snag_risk": "high"
   },
   {
     "code": "FA-LA-10",
@@ -1538,7 +1579,8 @@
     "description_en": "A sheer linen stripe in white and sea blue that dresses beach-house windows neatly.",
     "description_ar": "كتان شفاف مخطط بالأبيض والأزرق البحري يليق بنوافذ البيوت الساحلية.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, sheer linen, white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, stripes pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-LA-10.jpg"
+    "image": "data/catalog/FA-LA-10.jpg",
+    "snag_risk": "high"
   },
   {
     "code": "FA-LA-11",
@@ -1574,7 +1616,8 @@
     "description_en": "A playful polyester voile dotted in gold on ivory that sparkles in sunbeams.",
     "description_ar": "فوال منقط بالذهبي على العاجي يلمع مع أشعة الشمس.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, polyester voile, ivory, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, dots pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-LA-11.jpg"
+    "image": "data/catalog/FA-LA-11.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-LA-12",
@@ -1610,7 +1653,8 @@
     "description_en": "An embroidered sheer with olive branches in sage on cream for a Mediterranean calm.",
     "description_ar": "شيفون مطرز بأغصان الزيتون بالمريمية على الكريمي بروح متوسطية.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, embroidered sheer, cream, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, embroidery pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-LA-12.jpg"
+    "image": "data/catalog/FA-LA-12.jpg",
+    "snag_risk": "high"
   },
   {
     "code": "FA-LA-13",
@@ -1646,7 +1690,8 @@
     "description_en": "A sleek polyester voile with fine silver striping that stretches windows taller.",
     "description_ar": "فوال بخطوط فضية رفيعة يمنح النوافذ إحساسا بالارتفاع.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, polyester voile, light grey, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, stripes pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-LA-13.jpg"
+    "image": "data/catalog/FA-LA-13.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-LA-14",
@@ -1685,7 +1730,8 @@
     "description_en": "An embroidered sheer with Taif roses in soft pink, sweet and clean for family rooms.",
     "description_ar": "شيفون مطرز بورود طائفية وردية يضفي بهجة نظيفة على غرف العائلة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, embroidered sheer, soft pink, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, floral pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-LA-14.jpg"
+    "image": "data/catalog/FA-LA-14.jpg",
+    "snag_risk": "high"
   },
   {
     "code": "FA-LA-15",
@@ -1721,7 +1767,8 @@
     "description_en": "A sheer linen lattice in natural white that structures light into neat geometry.",
     "description_ar": "كتان شفاف بنقشة شبكية بيضاء ينظم الضوء بشكل هندسي مرتب.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, sheer linen, natural white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, lattice pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-LA-15.jpg"
+    "image": "data/catalog/FA-LA-15.jpg",
+    "snag_risk": "high"
   },
   {
     "code": "FA-LA-16",
@@ -1758,7 +1805,8 @@
     "description_en": "An embroidered sheer with palm fronds in green on sand white for resort ease.",
     "description_ar": "شيفون مطرز بسعف النخيل بالأخضر على الرملي بروح المنتجعات.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, embroidered sheer, sand white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, palm pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-LA-16.jpg"
+    "image": "data/catalog/FA-LA-16.jpg",
+    "snag_risk": "high"
   },
   {
     "code": "FA-SC-01",
@@ -1794,7 +1842,8 @@
     "description_en": "A total blackout polyester in deep charcoal that seals bedrooms into true night.",
     "description_ar": "ستارة تعتيم كاملة بلون رمادي عميق تمنح غرف النوم ظلاما تاما.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, blackout polyester, deep charcoal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-SC-01.jpg"
+    "image": "data/catalog/FA-SC-01.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-SC-02",
@@ -1829,7 +1878,8 @@
     "description_en": "A plush thermal velvet in warm taupe that keeps winter rooms warm and quiet.",
     "description_ar": "مخمل حراري بلون ترابي يحافظ على حرارة الغرف وراحتها شتاء.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, thermal velvet, warm taupe, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-SC-02.jpg"
+    "image": "data/catalog/FA-SC-02.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-SC-03",
@@ -1865,7 +1915,8 @@
     "description_en": "A blackout linen-look in slate grey that blocks glare while looking natural.",
     "description_ar": "ستارة تعتيم بمظهر كتاني رمادي تحجب الوهج بمظهر طبيعي.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, blackout linen-look, slate grey, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-SC-03.jpg"
+    "image": "data/catalog/FA-SC-03.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-SC-04",
@@ -1902,7 +1953,8 @@
     "description_en": "A cosy thermal cotton in cocoa brown that wraps living rooms in steady warmth.",
     "description_ar": "قطن حراري بلون الكاكاو يمنح غرف المعيشة أجواء مريحة وثابتة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, thermal cotton, cocoa brown, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-SC-04.jpg"
+    "image": "data/catalog/FA-SC-04.jpg",
+    "snag_risk": "medium"
   },
   {
     "code": "FA-SC-05",
@@ -1938,7 +1990,8 @@
     "description_en": "A smooth dimout polyester in pearl white that dims daylight to a soft haze.",
     "description_ar": "ستارة نصف معتمة بلون لؤلؤي تخفف ضوء النهار بشكل ناعم.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, dimout polyester, pearl white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-SC-05.jpg"
+    "image": "data/catalog/FA-SC-05.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-SC-06",
@@ -1973,7 +2026,8 @@
     "description_en": "A deep blackout velvet in forest green for cinematic bedrooms and lounges.",
     "description_ar": "مخمل تعتيم بلون أخضر غابي يليق بغرف النوم الفاخرة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, blackout velvet, forest green, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-SC-06.jpg"
+    "image": "data/catalog/FA-SC-06.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-SC-07",
@@ -2008,7 +2062,8 @@
     "description_en": "A warm dimout linen-look in dusty terracotta that mellows harsh afternoon sun.",
     "description_ar": "ستارة نصف معتمة بمظهر كتاني بلون طيني تخفف شمس العصر.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, dimout linen-look, dusty terracotta, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-SC-07.jpg"
+    "image": "data/catalog/FA-SC-07.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-SC-08",
@@ -2044,7 +2099,8 @@
     "description_en": "A neat thermal polyester in light grey that steadies room temperature year-round.",
     "description_ar": "ستارة حرارية رمادية فاتحة تحافظ على حرارة الغرفة طوال العام.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, thermal polyester, light grey, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-SC-08.jpg"
+    "image": "data/catalog/FA-SC-08.jpg",
+    "snag_risk": "medium"
   },
   {
     "code": "FA-SC-09",
@@ -2080,7 +2136,8 @@
     "description_en": "A dimout jacquard with marble veining in ivory with a serene premium character.",
     "description_ar": "جاكار نصف معتم بنقشة رخامية عاجية يمنح الستائر مظهرا راقيا.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, dimout jacquard, ivory, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, marble pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-SC-09.jpg"
+    "image": "data/catalog/FA-SC-09.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-SC-10",
@@ -2118,7 +2175,8 @@
     "description_en": "A tailored blackout polyester stripe in navy that suits kids rooms and media lounges.",
     "description_ar": "ستارة تعتيم مخططة بالكحلي تناسب غرف الأطفال وصالات المشاهدة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, blackout polyester, navy blue, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, stripes pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-SC-10.jpg"
+    "image": "data/catalog/FA-SC-10.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-SC-11",
@@ -2155,7 +2213,8 @@
     "description_en": "A thermal linen-look basketweave in oatmeal that insulates with an artisanal hand.",
     "description_ar": "كتان حراري بنسيج سلالي بلون الشوفان يعزل الحرارة بلمسة حرفية.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, thermal linen-look, oatmeal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, basketweave pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-SC-11.jpg"
+    "image": "data/catalog/FA-SC-11.jpg",
+    "snag_risk": "medium"
   },
   {
     "code": "FA-SC-12",
@@ -2192,7 +2251,8 @@
     "description_en": "A glamorous dimout jacquard fan motif in champagne for lounges with character.",
     "description_ar": "جاكار نصف معتم بنقشة مروحية شمبين يليق بالصالات ذات الطابع.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, dimout jacquard, champagne, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, art-deco pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-SC-12.jpg"
+    "image": "data/catalog/FA-SC-12.jpg",
+    "snag_risk": "medium"
   },
   {
     "code": "FA-SC-13",
@@ -2229,7 +2289,8 @@
     "description_en": "A graphic blackout polyester with granite lines in charcoal for focused workrooms.",
     "description_ar": "ستارة تعتيم بنقشة خطوط غرانيتية تناسب غرف العمل والتركيز.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, blackout polyester, deep charcoal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, geometric pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-SC-13.jpg"
+    "image": "data/catalog/FA-SC-13.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-SC-14",
@@ -2267,7 +2328,8 @@
     "description_en": "A printed dimout with garden sprigs in sage on cream that keeps mornings gentle.",
     "description_ar": "ستارة مطبوعة نصف معتمة بأغصان خضراء على الكريمي تلطف صباحات الغرف.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, dimout print, sage green, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, floral pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-SC-14.jpg"
+    "image": "data/catalog/FA-SC-14.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-SC-15",
@@ -2305,7 +2367,8 @@
     "description_en": "A thermal cotton stripe in camel and brown that warms chalets and family majlis.",
     "description_ar": "قطن حراري مخطط بالجملي والبني يدفئ الاستراحات والمجالس العائلية.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, thermal cotton, camel, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, stripes pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-SC-15.jpg"
+    "image": "data/catalog/FA-SC-15.jpg",
+    "snag_risk": "medium"
   },
   {
     "code": "FA-SC-16",
@@ -2343,7 +2406,8 @@
     "description_en": "A dimout jacquard ripple in silver grey that quiets bright open-plan rooms.",
     "description_ar": "جاكار نصف معتم بتموجات فضية يهدئ المساحات المفتوحة المشرقة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, dimout jacquard, silver grey, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, wave pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-SC-16.jpg"
+    "image": "data/catalog/FA-SC-16.jpg",
+    "snag_risk": "medium"
   },
   {
     "code": "FA-AC-01",
@@ -2377,7 +2441,8 @@
     "description_en": "A vivid cotton velvet in saffron yellow that energises cushions and small seats.",
     "description_ar": "مخمل قطني بلون الزعفران يمنح الوسائد حضورا مشرقا وحيويا.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, saffron yellow, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-AC-01.jpg"
+    "image": "data/catalog/FA-AC-01.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-AC-02",
@@ -2413,7 +2478,8 @@
     "description_en": "A moody cotton velvet in fig purple for cushions with quiet drama.",
     "description_ar": "مخمل قطني بلون التين يمنح الوسائد طابعا دراميا ناعما.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, fig purple, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-AC-02.jpg"
+    "image": "data/catalog/FA-AC-02.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-AC-03",
@@ -2448,7 +2514,8 @@
     "description_en": "An honest linen canvas in oatmeal, washable and soft for everyday cushions.",
     "description_ar": "كتان طبيعي بلون الشوفان قابل للغسل يناسب وسائد الاستخدام اليومي.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, linen canvas, oatmeal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-AC-03.jpg"
+    "image": "data/catalog/FA-AC-03.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-AC-04",
@@ -2484,7 +2551,8 @@
     "description_en": "An earthy cotton velvet in burnt clay that grounds bohemian cushion mixes.",
     "description_ar": "مخمل قطني بلون طيني محروق يمنح تشكيلات الوسائد ثباتا وأناقة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, burnt clay, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-AC-04.jpg"
+    "image": "data/catalog/FA-AC-04.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-AC-05",
@@ -2522,7 +2590,8 @@
     "description_en": "A soft linen canvas in sage grey, gentle and washable for calm cushions.",
     "description_ar": "كتان بلون المريمية الرمادية قابل للغسل يناسب الوسائد الهادئة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, linen canvas, sage grey, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-AC-05.jpg"
+    "image": "data/catalog/FA-AC-05.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-AC-06",
@@ -2556,7 +2625,8 @@
     "description_en": "A jewel cotton velvet in peacock teal that turns cushions into centrepieces.",
     "description_ar": "مخمل قطني بلون تركوازي غني يجعل الوسائد قطعة محورية في الغرفة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, peacock teal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-AC-06.jpg"
+    "image": "data/catalog/FA-AC-06.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-AC-07",
@@ -2591,7 +2661,8 @@
     "description_en": "A breezy linen canvas in desert sand that pairs with every cushion pattern.",
     "description_ar": "كتان بلون رمال الصحراء ينسجم مع كل نقشات الوسائد.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, linen canvas, desert sand, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-AC-07.jpg"
+    "image": "data/catalog/FA-AC-07.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-AC-08",
@@ -2627,7 +2698,8 @@
     "description_en": "A deep cotton velvet in ink navy, neat and clean for hotel-style cushions.",
     "description_ar": "مخمل قطني بلون كحلي عميق يليق بوسائد بطابع فندقي مرتب.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, ink navy, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
-    "image": "data/catalog/FA-AC-08.jpg"
+    "image": "data/catalog/FA-AC-08.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-AC-09",
@@ -2665,7 +2737,8 @@
     "description_en": "An authentic sadu weave in burgundy, black and cream carrying Najdi heritage.",
     "description_ar": "نسيج سدو أصيل بالعنابي والأسود والكريمي يحمل روح التراث النجدي.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, sadu weave, burgundy, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, sadu pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-AC-09.jpg"
+    "image": "data/catalog/FA-AC-09.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-AC-10",
@@ -2705,7 +2778,8 @@
     "description_en": "A heritage sadu weave in deep brown and red woven for storied cushions.",
     "description_ar": "نسيج سدو تراثي بالبني والعنابي يمنح الوسائد حكاية نجدية أصيلة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, sadu weave, deep brown, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, sadu pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-AC-10.jpg"
+    "image": "data/catalog/FA-AC-10.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-AC-11",
@@ -2742,7 +2816,8 @@
     "description_en": "A flat kilim weave in rust and navy with tribal geometry for layered cushions.",
     "description_ar": "نسيج كليم مسطح بأحمر صدئ وكحلي بنقشات قبلية لوسائد متعددة الطبقات.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, kilim weave, rust red, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, kilim pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-AC-11.jpg"
+    "image": "data/catalog/FA-AC-11.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-AC-12",
@@ -2779,7 +2854,8 @@
     "description_en": "A flowing cotton ikat print in indigo and white that moves like river water.",
     "description_ar": "قطن مطبوع بنقشة إيكات زرقاء وبيضاء بانسيابية ماء النهر.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, ikat print, indigo blue, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, ikat pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-AC-12.jpg"
+    "image": "data/catalog/FA-AC-12.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-AC-13",
@@ -2816,7 +2892,8 @@
     "description_en": "A playful cotton geometric print in mustard, black and white for youthful cushions.",
     "description_ar": "قطن مطبوع بأشكال هندسية صفراء وسوداء يناسب وسائد الشباب.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, geometric print, mustard yellow, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, geometric pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-AC-13.jpg"
+    "image": "data/catalog/FA-AC-13.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-AC-14",
@@ -2853,7 +2930,8 @@
     "description_en": "A kilim weave with palm motifs in forest green and beige for grounded seating.",
     "description_ar": "نسيج كليم بنقشات نخيل خضراء وبيجية يمنح الجلسات طابعا أصيلا.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, kilim weave, forest green, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, kilim pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-AC-14.jpg"
+    "image": "data/catalog/FA-AC-14.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-AC-15",
@@ -2892,7 +2970,8 @@
     "description_en": "A fresh cotton floral print in coral and teal that brightens family cushions.",
     "description_ar": "قطن مطبوع بزهور مرجانية وفيروزية يبهج وسائد العائلة.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, floral print, coral pink, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, floral pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-AC-15.jpg"
+    "image": "data/catalog/FA-AC-15.jpg",
+    "snag_risk": "low"
   },
   {
     "code": "FA-AC-16",
@@ -2930,6 +3009,7 @@
     "description_en": "A crisp cotton geometric print in black and white for sharp graphic cushions.",
     "description_ar": "قطن مطبوع بشبكة هندسية سوداء وبيضاء لوسائد بطابع حاد وعصري.",
     "image_prompt": "Flat seamless fabric swatch, top-down view, geometric print, black, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, geometric pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
-    "image": "data/catalog/FA-AC-16.jpg"
+    "image": "data/catalog/FA-AC-16.jpg",
+    "snag_risk": "low"
   }
 ]

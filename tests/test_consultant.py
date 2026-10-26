@@ -130,6 +130,86 @@ def test_piece_mismatch_asks_for_confirmation(monkeypatch):
     assert out["recommendations"] == []
 
 
+def test_every_fabric_has_snag_risk():
+    from app.services.catalog import load_specs
+    for item in load_specs():
+        assert item.get("snag_risk") in ("low", "medium", "high"), \
+            item["code"]
+
+
+def test_snag_low_only_then_medium_fallback():
+    strict, _ = search_catalog(
+        usage="upholstery", snag_levels=["low"], pet_safe=True, limit=20)
+    assert strict
+    assert all(get_fabric(x["code"])["snag_risk"] == "low"
+               for x in strict)
+
+
+def test_snag_medium_widening_is_recorded(monkeypatch):
+    import app.services.catalog as cat
+    base = dict(name_en="T", name_ar="ت", material="cotton velvet",
+                primary_color="red", secondary_colors=[], tone="warm",
+                styles=["modern"], features=["stain-resistant"],
+                suitable_for=["home"], opacity="opaque",
+                price_sar_per_m=100, usage="upholstery",
+                pattern_type="solid", image="")
+    items = [dict(base, code="T-LOW-%d" % i, snag_risk="low")
+             for i in range(2)]
+    items += [dict(base, code="T-MED", snag_risk="medium")]
+    items += [dict(base, code="T-HI", snag_risk="high")]
+    monkeypatch.setattr(cat, "_SPECS", items)
+    summaries, relaxed = search_catalog(
+        usage="upholstery", snag_levels=["low"], limit=10)
+    assert [s["code"] for s in summaries] == ["T-LOW-0", "T-LOW-1",
+                                              "T-MED"]
+    assert "snag_levels" in relaxed
+
+
+def test_pet_turn_enforces_low_snag():
+    turn = {"seen": [], "relaxed": [], "needs_any": ["pet-friendly"],
+            "needs_all": ["easy-clean"], "protected": ["pet-friendly"],
+            "pet_safe": True}
+    result = c.run_search({"usage": "upholstery", "limit": 20}, turn)
+    assert result["fabrics"]
+    for summary in result["fabrics"]:
+        assert get_fabric(summary["code"])["snag_risk"] in (
+            "low", "medium")
+    if any(get_fabric(s["code"])["snag_risk"] == "medium"
+           for s in result["fabrics"]):
+        assert "snag_levels" in turn["relaxed"]
+
+
+def test_partial_mention_still_discloses_the_rest():
+    def fake(messages, tools=None):
+        if not hasattr(fake, "n"):
+            fake.n = 0
+        fake.n += 1
+        if fake.n == 1:
+            return tool_call("search_catalog",
+                             {"usage": "upholstery", "max_price": 100,
+                              "snag_levels": ["low"]})
+        return final_text(
+            "All three fit your budget.\n"
+            + block(["FA-VL-01", "FA-VL-03", "FA-VL-04"]))
+
+    import unittest.mock as mock
+    real_search = c.search_catalog
+
+    def wrapped(**kwargs):
+        summaries, relaxed = real_search(**kwargs)
+        if "max_price" not in relaxed:
+            relaxed = relaxed + ["max_price"]
+        if "snag_levels" not in relaxed:
+            relaxed = relaxed + ["snag_levels"]
+        return summaries, relaxed
+
+    with mock.patch.object(c, "search_catalog", wrapped):
+        out = c.chat("test-partial", "my cat needs sofa fabric",
+                     chat_fn=fake)
+    assert "claw-safe filter" in out["reply"]
+    assert len(out["recommendations"]) == 3
+
+
 def test_room_photo_language_rule():
     assert "never \"sounds\"" in c.SYSTEM_PROMPT
     assert "\"looks\"" in c.SYSTEM_PROMPT

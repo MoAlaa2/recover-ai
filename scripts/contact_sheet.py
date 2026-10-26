@@ -30,6 +30,13 @@ def score_cell(value):
     return '<span class="%s">%d</span>' % (cls, value)
 
 
+def snag_cell(value):
+    if value not in ("low", "medium", "high"):
+        return '<span class="na">n/a</span>'
+    cls = {"low": "ok", "medium": "med", "high": "low"}[value]
+    return '<span class="%s">%s</span>' % (cls, value)
+
+
 def main():
     specs = load_json(SPECS_PATH, [])
     report = {r["code"]: r for r in load_json(REPORT_PATH, [])}
@@ -55,6 +62,7 @@ def main():
              ".price{font-size:13px}",
              ".scores{font-size:12px}",
              ".ok{color:#1a7f37;font-weight:700}",
+             ".med{color:#9a6700;font-weight:700}",
              ".low{color:#b42318;font-weight:700}",
              ".na{color:#888}",
              "</style>", "</head>", "<body>",
@@ -72,6 +80,7 @@ def main():
                 '<div class="code">%s</div>'
                 '<div class="name">%s</div>'
                 '<div class="price">%d SAR/m</div>'
+                '<div class="scores">snag %s</div>'
                 '<div class="scores">color %s pattern %s material %s</div>'
                 '<div class="scores">%s</div>'
                 "</div>" % (
@@ -79,6 +88,7 @@ def main():
                     html.escape(item["code"]),
                     html.escape(item["name_en"]),
                     item["price_sar_per_m"],
+                    snag_cell(item.get("snag_risk")),
                     score_cell(rep.get("color_match")),
                     score_cell(rep.get("pattern_match")),
                     score_cell(rep.get("material_look")),

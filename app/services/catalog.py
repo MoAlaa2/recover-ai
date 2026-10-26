@@ -11,10 +11,11 @@ _SPECS = None
 MIN_RESULTS = 3
 
 # Relaxed in this order until enough fabrics match: style first, then
-# tone/color, then budget, and functional needs (features) last.
+# tone/color, then budget, functional needs (features) next, and the
+# snag-safe filter last.
 RELAX_ORDER = ["styles", "tone", "colors", "suitable_for",
                "plain_or_patterned", "opacity", "max_price",
-               "features", "any_features"]
+               "features", "any_features", "snag_risk"]
 
 USAGE_SYNONYMS = {
     "sofa": "upholstery", "couch": "upholstery", "chair": "upholstery",
@@ -91,6 +92,9 @@ def _matches(item, flt):
     if flt.get("max_price") is not None and \
             item["price_sar_per_m"] > flt["max_price"]:
         return False
+    if flt.get("snag_levels") is not None and \
+            item.get("snag_risk") not in flt["snag_levels"]:
+        return False
     return True
 
 
@@ -128,7 +132,7 @@ def search_catalog(usage=None, colors=None, tone=None,
                    plain_or_patterned=None, styles=None, features=None,
                    any_features=None, suitable_for=None, opacity=None,
                    max_price=None, limit=6, protected=(),
-                   pet_safe=False):
+                   pet_safe=False, snag_levels=None):
     """Filter the catalog. Returns (summaries, relaxed_constraints).
 
     Filters are relaxed in RELAX_ORDER until at least MIN_RESULTS match.
@@ -140,7 +144,8 @@ def search_catalog(usage=None, colors=None, tone=None,
            "styles": list(styles or []), "features": list(features or []),
            "any_features": list(any_features or []),
            "suitable_for": list(suitable_for or []), "opacity": opacity,
-           "max_price": max_price}
+           "max_price": max_price,
+           "snag_levels": list(snag_levels) if snag_levels else None}
     original = {k: (list(v) if isinstance(v, list) else v)
                 for k, v in flt.items()}
     specs = load_specs()
@@ -153,7 +158,14 @@ def search_catalog(usage=None, colors=None, tone=None,
     for name in RELAX_ORDER:
         if len(results) >= MIN_RESULTS:
             break
-        if name in ("features", "any_features"):
+        if name == "snag_risk":
+            if not flt["snag_levels"]:
+                continue
+            if flt["snag_levels"] == ["low"]:
+                flt["snag_levels"] = ["low", "medium"]
+            else:
+                flt["snag_levels"] = None
+        elif name in ("features", "any_features"):
             keepable = [f for f in flt[name] if f in protected]
             if len(keepable) == len(flt[name]):
                 continue
