@@ -396,6 +396,13 @@ def test_detect_user_lang():
     assert det("") is None
 
 
+def test_urdu_persian_german_are_uncertain():
+    from app.services.catalog import detect_user_lang as det
+    assert det("میرے صوفے کے لیے کپڑا چاہیے") is None
+    assert det("برای مبل من پارچه می‌خواهم") is None
+    assert det("Ich brauche Stoff für mein Sofa") is None
+
+
 def test_reply_language_pinned_on_session():
     seen = {}
 
@@ -409,9 +416,23 @@ def test_reply_language_pinned_on_session():
     c.chat("test-lang-ar", "ok", chat_fn=fake)
     assert c.SESSIONS["test-lang-ar"]["lang"] == "ar"
     assert "[Reply only in Arabic.]" in seen["user"]
-    c.chat("test-lang-en", "I need sofa fabric", chat_fn=fake)
-    assert c.SESSIONS["test-lang-en"].get("lang", "en") == "en"
-    assert "[Reply only in English.]" in seen["user"]
+
+
+def test_uncertain_language_mirrors_user():
+    seen = {}
+
+    def fake(messages, tools=None):
+        seen["user"] = messages[-1]["content"]
+        return final_text("noted")
+
+    c.chat("test-lang-ur", "میرے صوفے کے لیے کپڑا چاہیے", chat_fn=fake)
+    assert "lang" not in c.SESSIONS["test-lang-ur"]
+    assert "[Reply in the same language the user wrote in.]" in seen[
+        "user"]
+    c.chat("test-lang-de", "Ich brauche Stoff für mein Sofa",
+           chat_fn=fake)
+    assert "[Reply in the same language the user wrote in.]" in seen[
+        "user"]
 
 
 def test_room_photo_language_rule():

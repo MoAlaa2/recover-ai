@@ -486,9 +486,12 @@ def chat(session_id, message, image_path=None, chat_fn=None):
     detected_lang = detect_user_lang(message)
     if detected_lang:
         session["lang"] = detected_lang
-    reply_lang = session.get("lang", "en")
-    user_text += "\n[Reply only in %s.]" % LANG_NAMES.get(reply_lang,
-                                                         "English")
+    if session.get("lang"):
+        instruction = "Reply only in %s." % LANG_NAMES.get(
+            session["lang"], "English")
+    else:
+        instruction = "Reply in the same language the user wrote in."
+    user_text += "\n[%s]" % instruction
     turn = accumulate_context(session, turn_for(message))
     confirm = ""
     if image_path:

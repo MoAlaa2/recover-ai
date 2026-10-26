@@ -327,19 +327,37 @@ def _marker_hits(text, markers):
                if re.search(r"\b" + re.escape(w) + r"\b", text))
 
 
+AR_MARKERS = ("أبغى", "أبي", "ودي", "الحين", "وش", "ايش",
+                "مرحبا", "هلا", "شكرا", "يعطيك", "قماش", "كنبة",
+                "مجلس", "صالة", "غرفة", "ستارة", "هذا", "هذه",
+                "الذي", "التي", "لكن", "على", "سوف", "نحن")
+
+# Urdu and Persian share the Arabic script but are not Arabic.
+FA_UR_MARKERS = ("ہے", "ہیں", "کا", "کی", "کو", "میں", "اور", "یہ",
+                 "وہ", "چاہیے", "چاہئے", "کپڑا", "لیے", "کے",
+                 "است", "هست", "برای", "را", "در", "این", "آن",
+                 "می‌خواهم", "می")
+
+
 def detect_user_lang(text):
     """Detect the user's language code, or None when uncertain.
 
-    Script decides Arabic and Hindi; French and Spanish are decided by
-    whole-word markers. Plain Latin text without markers is uncertain.
+    Arabic needs Arabic-script plus an Arabic-specific word (Urdu and
+    Persian share the script). Devanagari and FR/ES markers are
+    confident. Everything else (German, Turkish, Urdu, Persian, ...)
+    is uncertain: the caller mirrors the user's language instead.
     """
     import re
     t = text or ""
-    if re.search(r"[\u0600-\u06FF]", t):
-        return "ar"
-    if re.search(r"[\u0900-\u097F]", t):
-        return "hi"
     low = t.lower()
+    has_ar = bool(re.search(r"[\u0600-\u06FF]", t))
+    has_deva = bool(re.search(r"[\u0900-\u097F]", t))
+    if has_ar and not has_deva:
+        if _marker_hits(low, FA_UR_MARKERS):
+            return None
+        return "ar" if _marker_hits(low, AR_MARKERS) else None
+    if has_deva:
+        return "hi"
     fr = _marker_hits(low, FRENCH_MARKERS)
     es = _marker_hits(low, SPANISH_MARKERS)
     if fr > es and fr > 0:
