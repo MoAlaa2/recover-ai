@@ -10,9 +10,11 @@ from app.core.config import SPECS_PATH
 _SPECS = None
 MIN_RESULTS = 3
 
-# Relaxed in this order until enough fabrics match.
-RELAX_ORDER = ["max_price", "features", "opacity", "colors", "tone",
-               "suitable_for", "styles", "plain_or_patterned"]
+# Relaxed in this order until enough fabrics match: style first, then
+# tone/color, then budget, and functional needs (features) last.
+RELAX_ORDER = ["styles", "tone", "colors", "suitable_for",
+               "plain_or_patterned", "opacity", "max_price",
+               "features", "any_features"]
 
 USAGE_SYNONYMS = {
     "sofa": "upholstery", "couch": "upholstery", "chair": "upholstery",
@@ -78,6 +80,9 @@ def _matches(item, flt):
     if flt.get("features") and \
             not set(flt["features"]) <= set(item["features"]):
         return False
+    if flt.get("any_features") and \
+            not set(flt["any_features"]) & set(item["features"]):
+        return False
     if flt.get("suitable_for") and \
             not set(flt["suitable_for"]) & set(item["suitable_for"]):
         return False
@@ -87,6 +92,21 @@ def _matches(item, flt):
             item["price_sar_per_m"] > flt["max_price"]:
         return False
     return True
+
+
+# With pets, loop and raised-pile textures trap claws and fur.
+PET_UNSAFE_MATERIALS = ("boucle",)
+PET_UNSAFE_PATTERNS = ("honeycomb",)
+
+# Tight weaves first when pets are around.
+PET_PREFERRED_MATERIALS = {"performance velvet": 0,
+                           "performance linen": 0,
+                           "cotton canvas": 1,
+                           "linen print": 1}
+
+
+def _pet_rank(item):
+    return PET_PREFERRED_MATERIALS.get(item["material"], 2)
 
 
 def compact(item):
@@ -106,38 +126,92 @@ def compact(item):
 
 def search_catalog(usage=None, colors=None, tone=None,
                    plain_or_patterned=None, styles=None, features=None,
-                   suitable_for=None, opacity=None, max_price=None,
-                   limit=6):
+                   any_features=None, suitable_for=None, opacity=None,
+                   max_price=None, limit=6, protected=(),
+                   pet_safe=False):
     """Filter the catalog. Returns (summaries, relaxed_constraints).
 
     Filters are relaxed in RELAX_ORDER until at least MIN_RESULTS match.
+    Protected features are only dropped as a last resort. relaxed lists
+    only filters that actually changed, computed from the real diff.
     """
     flt = {"usage": usage, "colors": list(colors or []), "tone": tone,
            "plain_or_patterned": plain_or_patterned,
            "styles": list(styles or []), "features": list(features or []),
+           "any_features": list(any_features or []),
            "suitable_for": list(suitable_for or []), "opacity": opacity,
            "max_price": max_price}
+    original = {k: (list(v) if isinstance(v, list) else v)
+                for k, v in flt.items()}
     specs = load_specs()
-    relaxed = []
+    if pet_safe:
+        specs = [i for i in specs
+                 if not any(m in i["material"]
+                            for m in PET_UNSAFE_MATERIALS)
+                 and i["pattern_type"] not in PET_UNSAFE_PATTERNS]
     results = [i for i in specs if _matches(i, flt)]
     for name in RELAX_ORDER:
         if len(results) >= MIN_RESULTS:
             break
-        if name == "max_price" and flt["max_price"] is not None:
+        if name in ("features", "any_features"):
+            keepable = [f for f in flt[name] if f in protected]
+            if len(keepable) == len(flt[name]):
+                continue
+            flt[name] = keepable
+        elif name == "max_price" and flt["max_price"] is not None:
             flt["max_price"] = None
-            relaxed.append(name)
-        elif name in ("colors", "styles", "features", "suitable_for") \
-                and flt[name]:
+        elif name in ("colors", "styles", "suitable_for") and flt[name]:
             flt[name] = []
-            relaxed.append(name)
         elif name in ("tone", "opacity", "plain_or_patterned") \
                 and flt[name]:
             flt[name] = None
-            relaxed.append(name)
         else:
             continue
         results = [i for i in specs if _matches(i, flt)]
+    if len(results) < MIN_RESULTS:
+        dropped = False
+        for name in ("features", "any_features"):
+            if flt[name]:
+                flt[name] = []
+                dropped = True
+        if dropped:
+            results = [i for i in specs if _matches(i, flt)]
+    if pet_safe:
+        results = sorted(results, key=_pet_rank)
+    relaxed = [k for k in flt if flt[k] != original[k]]
     return [compact(i) for i in results[:limit]], relaxed
+
+
+PET_WORDS = ("pet", "dog", "cat", "كلب", "قطة", "قط", "حيوان")
+
+
+def has_pets(text):
+    """True if the user mentions pets."""
+    t = (text or "").lower()
+    return any(w in t for w in PET_WORDS)
+
+
+PIECE_WORDS = {
+    "sofa": ["sofa", "couch", "صوفا", "كنبة", "كنب"],
+    "armchair": ["armchair", "wingback"],
+    "chair": ["chair", "كرسي"],
+    "curtains": ["curtain", "drape", "ستارة", "ستائر"],
+    "cushions": ["cushion", "pillow", "وسادة", "وسائد", "مخدة", "مخدات"],
+    "bed": ["bed", "سرير"],
+}
+
+PIECE_NAMES_AR = {"sofa": "الكنبة", "armchair": "كرسي الاسترخاء",
+                  "chair": "الكرسي", "curtains": "الستائر",
+                  "cushions": "الوسائد", "bed": "السرير"}
+
+
+def detect_piece(text):
+    """Coarse furniture type mentioned in text, or None."""
+    t = (text or "").lower()
+    for piece, words in PIECE_WORDS.items():
+        if any(w in t for w in words):
+            return piece
+    return None
 
 
 def map_needs_to_features(text):

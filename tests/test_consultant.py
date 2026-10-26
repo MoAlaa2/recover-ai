@@ -84,6 +84,57 @@ def test_opening_turn_has_no_recommendations_or_tip():
     assert "نصيحة" not in out["reply"]
 
 
+def test_budget_not_mentioned_when_nothing_relaxed():
+    def fake(messages, tools=None):
+        if not hasattr(fake, "n"):
+            fake.n = 0
+        fake.n += 1
+        if fake.n == 1:
+            return tool_call("search_catalog",
+                             {"usage": "curtains", "max_price": 200})
+        return final_text(block(["FA-LA-01", "FA-LA-02", "FA-LA-03"]))
+
+    out = c.chat("test-no-relax", "curtains please", chat_fn=fake)
+    assert "budget" not in out["reply"].lower()
+    assert "الميزانية" not in out["reply"]
+    assert len(out["recommendations"]) == 3
+
+
+def test_pet_filter_is_or_and_pet_safe():
+    summaries, relaxed = search_catalog(
+        usage="upholstery",
+        any_features=["pet-friendly", "scratch-resistant"],
+        protected=["pet-friendly"], pet_safe=True, limit=10)
+    assert summaries, "expected pet-safe matches"
+    for item in summaries:
+        full = get_fabric(item["code"])
+        assert {"pet-friendly", "scratch-resistant"} & set(
+            full["features"])
+        assert "boucle" not in full["material"]
+        assert full["pattern_type"] != "honeycomb"
+    assert summaries[0]["material"] in ("performance velvet",
+                                       "performance linen")
+
+
+def test_piece_mismatch_asks_for_confirmation(monkeypatch):
+    monkeypatch.setattr(
+        c, "analyze_room",
+        lambda path: {"furniture": "wingback armchair", "style": "classic"})
+    out = c.chat("test-piece", "fabric for my sofa please",
+                 image_path="data/catalog/FA-VL-01.jpg",
+                 chat_fn=lambda messages, tools=None: final_text(
+                     "Nice room. Which mood do you like?"))
+    assert "armchair" in out["reply"]
+    assert "sofa" in out["reply"]
+    assert c.SESSIONS["test-piece"]["detected_piece"] == "armchair"
+    assert out["recommendations"] == []
+
+
+def test_room_photo_language_rule():
+    assert "never \"sounds\"" in c.SYSTEM_PROMPT
+    assert "\"looks\"" in c.SYSTEM_PROMPT
+
+
 def test_relaxed_constraint_message():
     summaries, relaxed = search_catalog(usage="curtains", max_price=10)
     assert "max_price" in relaxed

@@ -14,9 +14,10 @@ import urllib.request
 
 from app.core.config import (BASE_DIR, CHAT_URL, SPARK_MODEL,
                              require_api_key)
-from app.services.catalog import (compact, contains_egyptian, get_fabric,
-                                  is_arabic, load_specs,
-                                  map_needs_to_features, search_catalog)
+from app.services.catalog import (PIECE_NAMES_AR, contains_egyptian,
+                                  detect_piece, get_fabric, has_pets,
+                                  is_arabic, map_needs_to_features,
+                                  search_catalog)
 
 SESSIONS = {}
 MAX_TOOL_ROUNDS = 6
@@ -65,6 +66,9 @@ TIP: include one short professional tip (martindale for heavy use, \
 fade-resistant for sunny rooms, washable for kids) only on turns where you \
 give recommendations, never otherwise.
 
+ROOM PHOTOS: describe what you see with the word "looks", never "sounds". \
+In Arabic use تبدو / شكلها, never any hearing word.
+
 OFF-TOPIC: if the user greets, asks what you do, or drifts off-topic, \
 answer naturally in one or two lines and steer back to fabrics with a \
 question."""
@@ -107,7 +111,12 @@ TOOLS = [
             "plain_or_patterned": {"type": "string",
                                    "description": "plain or patterned"},
             "styles": {"type": "array", "items": {"type": "string"}},
-            "features": {"type": "array", "items": {"type": "string"}},
+            "features": {"type": "array", "items": {"type": "string"},
+                         "description": "ALL of these must match"},
+            "any_features": {"type": "array", "items": {"type": "string"},
+                             "description": "AT LEAST ONE must match; use "
+                                            "for pet-friendly OR "
+                                            "scratch-resistant"},
             "suitable_for": {"type": "array", "items": {"type": "string"}},
             "opacity": {"type": "string"},
             "max_price": {"type": "number"},
@@ -134,16 +143,30 @@ def _as_list(value):
     return value if isinstance(value, list) else [value]
 
 
-def run_search(args):
+PET_OR_FEATURES = ("pet-friendly", "scratch-resistant")
+
+
+def run_search(args, turn):
+    args = args or {}
+    # Expert rules merged in: pet needs are OR-filters, always enforced.
+    model_any = [f for f in _as_list(args.get("any_features"))]
+    model_all = [f for f in _as_list(args.get("features"))]
+    needs_any = [f for f in turn.get("needs_any", [])
+                 if f not in model_any]
+    needs_all = [f for f in turn.get("needs_all", [])
+                 if f not in model_all]
     summaries, relaxed = search_catalog(
         usage=args.get("usage"), colors=_as_list(args.get("colors")),
         tone=args.get("tone"),
         plain_or_patterned=args.get("plain_or_patterned"),
         styles=_as_list(args.get("styles")),
-        features=_as_list(args.get("features")),
+        features=model_all + needs_all,
+        any_features=model_any + needs_any,
         suitable_for=_as_list(args.get("suitable_for")),
         opacity=args.get("opacity"), max_price=args.get("max_price"),
-        limit=args.get("limit", 6) or 6)
+        limit=args.get("limit", 6) or 6,
+        protected=turn.get("protected", ()),
+        pet_safe=turn.get("pet_safe", False))
     return {"fabrics": summaries, "relaxed_constraints": relaxed}
 
 
@@ -204,6 +227,7 @@ def strip_tip(text):
 RELAX_LABELS = {
     "max_price": ("budget", "الميزانية"),
     "features": ("features", "المواصفات"),
+    "any_features": ("pet-friendly filter", "شرط مقاومة الحيوانات"),
     "opacity": ("opacity", "التعتيم"),
     "colors": ("colors", "الألوان"),
     "tone": ("tone", "الدرجة"),
@@ -245,9 +269,11 @@ def enrich(recommendations):
 
 def execute_tool(name, args, turn):
     if name == "search_catalog":
-        result = run_search(args or {})
+        result = run_search(args or {}, turn)
         turn["seen"].extend(f["code"] for f in result["fabrics"])
-        turn["relaxed"] = result["relaxed_constraints"]
+        for name in result["relaxed_constraints"]:
+            if name not in turn["relaxed"]:
+                turn["relaxed"].append(name)
         return result
     if name == "get_fabric":
         item = get_fabric((args or {}).get("code", ""))
@@ -298,13 +324,34 @@ def valid_recommendations(data, seen):
     return recs, None
 
 
+def confirm_piece_question(stated, detected, arabic):
+    if arabic:
+        return ("تأكيد سريع — ذكرت %s، لكن الصورة توضح %s بشكل أساسي. "
+                "لأي قطعة تبغى التوصية؟"
+                % (PIECE_NAMES_AR.get(stated, stated),
+                   PIECE_NAMES_AR.get(detected, detected)))
+    return ("Quick check — you mentioned your %s, but the photo mainly "
+            "shows a %s. Which piece should I recommend for?"
+            % (stated, detected))
+
+
 def chat(session_id, message, image_path=None, chat_fn=None):
     """One user turn. Returns {reply, recommendations, room_analysis?}."""
-    history = SESSIONS.setdefault(session_id, [])
+    session = SESSIONS.setdefault(session_id, {"messages": [],
+                                               "detected_piece": None})
+    history = session["messages"]
     if not history or history[0].get("role") != "system":
         history.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
     room_analysis = None
     user_text = message or ""
+    needs = map_needs_to_features(message)
+    pet_needs = [f for f in needs if f in PET_OR_FEATURES]
+    core_needs = [f for f in needs if f not in PET_OR_FEATURES]
+    turn = {"seen": [], "relaxed": [],
+            "needs_any": pet_needs, "needs_all": core_needs,
+            "protected": ["pet-friendly"] if has_pets(message) else [],
+            "pet_safe": has_pets(message)}
+    confirm = ""
     if image_path:
         path = image_path if os.path.isabs(image_path) else \
             os.path.join(BASE_DIR, image_path)
@@ -313,11 +360,15 @@ def chat(session_id, message, image_path=None, chat_fn=None):
         room_analysis = analyze_room(image_path)
         user_text += "\n[Room photo analyzed: %s]" % json.dumps(
             room_analysis, ensure_ascii=False)
-        needs = ", ".join(map_needs_to_features(message)) or "none"
-        user_text += "\nSuggested features from my needs: %s" % needs
+        needs_text = ", ".join(needs) or "none"
+        user_text += "\nSuggested features from my needs: %s" % needs_text
+        stated = detect_piece(message)
+        detected = detect_piece((room_analysis or {}).get("furniture", ""))
+        if stated and detected and stated != detected:
+            session["detected_piece"] = detected
+            confirm = confirm_piece_question(stated, detected,
+                                             is_arabic(message))
     history.append({"role": "user", "content": user_text})
-
-    turn = {"seen": [], "relaxed": []}
     final_text = agent_turn(list(history), chat_fn, turn)
     extracted = extract_recommendations(final_text)
     recs, bad = (None, None)
@@ -345,6 +396,8 @@ def chat(session_id, message, image_path=None, chat_fn=None):
     reply = strip_block(final_text)
     if not recommendations:
         reply = strip_tip(reply)
+    if confirm:
+        reply = (reply + "\n\n" + confirm).strip()
     if turn["relaxed"] and not mentioned_relaxation(reply):
         reply = (reply + "\n\n" + disclosure_note(
             turn["relaxed"], is_arabic(user_text))).strip()
