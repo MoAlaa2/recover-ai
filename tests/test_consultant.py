@@ -68,6 +68,22 @@ def test_arabic_reply_has_no_egyptian_markers():
     assert "عايز" in c.SYSTEM_PROMPT
 
 
+def test_opening_turn_has_no_recommendations_or_tip():
+    def fake(messages, tools=None):
+        return final_text(
+            "I'm ReCover, your luxury fabric consultant.\n"
+            "I recommend fabrics, analyze room photos, and preview "
+            "furniture in new fabrics.\n"
+            "Which would you like to explore first?\n"
+            "Tip: choose a high martindale for heavy use.")
+
+    out = c.chat("test-opening", "hello", chat_fn=fake)
+    assert out["recommendations"] == []
+    assert "tip" not in out["reply"].lower()
+    assert "تلميح" not in out["reply"]
+    assert "نصيحة" not in out["reply"]
+
+
 def test_relaxed_constraint_message():
     summaries, relaxed = search_catalog(usage="curtains", max_price=10)
     assert "max_price" in relaxed

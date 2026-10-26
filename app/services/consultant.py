@@ -49,19 +49,21 @@ NEEDS MAPPING: pets -> pet-friendly and scratch-resistant; kids -> \
 easy-clean, stain-resistant and antibacterial; hotel or restaurant -> \
 fire-resistant; bedroom curtains -> blackout.
 
-RECOMMENDATIONS: when you have enough, reply normally and end with one \
-fenced block on its own lines:
+RECOMMENDATIONS: only when you have gathered enough and are ready to \
+recommend, reply normally and end with one fenced block on its own lines:
 ```recommendations
 [{"code": "FA-VL-01", "reason": "why in the user's language"}]
 ```
-Exactly 3 items, codes only from tool results. If you are told a code was \
-rejected, fix it with a real code from your tool results.
+Exactly 3 items, codes only from tool results. On turns where you are still \
+asking questions, do NOT include the block and give NO tip. If you are told \
+a code was rejected, fix it with a real code from your tool results.
 
 RELAXED CONSTRAINTS: if a tool result says constraints were relaxed, state \
 plainly in your reply which constraint was relaxed (for example budget).
 
-TIP: include one short professional tip with recommendations (martindale \
-for heavy use, fade-resistant for sunny rooms, washable for kids).
+TIP: include one short professional tip (martindale for heavy use, \
+fade-resistant for sunny rooms, washable for kids) only on turns where you \
+give recommendations, never otherwise.
 
 OFF-TOPIC: if the user greets, asks what you do, or drifts off-topic, \
 answer naturally in one or two lines and steer back to fabrics with a \
@@ -190,6 +192,15 @@ def strip_block(text):
     return RECO_RE.sub("", text or "").strip()
 
 
+TIP_RE = re.compile(r"(?mi)^\s*(tip|تلميح|نصيحة)\s*[:：-].*$")
+
+
+def strip_tip(text):
+    """Remove tip lines. Used on turns without recommendations."""
+    cleaned = TIP_RE.sub("", text or "")
+    return re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+
+
 RELAX_LABELS = {
     "max_price": ("budget", "الميزانية"),
     "features": ("features", "المواصفات"),
@@ -308,37 +319,32 @@ def chat(session_id, message, image_path=None, chat_fn=None):
 
     turn = {"seen": [], "relaxed": []}
     final_text = agent_turn(list(history), chat_fn, turn)
-    recs, bad = valid_recommendations(
-        extract_recommendations(final_text), turn["seen"]) \
-        if extract_recommendations(final_text) is not None else (None, None)
+    extracted = extract_recommendations(final_text)
+    recs, bad = (None, None)
+    if extracted is not None:
+        recs, bad = valid_recommendations(extracted, turn["seen"])
 
-    if extract_recommendations(final_text) is None or bad:
+    if bad:
         seen_codes = [c for c in turn["seen"] if get_fabric(c)]
-        hint = ("The recommendations block was missing." if bad is None
-                else "Code %s does not exist." % bad)
         history.append({"role": "assistant", "content": final_text})
         history.append({"role": "user", "content":
-                        "%s Reply again with exactly 3 real codes from your "
-                        "tool results%s, same reply text, ending with the "
-                        "```recommendations block." % (
-                            hint, " (for example %s)" % ", ".join(
-                                seen_codes[:5]) if seen_codes else "")})
+                        "Code %s does not exist. Reply again with exactly "
+                        "3 real codes from your tool results%s, same reply "
+                        "text, ending with the ```recommendations block."
+                        % (bad, " (for example %s)" % ", ".join(
+                            seen_codes[:5]) if seen_codes else "")})
         final_text = agent_turn(list(history), chat_fn, turn)
-        recs, bad = valid_recommendations(
-            extract_recommendations(final_text), turn["seen"]) \
-            if extract_recommendations(final_text) is not None \
-            else (None, None)
+        extracted = extract_recommendations(final_text)
+        if extracted is not None:
+            recs, bad = valid_recommendations(extracted, turn["seen"])
+        else:
+            recs, bad = None, None
 
-    recommendations = []
-    if recs and not bad:
-        recommendations = recs
-    elif turn["seen"]:
-        fallback = [c for c in dict.fromkeys(turn["seen"])
-                    if get_fabric(c)][:3]
-        recommendations = [
-            {"code": c, "reason": ""} for c in fallback]
+    recommendations = recs if (recs and not bad) else []
 
     reply = strip_block(final_text)
+    if not recommendations:
+        reply = strip_tip(reply)
     if turn["relaxed"] and not mentioned_relaxation(reply):
         reply = (reply + "\n\n" + disclosure_note(
             turn["relaxed"], is_arabic(user_text))).strip()
