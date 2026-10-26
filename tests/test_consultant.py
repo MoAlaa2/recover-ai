@@ -250,6 +250,72 @@ def test_velvet_cleaning_is_answered():
     assert "Vacuum" in out["reply"]
 
 
+def _fit_of(code, required):
+    return len(set(get_fabric(code)["features"]) & set(required))
+
+
+def test_ranking_orders_by_functional_fit():
+    turn = {"seen": [], "relaxed": [], "needs_any": [],
+            "needs_all": ["easy-clean"], "protected": [],
+            "pet_safe": False, "has_kids": False}
+    res = c.run_search({"usage": "upholstery", "limit": 20}, turn)
+    assert res["fabrics"]
+    fits = [_fit_of(s["code"], ["easy-clean"]) for s in res["fabrics"]]
+    assert fits == sorted(fits, reverse=True)
+
+
+def test_kids_light_fabrics_demoted():
+    from app.services import catalog as cat
+    turn = {"seen": [], "relaxed": [], "needs_any": [],
+            "needs_all": ["easy-clean"], "protected": [],
+            "pet_safe": False, "has_kids": True}
+    res = c.run_search({"usage": "upholstery", "limit": 20}, turn)
+    order = []
+    for s in res["fabrics"]:
+        item = get_fabric(s["code"])
+        order.append((s["code"], _fit_of(s["code"], ["easy-clean"]),
+                      item.get("snag_risk"),
+                      cat.is_light_unprotected(item)))
+    for i in range(len(order) - 1):
+        a, b = order[i], order[i + 1]
+        if (a[1], a[2]) == (b[1], b[2]):
+            assert not a[3] or b[3]
+
+
+def test_budget_preferred_when_fit_equal(monkeypatch):
+    import app.services.catalog as cat
+    base = dict(name_en="T", name_ar="ت", material="cotton velvet",
+                primary_color="red", secondary_colors=[], tone="warm",
+                features=["stain-resistant"], suitable_for=["home"],
+                opacity="opaque", usage="upholstery",
+                pattern_type="solid", image="", snag_risk="low")
+    items = [dict(base, code="B-80", price_sar_per_m=80, styles=[]),
+             dict(base, code="B-150", price_sar_per_m=150,
+                  styles=["modern"]),
+             dict(base, code="B-90", price_sar_per_m=90, styles=[])]
+    monkeypatch.setattr(cat, "_SPECS", items)
+    turn = {"seen": [], "relaxed": [], "needs_any": [], "needs_all": [],
+            "protected": [], "pet_safe": False, "has_kids": False}
+    res = c.run_search({"usage": "upholstery", "styles": ["modern"],
+                        "max_price": 100, "limit": 10}, turn)
+    assert [s["code"] for s in res["fabrics"]] == ["B-80", "B-90",
+                                                  "B-150"]
+
+
+def test_kids_light_note_mentions_fabric():
+    def fake(messages, tools=None):
+        if not hasattr(fake, "n"):
+            fake.n = 0
+        fake.n += 1
+        if fake.n == 1:
+            return tool_call("search_catalog", {"usage": "upholstery"})
+        return final_text(block(["FA-VL-06", "FA-VL-01", "FA-VL-04"]))
+
+    out = c.chat("test-kids-note", "sofa for my kids please", chat_fn=fake)
+    assert "FA-VL-06" in out["reply"]
+    assert "extra care with kids" in out["reply"]
+
+
 def test_room_photo_language_rule():
     assert "never \"sounds\"" in c.SYSTEM_PROMPT
     assert "\"looks\"" in c.SYSTEM_PROMPT

@@ -203,6 +203,28 @@ def has_pets(text):
     return any(w in t for w in PET_WORDS)
 
 
+KID_WORDS = ("kid", "child", "baby", "toddler", "طفل", "أطفال",
+             "عيال", "رضيع")
+
+
+def has_kids(text):
+    """True if the user mentions kids."""
+    t = (text or "").lower()
+    return any(w in t for w in KID_WORDS)
+
+
+LIGHT_COLOR_WORDS = ("ivory", "white", "cream")
+
+
+def is_light_unprotected(item):
+    """Light color without stain-resistance or washability."""
+    primary = (item.get("primary_color") or "").lower()
+    if not any(w in primary for w in LIGHT_COLOR_WORDS):
+        return False
+    return not ({"stain-resistant", "washable"}
+                & set(item.get("features", [])))
+
+
 PIECE_WORDS = {
     "sofa": ["sofa", "couch", "صوفا", "كنبة", "كنب"],
     "armchair": ["armchair", "wingback"],

@@ -15,8 +15,9 @@ import urllib.request
 from app.core.config import (BASE_DIR, CHAT_URL, SPARK_MODEL,
                              require_api_key)
 from app.services.catalog import (PIECE_NAMES_AR, contains_egyptian,
-                                  detect_piece, get_fabric, has_pets,
-                                  is_arabic, is_in_scope,
+                                  detect_piece, get_fabric, has_kids,
+                                  has_pets, is_arabic, is_in_scope,
+                                  is_light_unprotected,
                                   map_needs_to_features, search_catalog)
 
 SESSIONS = {}
@@ -148,6 +149,25 @@ def _as_list(value):
 
 PET_OR_FEATURES = ("pet-friendly", "scratch-resistant")
 
+SNAG_ORDER = {"low": 0, "medium": 1, "high": 2}
+
+
+def rank_key(summary, required, wanted_styles, wanted_tone, max_price,
+             has_kids_flag):
+    """Functional fit first, then snag, kids-safe color, budget, style."""
+    item = get_fabric(summary["code"])
+    feats = set(item.get("features", []))
+    fit = len([f for f in required if f in feats])
+    snag = SNAG_ORDER.get(item.get("snag_risk"), 3)
+    light = 1 if (has_kids_flag and is_light_unprotected(item)) else 0
+    over = 1 if (max_price is not None
+                 and item["price_sar_per_m"] > max_price) else 0
+    style_hit = len(set(wanted_styles) & set(item.get("styles", [])))
+    if wanted_tone and item.get("tone") == wanted_tone:
+        style_hit += 1
+    return (-fit, snag, light, over, -style_hit,
+            item["price_sar_per_m"])
+
 
 def run_search(args, turn):
     args = args or {}
@@ -161,6 +181,7 @@ def run_search(args, turn):
     snag = _as_list(args.get("snag_levels"))
     if turn.get("pet_safe") and not snag:
         snag = ["low"]
+    wanted = args.get("limit", 6) or 6
     summaries, relaxed = search_catalog(
         usage=args.get("usage"), colors=_as_list(args.get("colors")),
         tone=args.get("tone"),
@@ -170,11 +191,16 @@ def run_search(args, turn):
         any_features=model_any + needs_any,
         suitable_for=_as_list(args.get("suitable_for")),
         opacity=args.get("opacity"), max_price=args.get("max_price"),
-        limit=args.get("limit", 6) or 6,
+        limit=50,
         protected=turn.get("protected", ()),
         pet_safe=turn.get("pet_safe", False),
         snag_levels=snag or None)
-    return {"fabrics": summaries, "relaxed_constraints": relaxed}
+    required = model_all + needs_all + model_any + needs_any
+    summaries.sort(key=lambda s: rank_key(
+        s, required, _as_list(args.get("styles")), args.get("tone"),
+        args.get("max_price"), turn.get("has_kids", False)))
+    return {"fabrics": summaries[:wanted],
+            "relaxed_constraints": relaxed}
 
 
 def analyze_room(image_path):
@@ -338,6 +364,20 @@ def valid_recommendations(data, seen):
     return recs, None
 
 
+def kids_color_note(recommendations, arabic):
+    """Warn when a light, non-washable fabric is shown for kids."""
+    flagged = [r["code"] for r in recommendations
+               if is_light_unprotected(get_fabric(r["code"]))]
+    if not flagged:
+        return ""
+    codes = ", ".join(flagged)
+    if arabic:
+        return ("ملاحظة: %s فاتح اللون وغير مقاوم للبقع، ويحتاج عناية "
+                "إضافية مع الأطفال." % codes)
+    return ("Note: %s is light-colored and not stain-resistant, so expect "
+            "extra care with kids." % codes)
+
+
 def confirm_piece_question(stated, detected, arabic):
     if arabic:
         return ("تأكيد سريع — ذكرت %s، لكن الصورة توضح %s بشكل أساسي. "
@@ -388,7 +428,8 @@ def chat(session_id, message, image_path=None, chat_fn=None):
     turn = {"seen": [], "relaxed": [],
             "needs_any": pet_needs, "needs_all": core_needs,
             "protected": ["pet-friendly"] if has_pets(message) else [],
-            "pet_safe": has_pets(message)}
+            "pet_safe": has_pets(message),
+            "has_kids": has_kids(message)}
     confirm = ""
     if image_path:
         path = image_path if os.path.isabs(image_path) else \
@@ -441,6 +482,10 @@ def chat(session_id, message, image_path=None, chat_fn=None):
     if missing:
         reply = (reply + "\n\n" + disclosure_note(
             missing, is_arabic(user_text))).strip()
+    if recommendations and turn.get("has_kids"):
+        note = kids_color_note(recommendations, is_arabic(user_text))
+        if note and note not in reply:
+            reply = (reply + "\n\n" + note).strip()
     history.append({"role": "assistant", "content": final_text})
 
     result = {"reply": reply,
