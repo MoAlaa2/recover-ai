@@ -4,3 +4,4 @@ python-dotenv
 pydantic>=2
 python-multipart
 pytest
+httpx
