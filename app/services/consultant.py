@@ -14,8 +14,9 @@ import urllib.request
 
 from app.core.config import (BASE_DIR, CHAT_URL, SPARK_MODEL,
                              require_api_key)
-from app.services.catalog import (PIECE_NAMES_AR, contains_egyptian,
-                                  detect_piece, get_fabric, has_kids,
+from app.services.catalog import (LANG_NAMES, PIECE_NAMES_AR,
+                                  contains_egyptian, detect_piece,
+                                  detect_user_lang, get_fabric, has_kids,
                                   has_pets, is_arabic, is_in_scope,
                                   is_light_unprotected,
                                   map_needs_to_features, needs_durable,
@@ -482,6 +483,12 @@ def chat(session_id, message, image_path=None, chat_fn=None):
         history.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
     room_analysis = None
     user_text = message or ""
+    detected_lang = detect_user_lang(message)
+    if detected_lang:
+        session["lang"] = detected_lang
+    reply_lang = session.get("lang", "en")
+    user_text += "\n[Reply only in %s.]" % LANG_NAMES.get(reply_lang,
+                                                         "English")
     turn = accumulate_context(session, turn_for(message))
     confirm = ""
     if image_path:

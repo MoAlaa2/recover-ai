@@ -384,6 +384,36 @@ def test_context_accumulates_across_turns():
     assert "pet-friendly" in c.SESSIONS["test-acc"]["needs_any"]
 
 
+def test_detect_user_lang():
+    from app.services.catalog import detect_user_lang as det
+    assert det("أبغى قماش") == "ar"
+    assert det("मुझे कपड़ा चाहिए") == "hi"
+    assert det("Je cherche un tissu") == "fr"
+    assert det("Busco tela para mi sofá") == "es"
+    assert det("I need sofa fabric") is None
+    assert det("ok") is None
+    assert det("separate covers") is None
+    assert det("") is None
+
+
+def test_reply_language_pinned_on_session():
+    seen = {}
+
+    def fake(messages, tools=None):
+        seen["user"] = messages[-1]["content"]
+        return final_text("noted")
+
+    c.chat("test-lang-ar", "أبغى قماش للكنبة", chat_fn=fake)
+    assert c.SESSIONS["test-lang-ar"]["lang"] == "ar"
+    assert "[Reply only in Arabic.]" in seen["user"]
+    c.chat("test-lang-ar", "ok", chat_fn=fake)
+    assert c.SESSIONS["test-lang-ar"]["lang"] == "ar"
+    assert "[Reply only in Arabic.]" in seen["user"]
+    c.chat("test-lang-en", "I need sofa fabric", chat_fn=fake)
+    assert c.SESSIONS["test-lang-en"].get("lang", "en") == "en"
+    assert "[Reply only in English.]" in seen["user"]
+
+
 def test_room_photo_language_rule():
     assert "never \"sounds\"" in c.SYSTEM_PROMPT
     assert "\"looks\"" in c.SYSTEM_PROMPT

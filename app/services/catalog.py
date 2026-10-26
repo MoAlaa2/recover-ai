@@ -309,6 +309,46 @@ SCOPE_DECLINE_PATTERNS = [
 ]
 
 
+FRENCH_MARKERS = ("tissu", "canape", "canapé", "voici", "recommande",
+                  "recommandez", "votre", "vos", "rideaux", "maison",
+                  "cherche", "je", "nous")
+SPANISH_MARKERS = ("tela", "sofá", "recomiendo", "recomienda",
+                   "tapiceria", "tapicería", "cojines", "salón",
+                   "busco", "busca", "tengo", "tiene", "niños",
+                   "para", "una")
+
+LANG_NAMES = {"ar": "Arabic", "hi": "Hindi", "fr": "French",
+              "es": "Spanish", "en": "English"}
+
+
+def _marker_hits(text, markers):
+    import re
+    return sum(1 for w in markers
+               if re.search(r"\b" + re.escape(w) + r"\b", text))
+
+
+def detect_user_lang(text):
+    """Detect the user's language code, or None when uncertain.
+
+    Script decides Arabic and Hindi; French and Spanish are decided by
+    whole-word markers. Plain Latin text without markers is uncertain.
+    """
+    import re
+    t = text or ""
+    if re.search(r"[\u0600-\u06FF]", t):
+        return "ar"
+    if re.search(r"[\u0900-\u097F]", t):
+        return "hi"
+    low = t.lower()
+    fr = _marker_hits(low, FRENCH_MARKERS)
+    es = _marker_hits(low, SPANISH_MARKERS)
+    if fr > es and fr > 0:
+        return "fr"
+    if es > fr and es > 0:
+        return "es"
+    return None
+
+
 def is_in_scope(text):
     """True when the turn belongs to the consultant.
 
