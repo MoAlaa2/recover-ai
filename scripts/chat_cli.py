@@ -34,6 +34,14 @@ def post_file(url, path):
         return json.loads(resp.read().decode("utf-8"))
 
 
+def clean_path(raw):
+    """Strip trailing spaces and surrounding quotes from a pasted path."""
+    path = (raw or "").strip()
+    if len(path) >= 2 and path[0] == path[-1] and path[0] in ("'", '"'):
+        path = path[1:-1].strip()
+    return path
+
+
 def show_result(result):
     print("\n%s\n" % result.get("reply", ""))
     for rec in result.get("recommendations", []):
@@ -61,8 +69,13 @@ def main(argv=None):
             break
         if line == "/quit":
             break
-        if line.startswith("/image "):
-            path = line[len("/image "):].strip()
+        if line == "/image" or line.startswith("/image "):
+            path = clean_path(line[len("/image"):])
+            if not path:
+                path = clean_path(input("Image path: "))
+            if not path:
+                print("no image attached")
+                continue
             try:
                 pending_image = post_file(args.url + "/api/upload",
                                           path)["image_path"]
