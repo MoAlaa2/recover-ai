@@ -1,0 +1,2853 @@
+[
+  {
+    "code": "FA-VL-01",
+    "name_en": "Emerald Royale",
+    "name_ar": "زمرد ملكي",
+    "collection": "Velvet Luxe",
+    "usage": "upholstery",
+    "material": "cotton velvet",
+    "composition": "80% cotton, 20% polyester",
+    "weight_gsm": 380,
+    "width_cm": 142,
+    "martindale": 80000,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "emerald green",
+    "secondary_colors": [],
+    "tone": "cool",
+    "styles": [
+      "luxury",
+      "classic"
+    ],
+    "features": [
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "hotel",
+      "home"
+    ],
+    "price_sar_per_m": 235,
+    "description_en": "A dense cotton velvet in emerald green with a deep lustrous pile built for statement sofas.",
+    "description_ar": "قطيفة قطنية خضراء بكثافة عالية تمنح الكنب حضورا فاخرا في المجالس.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, emerald green, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-VL-02",
+    "name_en": "Sage Crown",
+    "name_ar": "تاج المريمية",
+    "collection": "Velvet Luxe",
+    "usage": "upholstery",
+    "material": "cotton chenille",
+    "composition": "70% cotton, 30% acrylic",
+    "weight_gsm": 340,
+    "width_cm": 145,
+    "martindale": 60000,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "sage green",
+    "secondary_colors": [
+      "ivory"
+    ],
+    "tone": "neutral",
+    "styles": [
+      "modern",
+      "scandinavian"
+    ],
+    "features": [
+      "easy-clean",
+      "stain-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "kids"
+    ],
+    "price_sar_per_m": 165,
+    "description_en": "A soft cotton chenille in sage green with a full textured hand made for everyday luxury seating.",
+    "description_ar": "شنيل قطني بلون المريمية بملمس ممتلئ يليق بكنب الاستخدام اليومي الراقي.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton chenille, sage green, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-VL-03",
+    "name_en": "Rose Dune",
+    "name_ar": "وردة الرمال",
+    "collection": "Velvet Luxe",
+    "usage": "upholstery",
+    "material": "silk-blend velvet",
+    "composition": "60% viscose, 40% silk",
+    "weight_gsm": 360,
+    "width_cm": 140,
+    "martindale": 50000,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "dusty rose",
+    "secondary_colors": [
+      "champagne"
+    ],
+    "tone": "warm",
+    "styles": [
+      "luxury",
+      "modern"
+    ],
+    "features": [
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 245,
+    "description_en": "A silk-blend velvet in dusty rose with a radiant pile that shifts beautifully in daylight.",
+    "description_ar": "مخمل حريري بلون وردي ترابي يعكس الضوء بطريقة ناعمة تناسب غرف الجلوس الراقية.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, silk-blend velvet, dusty rose, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-VL-04",
+    "name_en": "Midnight Sapphire",
+    "name_ar": "ياقوت الليل",
+    "collection": "Velvet Luxe",
+    "usage": "upholstery",
+    "material": "cotton velvet",
+    "composition": "85% cotton, 15% polyester",
+    "weight_gsm": 390,
+    "width_cm": 142,
+    "martindale": 90000,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "navy blue",
+    "secondary_colors": [],
+    "tone": "cool",
+    "styles": [
+      "luxury",
+      "classic"
+    ],
+    "features": [
+      "stain-resistant",
+      "pet-friendly"
+    ],
+    "suitable_for": [
+      "home",
+      "pets",
+      "hotel"
+    ],
+    "price_sar_per_m": 225,
+    "description_en": "A heavy cotton velvet in navy blue with a deep saturated pile for timeless formal seating.",
+    "description_ar": "قطيفة قطنية كحلية ثقيلة بملمس عميق تناسب المجالس الرسمية والفنادق.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, navy blue, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-VL-05",
+    "name_en": "Golden Hour",
+    "name_ar": "ساعة الذهب",
+    "collection": "Velvet Luxe",
+    "usage": "upholstery",
+    "material": "polyester chenille",
+    "composition": "100% polyester",
+    "weight_gsm": 320,
+    "width_cm": 150,
+    "martindale": 70000,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "champagne gold",
+    "secondary_colors": [
+      "bronze"
+    ],
+    "tone": "warm",
+    "styles": [
+      "modern",
+      "luxury"
+    ],
+    "features": [
+      "easy-clean",
+      "stain-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "restaurant"
+    ],
+    "price_sar_per_m": 155,
+    "description_en": "A plush polyester chenille in champagne gold with a soft sheen that warms up dining chairs.",
+    "description_ar": "شنيل بلون الشمبين الذهبي بلمعة ناعمة يضفي دفئا على كراسي السفرة والمجالس.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, polyester chenille, champagne gold, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-VL-06",
+    "name_en": "Ivory Palace",
+    "name_ar": "قصر العاج",
+    "collection": "Velvet Luxe",
+    "usage": "upholstery",
+    "material": "cotton jacquard",
+    "composition": "65% cotton, 35% polyester",
+    "weight_gsm": 300,
+    "width_cm": 150,
+    "martindale": 55000,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "ivory",
+    "secondary_colors": [],
+    "tone": "neutral",
+    "styles": [
+      "classic",
+      "minimalist"
+    ],
+    "features": [
+      "crease-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 145,
+    "description_en": "A refined cotton jacquard in ivory with a subtle woven grain for calm elegant upholstery.",
+    "description_ar": "جاكار قطني عاجي بنسيج ناعم يمنح الكنب مظهرا هادئا وأنيقا.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton jacquard, ivory, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-VL-07",
+    "name_en": "Ember Throne",
+    "name_ar": "عرش الجمر",
+    "collection": "Velvet Luxe",
+    "usage": "upholstery",
+    "material": "wool-blend velvet",
+    "composition": "70% wool, 30% viscose",
+    "weight_gsm": 410,
+    "width_cm": 140,
+    "martindale": 75000,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "terracotta",
+    "secondary_colors": [
+      "rust"
+    ],
+    "tone": "warm",
+    "styles": [
+      "luxury",
+      "bohemian"
+    ],
+    "features": [
+      "fire-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel",
+      "restaurant"
+    ],
+    "price_sar_per_m": 240,
+    "description_en": "A weighty wool-blend velvet in terracotta with a rich matte depth for bold accent seating.",
+    "description_ar": "مخمل صوفي بلون الطين المحروق بكثافة واضحة يليق بكراسي مميزة في المجالس.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, wool-blend velvet, terracotta, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-VL-08",
+    "name_en": "Graphite Majesty",
+    "name_ar": "رماد ملكي",
+    "collection": "Velvet Luxe",
+    "usage": "upholstery",
+    "material": "cotton velvet",
+    "composition": "80% cotton, 20% nylon",
+    "weight_gsm": 370,
+    "width_cm": 142,
+    "martindale": 85000,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "deep charcoal",
+    "secondary_colors": [
+      "silver grey"
+    ],
+    "tone": "neutral",
+    "styles": [
+      "modern",
+      "classic"
+    ],
+    "features": [
+      "stain-resistant",
+      "scratch-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "pets",
+      "office"
+    ],
+    "price_sar_per_m": 215,
+    "description_en": "A dense cotton velvet in deep charcoal with a firm pile that keeps modern seating sharp.",
+    "description_ar": "قطيفة قطنية بلون رمادي عميق بنسيج متماسك يحافظ على شكل الكنب العصري.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, deep charcoal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-VL-09",
+    "name_en": "Gilded Damask",
+    "name_ar": "ديباج مذهّب",
+    "collection": "Velvet Luxe",
+    "usage": "upholstery",
+    "material": "cotton jacquard",
+    "composition": "60% cotton, 40% viscose",
+    "weight_gsm": 320,
+    "width_cm": 150,
+    "martindale": 65000,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "damask",
+    "primary_color": "antique gold",
+    "secondary_colors": [
+      "bronze"
+    ],
+    "tone": "warm",
+    "styles": [
+      "luxury",
+      "classic"
+    ],
+    "features": [
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 225,
+    "description_en": "A regal cotton jacquard damask in antique gold with a raised woven motif for grand seating.",
+    "description_ar": "جاكار قطني بنقشة ديباج ذهبية بارزة يليق بكنب المجالس الفخمة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton jacquard, antique gold, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, damask pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-VL-10",
+    "name_en": "Peacock Garden",
+    "name_ar": "حديقة الطاووس",
+    "collection": "Velvet Luxe",
+    "usage": "upholstery",
+    "material": "viscose jacquard",
+    "composition": "70% viscose, 30% polyester",
+    "weight_gsm": 310,
+    "width_cm": 148,
+    "martindale": 55000,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "floral",
+    "primary_color": "teal",
+    "secondary_colors": [
+      "gold",
+      "emerald green"
+    ],
+    "tone": "cool",
+    "styles": [
+      "luxury",
+      "bohemian"
+    ],
+    "features": [
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 215,
+    "description_en": "A lush viscose jacquard with peacock florals in teal and gold woven for dramatic chairs.",
+    "description_ar": "جاكار بنقشة طاووس بالتركوازي والذهبي يمنح الكراسي حضورا مسرحيا راقيا.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, viscose jacquard, teal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, floral pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-VL-11",
+    "name_en": "Andalusian Star",
+    "name_ar": "نجمة أندلسية",
+    "collection": "Velvet Luxe",
+    "usage": "upholstery",
+    "material": "cotton jacquard",
+    "composition": "65% cotton, 35% nylon",
+    "weight_gsm": 330,
+    "width_cm": 150,
+    "martindale": 70000,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "geometric",
+    "primary_color": "navy blue",
+    "secondary_colors": [
+      "silver"
+    ],
+    "tone": "cool",
+    "styles": [
+      "classic",
+      "modern"
+    ],
+    "features": [
+      "stain-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "office"
+    ],
+    "price_sar_per_m": 195,
+    "description_en": "A precise cotton jacquard with Andalusian stars in navy and silver for tailored upholstery.",
+    "description_ar": "جاكار قطني بنجوم أندلسية كحلية وفضية يعطي التنجيد شكلا هندسيا متقنا.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton jacquard, navy blue, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, geometric pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-VL-12",
+    "name_en": "Rose Trellis",
+    "name_ar": "تعريشة الورد",
+    "collection": "Velvet Luxe",
+    "usage": "upholstery",
+    "material": "silk-blend jacquard",
+    "composition": "55% silk, 45% viscose",
+    "weight_gsm": 290,
+    "width_cm": 140,
+    "martindale": 45000,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "trellis",
+    "primary_color": "blush pink",
+    "secondary_colors": [
+      "gold"
+    ],
+    "tone": "warm",
+    "styles": [
+      "luxury",
+      "classic"
+    ],
+    "features": [
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 250,
+    "description_en": "A delicate silk-blend jacquard trellis in blush and gold for refined feminine seating.",
+    "description_ar": "جاكار حريري بنقشة متعرجة وردية وذهبية يليق بكنب غرف النوم الفاخرة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, silk-blend jacquard, blush pink, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, trellis pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-VL-13",
+    "name_en": "Onyx Chevron",
+    "name_ar": "شيفرون العقيق",
+    "collection": "Velvet Luxe",
+    "usage": "upholstery",
+    "material": "cotton chenille",
+    "composition": "75% cotton, 25% polyester",
+    "weight_gsm": 350,
+    "width_cm": 145,
+    "martindale": 68000,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "chevron",
+    "primary_color": "deep charcoal",
+    "secondary_colors": [
+      "camel"
+    ],
+    "tone": "neutral",
+    "styles": [
+      "modern",
+      "art-deco"
+    ],
+    "features": [
+      "stain-resistant",
+      "pet-friendly"
+    ],
+    "suitable_for": [
+      "home",
+      "pets"
+    ],
+    "price_sar_per_m": 185,
+    "description_en": "A bold cotton chenille chevron in deep charcoal and camel built for modern family seating.",
+    "description_ar": "شنيل قطني بنقشة شيفرون رمادية وجملية يتحمل الاستخدام العائلي اليومي.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton chenille, deep charcoal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, chevron pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-VL-14",
+    "name_en": "Pearl Baroque",
+    "name_ar": "باروك اللؤلؤ",
+    "collection": "Velvet Luxe",
+    "usage": "upholstery",
+    "material": "viscose jacquard",
+    "composition": "80% viscose, 20% polyester",
+    "weight_gsm": 300,
+    "width_cm": 148,
+    "martindale": 50000,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "baroque",
+    "primary_color": "pearl ivory",
+    "secondary_colors": [
+      "champagne"
+    ],
+    "tone": "neutral",
+    "styles": [
+      "luxury",
+      "classic"
+    ],
+    "features": [],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 205,
+    "description_en": "A luminous viscose jacquard baroque in pearl ivory that dresses formal sofas softly.",
+    "description_ar": "جاكار بنقشة باروكية بلون اللؤلؤ يكسو الكنب الرسمي بلمسة مضيئة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, viscose jacquard, pearl ivory, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, baroque pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-VL-15",
+    "name_en": "Ruby Lattice",
+    "name_ar": "شبكة الياقوت",
+    "collection": "Velvet Luxe",
+    "usage": "upholstery",
+    "material": "cotton velvet",
+    "composition": "82% cotton, 18% polyester",
+    "weight_gsm": 385,
+    "width_cm": 142,
+    "martindale": 78000,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "lattice",
+    "primary_color": "burgundy",
+    "secondary_colors": [
+      "gold"
+    ],
+    "tone": "warm",
+    "styles": [
+      "luxury",
+      "classic"
+    ],
+    "features": [
+      "stain-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "restaurant",
+      "hotel"
+    ],
+    "price_sar_per_m": 235,
+    "description_en": "A rich cotton velvet lattice in burgundy and gold cut for opulent dining chairs.",
+    "description_ar": "قطيفة قطنية بنقشة شبكية عنابية وذهبية تليق بكراسي السفرة الفخمة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, burgundy, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, lattice pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-VL-16",
+    "name_en": "Ocean Arabesque",
+    "name_ar": "أرابيسك المحيط",
+    "collection": "Velvet Luxe",
+    "usage": "upholstery",
+    "material": "polyester jacquard",
+    "composition": "100% polyester",
+    "weight_gsm": 305,
+    "width_cm": 150,
+    "martindale": 72000,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "arabesque",
+    "primary_color": "deep ocean blue",
+    "secondary_colors": [
+      "silver"
+    ],
+    "tone": "cool",
+    "styles": [
+      "modern",
+      "luxury"
+    ],
+    "features": [
+      "easy-clean",
+      "stain-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel",
+      "office"
+    ],
+    "price_sar_per_m": 175,
+    "description_en": "A crisp polyester jacquard arabesque in ocean blue and silver for hardworking elegant seats.",
+    "description_ar": "جاكار بنقشة أرابيسك زرقاء وفضية عملي وأنيق لكراسي المكاتب والفنادق.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, polyester jacquard, deep ocean blue, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, arabesque pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-NL-01",
+    "name_en": "Oat Field",
+    "name_ar": "حقل الشوفان",
+    "collection": "Natural Living",
+    "usage": "upholstery",
+    "material": "wool boucle",
+    "composition": "60% wool, 40% polyester",
+    "weight_gsm": 420,
+    "width_cm": 150,
+    "martindale": 60000,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "oatmeal",
+    "secondary_colors": [
+      "cream"
+    ],
+    "tone": "neutral",
+    "styles": [
+      "scandinavian",
+      "modern"
+    ],
+    "features": [
+      "pet-friendly",
+      "easy-clean",
+      "stain-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "pets",
+      "kids"
+    ],
+    "price_sar_per_m": 195,
+    "description_en": "A cosy wool boucle in oatmeal with a nubby looped weave that hides everyday wear.",
+    "description_ar": "بوكلية صوفية بلون الشوفان بنسيج معقود يتحمل استخدام العائلة اليومي.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, wool boucle, oatmeal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-NL-02",
+    "name_en": "Sea Salt",
+    "name_ar": "ملح البحر",
+    "collection": "Natural Living",
+    "usage": "upholstery",
+    "material": "performance linen",
+    "composition": "55% linen, 45% polyester",
+    "weight_gsm": 280,
+    "width_cm": 150,
+    "martindale": 50000,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "off-white",
+    "secondary_colors": [],
+    "tone": "neutral",
+    "styles": [
+      "coastal",
+      "minimalist"
+    ],
+    "features": [
+      "pet-friendly",
+      "easy-clean",
+      "stain-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "pets",
+      "kids"
+    ],
+    "price_sar_per_m": 145,
+    "description_en": "A hardworking performance linen in off-white with a dry slub texture for relaxed family sofas.",
+    "description_ar": "كتان عملي بلون أبيض مائل للعاجي بنسيج طبيعي يناسب كنب العائلات.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, performance linen, off-white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-NL-03",
+    "name_en": "Olive Grove",
+    "name_ar": "بستان الزيتون",
+    "collection": "Natural Living",
+    "usage": "upholstery",
+    "material": "cotton canvas",
+    "composition": "100% cotton",
+    "weight_gsm": 300,
+    "width_cm": 150,
+    "martindale": 40000,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "olive green",
+    "secondary_colors": [
+      "khaki"
+    ],
+    "tone": "warm",
+    "styles": [
+      "modern",
+      "bohemian"
+    ],
+    "features": [
+      "washable",
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "kids"
+    ],
+    "price_sar_per_m": 110,
+    "description_en": "A sturdy cotton canvas in olive green with a flat honest weave for casual seating.",
+    "description_ar": "قماش قطني متين بلون الزيتون بنسيج مسطح يناسب الجلسات اليومية.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton canvas, olive green, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-NL-04",
+    "name_en": "Sand Ceremony",
+    "name_ar": "رمال الربع",
+    "collection": "Natural Living",
+    "usage": "upholstery",
+    "material": "cotton chenille",
+    "composition": "80% cotton, 20% polyester",
+    "weight_gsm": 330,
+    "width_cm": 145,
+    "martindale": 55000,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "warm sand",
+    "secondary_colors": [
+      "beige"
+    ],
+    "tone": "warm",
+    "styles": [
+      "modern",
+      "minimalist"
+    ],
+    "features": [
+      "easy-clean"
+    ],
+    "suitable_for": [
+      "home",
+      "office"
+    ],
+    "price_sar_per_m": 135,
+    "description_en": "A smooth cotton chenille in warm sand with a soft dense hand for calm sitting rooms.",
+    "description_ar": "شنيل قطني بلون الرمال الذهبية بملمس ناعم يليق بغرف المعيشة المريحة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton chenille, warm sand, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-NL-05",
+    "name_en": "Misty Harbor",
+    "name_ar": "ميناء الضباب",
+    "collection": "Natural Living",
+    "usage": "upholstery",
+    "material": "performance velvet",
+    "composition": "100% polyester",
+    "weight_gsm": 340,
+    "width_cm": 142,
+    "martindale": 65000,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "light grey",
+    "secondary_colors": [
+      "silver"
+    ],
+    "tone": "cool",
+    "styles": [
+      "modern",
+      "minimalist"
+    ],
+    "features": [
+      "pet-friendly",
+      "easy-clean",
+      "stain-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "pets",
+      "office"
+    ],
+    "price_sar_per_m": 165,
+    "description_en": "A sleek performance velvet in light grey with a short pile that shrugs off pets and spills.",
+    "description_ar": "مخمل عملي بلون رمادي فاتح يقاوم البقع ويناسب البيوت التي فيها حيوانات.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, performance velvet, light grey, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-NL-06",
+    "name_en": "Camel Caravan",
+    "name_ar": "قافلة الجمال",
+    "collection": "Natural Living",
+    "usage": "upholstery",
+    "material": "performance linen",
+    "composition": "50% linen, 50% recycled polyester",
+    "weight_gsm": 290,
+    "width_cm": 150,
+    "martindale": 52000,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "camel",
+    "secondary_colors": [
+      "sand"
+    ],
+    "tone": "warm",
+    "styles": [
+      "bohemian",
+      "modern"
+    ],
+    "features": [
+      "pet-friendly",
+      "easy-clean",
+      "stain-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "pets",
+      "hotel"
+    ],
+    "price_sar_per_m": 155,
+    "description_en": "A resilient performance linen in camel with a natural grain woven for busy living spaces.",
+    "description_ar": "كتان عملي بلون الجملي بنسيج طبيعي مصمم للمساحات كثيرة الاستخدام.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, performance linen, camel, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-NL-07",
+    "name_en": "Cotton Cloud",
+    "name_ar": "غيمة قطن",
+    "collection": "Natural Living",
+    "usage": "upholstery",
+    "material": "cotton canvas",
+    "composition": "100% cotton",
+    "weight_gsm": 260,
+    "width_cm": 150,
+    "martindale": 35000,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "pure white",
+    "secondary_colors": [],
+    "tone": "neutral",
+    "styles": [
+      "scandinavian",
+      "minimalist"
+    ],
+    "features": [
+      "washable",
+      "hypoallergenic"
+    ],
+    "suitable_for": [
+      "home",
+      "kids"
+    ],
+    "price_sar_per_m": 95,
+    "description_en": "A light cotton canvas in pure white, breathable and washable for kids rooms and slipcovers.",
+    "description_ar": "قماش قطني أبيض خفيف قابل للغسل يناسب غرف الأطفال والأغطية.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton canvas, pure white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-NL-08",
+    "name_en": "Denim Shore",
+    "name_ar": "شاطئ الدنيم",
+    "collection": "Natural Living",
+    "usage": "upholstery",
+    "material": "cotton chenille",
+    "composition": "85% cotton, 15% polyester",
+    "weight_gsm": 320,
+    "width_cm": 145,
+    "martindale": 48000,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "chambray blue",
+    "secondary_colors": [
+      "indigo"
+    ],
+    "tone": "cool",
+    "styles": [
+      "coastal",
+      "modern"
+    ],
+    "features": [
+      "washable",
+      "pet-friendly"
+    ],
+    "suitable_for": [
+      "home",
+      "pets",
+      "kids"
+    ],
+    "price_sar_per_m": 125,
+    "description_en": "A friendly cotton chenille in chambray blue with a denim-like ease for family homes.",
+    "description_ar": "شنيل قطني بلون أزرق فاتح بروح الدنيم يناسب بيوت العائلات.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton chenille, chambray blue, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-NL-09",
+    "name_en": "Harbor Stripe",
+    "name_ar": "شريط الميناء",
+    "collection": "Natural Living",
+    "usage": "upholstery",
+    "material": "performance linen",
+    "composition": "55% linen, 45% polyester",
+    "weight_gsm": 285,
+    "width_cm": 150,
+    "martindale": 50000,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "stripes",
+    "primary_color": "sand beige",
+    "secondary_colors": [
+      "white"
+    ],
+    "tone": "neutral",
+    "styles": [
+      "coastal",
+      "classic"
+    ],
+    "features": [
+      "pet-friendly",
+      "easy-clean",
+      "stain-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "pets",
+      "hotel"
+    ],
+    "price_sar_per_m": 150,
+    "description_en": "A crisp performance linen stripe in sand and white tailored for coastal upholstery.",
+    "description_ar": "كتان عملي مخطط بالرملي والأبيض مصمم لتنجيد بطابع ساحلي أنيق.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, performance linen, sand beige, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, stripes pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-NL-10",
+    "name_en": "Heritage Check",
+    "name_ar": "مربعات التراث",
+    "collection": "Natural Living",
+    "usage": "upholstery",
+    "material": "cotton canvas",
+    "composition": "100% cotton",
+    "weight_gsm": 310,
+    "width_cm": 150,
+    "martindale": 42000,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "check",
+    "primary_color": "light grey",
+    "secondary_colors": [
+      "ivory"
+    ],
+    "tone": "neutral",
+    "styles": [
+      "classic",
+      "modern"
+    ],
+    "features": [
+      "washable",
+      "fire-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "office"
+    ],
+    "price_sar_per_m": 115,
+    "description_en": "A timeless cotton canvas check in light grey and ivory for smart versatile chairs.",
+    "description_ar": "قماش قطني بمربعات رمادية وعاجية يليق بالكراسي العملية والأنيقة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton canvas, light grey, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, check pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-NL-11",
+    "name_en": "Dune Ripple",
+    "name_ar": "تموج الكثبان",
+    "collection": "Natural Living",
+    "usage": "upholstery",
+    "material": "wool boucle",
+    "composition": "65% wool, 35% acrylic",
+    "weight_gsm": 430,
+    "width_cm": 148,
+    "martindale": 58000,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "wave",
+    "primary_color": "warm taupe",
+    "secondary_colors": [
+      "cream"
+    ],
+    "tone": "warm",
+    "styles": [
+      "modern",
+      "bohemian"
+    ],
+    "features": [
+      "fire-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 205,
+    "description_en": "A sculptural wool boucle wave in warm taupe that adds quiet movement to armchairs.",
+    "description_ar": "بوكلية صوفية بتموجات بلون ترابي تضفي حركة ناعمة على الكراسي.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, wool boucle, warm taupe, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, wave pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-NL-12",
+    "name_en": "Palm Shadow",
+    "name_ar": "ظل النخيل",
+    "collection": "Natural Living",
+    "usage": "upholstery",
+    "material": "linen print",
+    "composition": "70% linen, 30% cotton",
+    "weight_gsm": 270,
+    "width_cm": 150,
+    "martindale": 38000,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "palm",
+    "primary_color": "sage green",
+    "secondary_colors": [
+      "cream"
+    ],
+    "tone": "cool",
+    "styles": [
+      "bohemian",
+      "coastal"
+    ],
+    "features": [
+      "eco-friendly",
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 130,
+    "description_en": "A breezy linen print of palm shadows in sage on cream for holiday-feel seating.",
+    "description_ar": "كتان مطبوع بظلال النخيل بالمريمية على الكريمي يعطي الكنب إحساس الإجازات.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, linen print, sage green, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, palm pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-NL-13",
+    "name_en": "Herringbone Path",
+    "name_ar": "درب الشوك",
+    "collection": "Natural Living",
+    "usage": "upholstery",
+    "material": "cotton chenille",
+    "composition": "78% cotton, 22% polyester",
+    "weight_gsm": 340,
+    "width_cm": 145,
+    "martindale": 52000,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "herringbone",
+    "primary_color": "deep charcoal",
+    "secondary_colors": [
+      "ivory"
+    ],
+    "tone": "neutral",
+    "styles": [
+      "classic",
+      "modern"
+    ],
+    "features": [
+      "stain-resistant",
+      "scratch-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "pets",
+      "office"
+    ],
+    "price_sar_per_m": 140,
+    "description_en": "A tailored cotton chenille herringbone in deep charcoal and ivory for sharp office chairs.",
+    "description_ar": "شنيل قطني بنقشة متعرجة رمادية وعاجية يمنح كراسي المكاتب مظهرا حادا.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton chenille, deep charcoal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, herringbone pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-NL-14",
+    "name_en": "Speckle Stone",
+    "name_ar": "حجر منقط",
+    "collection": "Natural Living",
+    "usage": "upholstery",
+    "material": "polyester boucle",
+    "composition": "100% polyester",
+    "weight_gsm": 400,
+    "width_cm": 150,
+    "martindale": 62000,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "speckle",
+    "primary_color": "cream",
+    "secondary_colors": [
+      "grey",
+      "caramel"
+    ],
+    "tone": "neutral",
+    "styles": [
+      "modern",
+      "scandinavian"
+    ],
+    "features": [
+      "pet-friendly",
+      "easy-clean",
+      "stain-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "pets",
+      "kids"
+    ],
+    "price_sar_per_m": 175,
+    "description_en": "A playful polyester boucle speckle in cream with grey and caramel flecks for family sofas.",
+    "description_ar": "بوكلية منقطة بالكريمي مع رشات رمادية تناسب كنب العائلات العملية.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, polyester boucle, cream, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, speckle pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-NL-15",
+    "name_en": "Indigo Weave",
+    "name_ar": "نسيج نيلي",
+    "collection": "Natural Living",
+    "usage": "upholstery",
+    "material": "cotton canvas",
+    "composition": "100% cotton",
+    "weight_gsm": 295,
+    "width_cm": 150,
+    "martindale": 40000,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "stripes",
+    "primary_color": "indigo blue",
+    "secondary_colors": [
+      "white"
+    ],
+    "tone": "cool",
+    "styles": [
+      "coastal",
+      "bohemian"
+    ],
+    "features": [
+      "washable",
+      "antibacterial"
+    ],
+    "suitable_for": [
+      "home",
+      "kids",
+      "hotel"
+    ],
+    "price_sar_per_m": 120,
+    "description_en": "A fresh cotton canvas stripe in indigo and white, washable and neat for lively homes.",
+    "description_ar": "قماش قطني مخطط بالنيلي والأبيض قابل للغسل يناسب البيوت النشيطة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton canvas, indigo blue, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, stripes pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-NL-16",
+    "name_en": "Honeycomb Haven",
+    "name_ar": "خلية العسل",
+    "collection": "Natural Living",
+    "usage": "upholstery",
+    "material": "cotton chenille",
+    "composition": "80% cotton, 20% acrylic",
+    "weight_gsm": 335,
+    "width_cm": 145,
+    "martindale": 50000,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "honeycomb",
+    "primary_color": "mustard yellow",
+    "secondary_colors": [
+      "cream"
+    ],
+    "tone": "warm",
+    "styles": [
+      "modern",
+      "bohemian"
+    ],
+    "features": [
+      "antibacterial",
+      "easy-clean"
+    ],
+    "suitable_for": [
+      "home",
+      "kids",
+      "office"
+    ],
+    "price_sar_per_m": 138,
+    "description_en": "A cheerful cotton chenille honeycomb in mustard and cream that lifts kids corners.",
+    "description_ar": "شنيل قطني بنقشة سداسية بلون الخردل يضفي بهجة على أركان الأطفال.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton chenille, mustard yellow, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, honeycomb pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-LA-01",
+    "name_en": "Morning Dew",
+    "name_ar": "ندى الصباح",
+    "collection": "Light & Air",
+    "usage": "curtains",
+    "material": "polyester voile",
+    "composition": "100% polyester",
+    "weight_gsm": 55,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "sheer",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "soft white",
+    "secondary_colors": [],
+    "tone": "neutral",
+    "styles": [
+      "minimalist",
+      "scandinavian"
+    ],
+    "features": [
+      "washable",
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 65,
+    "description_en": "An airy polyester voile in soft white that filters daylight into a gentle glow.",
+    "description_ar": "فوال خفيف بلون أبيض ناعم يمرر ضوء النهار بشكل مريح للغرف.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, polyester voile, soft white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-LA-02",
+    "name_en": "Sea Breeze",
+    "name_ar": "نسيم البحر",
+    "collection": "Light & Air",
+    "usage": "curtains",
+    "material": "polyester voile",
+    "composition": "100% polyester",
+    "weight_gsm": 50,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "sheer",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "pale aqua",
+    "secondary_colors": [
+      "white"
+    ],
+    "tone": "cool",
+    "styles": [
+      "coastal",
+      "minimalist"
+    ],
+    "features": [
+      "washable",
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 70,
+    "description_en": "A breezy polyester voile in pale aqua that keeps coastal windows light and fresh.",
+    "description_ar": "فوال بلون مائي فاتح يبقي النوافذ الساحلية مشرقة ومنعشة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, polyester voile, pale aqua, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-LA-03",
+    "name_en": "Linen Light",
+    "name_ar": "كتان مضيء",
+    "collection": "Light & Air",
+    "usage": "curtains",
+    "material": "sheer linen",
+    "composition": "70% linen, 30% polyester",
+    "weight_gsm": 75,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "sheer",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "natural ivory",
+    "secondary_colors": [],
+    "tone": "warm",
+    "styles": [
+      "scandinavian",
+      "bohemian"
+    ],
+    "features": [
+      "eco-friendly",
+      "washable"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 95,
+    "description_en": "A natural sheer linen in ivory with an open weave that breathes with the room.",
+    "description_ar": "كتان شفاف عاجي بنسيج مفتوح يمنح الغرفة إحساسا طبيعيا متجددا.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, sheer linen, natural ivory, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-LA-04",
+    "name_en": "Pearl Mist",
+    "name_ar": "ضباب اللؤلؤ",
+    "collection": "Light & Air",
+    "usage": "curtains",
+    "material": "polyester voile",
+    "composition": "100% polyester",
+    "weight_gsm": 58,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "sheer",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "pearl grey",
+    "secondary_colors": [],
+    "tone": "neutral",
+    "styles": [
+      "modern",
+      "minimalist"
+    ],
+    "features": [
+      "crease-resistant",
+      "washable"
+    ],
+    "suitable_for": [
+      "home",
+      "office"
+    ],
+    "price_sar_per_m": 68,
+    "description_en": "A smooth polyester voile in pearl grey that softens city light without weight.",
+    "description_ar": "فوال بلون رمادي لؤلؤي يلطف إضاءة المدينة دون ثقل.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, polyester voile, pearl grey, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-LA-05",
+    "name_en": "Cotton Sky",
+    "name_ar": "سماء قطنية",
+    "collection": "Light & Air",
+    "usage": "curtains",
+    "material": "sheer linen",
+    "composition": "65% linen, 35% cotton",
+    "weight_gsm": 80,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "sheer",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "pale blue",
+    "secondary_colors": [],
+    "tone": "cool",
+    "styles": [
+      "coastal",
+      "scandinavian"
+    ],
+    "features": [
+      "hypoallergenic",
+      "washable"
+    ],
+    "suitable_for": [
+      "home",
+      "kids"
+    ],
+    "price_sar_per_m": 88,
+    "description_en": "A tender sheer linen in pale blue, kind to sensitive skin and bright rooms.",
+    "description_ar": "كتان شفاف بلون أزرق فاتح لطيف على البشرة ومناسب للغرف المشرقة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, sheer linen, pale blue, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-LA-06",
+    "name_en": "Sandfall Veil",
+    "name_ar": "رمال ناعمة",
+    "collection": "Light & Air",
+    "usage": "curtains",
+    "material": "polyester voile",
+    "composition": "100% polyester",
+    "weight_gsm": 52,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "sheer",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "champagne sand",
+    "secondary_colors": [
+      "ivory"
+    ],
+    "tone": "warm",
+    "styles": [
+      "modern",
+      "bohemian"
+    ],
+    "features": [
+      "fade-resistant",
+      "washable"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 72,
+    "description_en": "A warm polyester voile in champagne sand that tints afternoon sun golden.",
+    "description_ar": "فوال بلون رملي شمبين يمنح شمس العصر لونا ذهبيا ناعما.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, polyester voile, champagne sand, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-LA-07",
+    "name_en": "Snow Linen",
+    "name_ar": "كتان الثلج",
+    "collection": "Light & Air",
+    "usage": "curtains",
+    "material": "sheer linen",
+    "composition": "75% linen, 25% polyester",
+    "weight_gsm": 78,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "sheer",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "crisp white",
+    "secondary_colors": [],
+    "tone": "neutral",
+    "styles": [
+      "minimalist",
+      "scandinavian"
+    ],
+    "features": [
+      "eco-friendly",
+      "hypoallergenic"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 98,
+    "description_en": "A crisp sheer linen in white with a clean dry hand for serene galleries of light.",
+    "description_ar": "كتان شفاف أبيض بملمس جاف ونظيف يليق بالمساحات الهادئة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, sheer linen, crisp white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-LA-08",
+    "name_en": "Blush Air",
+    "name_ar": "نسمة وردية",
+    "collection": "Light & Air",
+    "usage": "curtains",
+    "material": "polyester voile",
+    "composition": "100% polyester",
+    "weight_gsm": 54,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "sheer",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "blush pink",
+    "secondary_colors": [],
+    "tone": "warm",
+    "styles": [
+      "modern",
+      "bohemian"
+    ],
+    "features": [
+      "washable"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 66,
+    "description_en": "A tender polyester voile in blush pink that blushes softly with morning light.",
+    "description_ar": "فوال بلون وردي فاتح يزداد جمالا مع ضوء الصباح.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, polyester voile, blush pink, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-LA-09",
+    "name_en": "Daisy Chain",
+    "name_ar": "عقد الأقحوان",
+    "collection": "Light & Air",
+    "usage": "curtains",
+    "material": "embroidered sheer",
+    "composition": "100% polyester base, embroidered",
+    "weight_gsm": 70,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "semi-sheer",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "embroidery",
+    "primary_color": "white",
+    "secondary_colors": [
+      "cream"
+    ],
+    "tone": "neutral",
+    "styles": [
+      "scandinavian",
+      "bohemian"
+    ],
+    "features": [
+      "washable"
+    ],
+    "suitable_for": [
+      "home",
+      "kids"
+    ],
+    "price_sar_per_m": 105,
+    "description_en": "An embroidered sheer with dainty daisy chains on white for joyful daylight windows.",
+    "description_ar": "شيفون مطرز بزهور الأقحوان على الأبيض يبهج نوافذ النهار.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, embroidered sheer, white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, embroidery pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-LA-10",
+    "name_en": "Coastal Stripe",
+    "name_ar": "شريط ساحلي",
+    "collection": "Light & Air",
+    "usage": "curtains",
+    "material": "sheer linen",
+    "composition": "70% linen, 30% polyester",
+    "weight_gsm": 82,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "semi-sheer",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "stripes",
+    "primary_color": "white",
+    "secondary_colors": [
+      "sea blue"
+    ],
+    "tone": "cool",
+    "styles": [
+      "coastal",
+      "classic"
+    ],
+    "features": [
+      "washable",
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 92,
+    "description_en": "A sheer linen stripe in white and sea blue that dresses beach-house windows neatly.",
+    "description_ar": "كتان شفاف مخطط بالأبيض والأزرق البحري يليق بنوافذ البيوت الساحلية.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, sheer linen, white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, stripes pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-LA-11",
+    "name_en": "Golden Dot",
+    "name_ar": "نقاط ذهبية",
+    "collection": "Light & Air",
+    "usage": "curtains",
+    "material": "polyester voile",
+    "composition": "100% polyester",
+    "weight_gsm": 60,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "semi-sheer",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "dots",
+    "primary_color": "ivory",
+    "secondary_colors": [
+      "gold"
+    ],
+    "tone": "warm",
+    "styles": [
+      "modern",
+      "bohemian"
+    ],
+    "features": [
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 78,
+    "description_en": "A playful polyester voile dotted in gold on ivory that sparkles in sunbeams.",
+    "description_ar": "فوال منقط بالذهبي على العاجي يلمع مع أشعة الشمس.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, polyester voile, ivory, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, dots pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-LA-12",
+    "name_en": "Olive Branch",
+    "name_ar": "غصن الزيتون",
+    "collection": "Light & Air",
+    "usage": "curtains",
+    "material": "embroidered sheer",
+    "composition": "polyester base, rayon embroidery",
+    "weight_gsm": 72,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "semi-sheer",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "embroidery",
+    "primary_color": "cream",
+    "secondary_colors": [
+      "sage green"
+    ],
+    "tone": "neutral",
+    "styles": [
+      "bohemian",
+      "classic"
+    ],
+    "features": [
+      "eco-friendly"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 110,
+    "description_en": "An embroidered sheer with olive branches in sage on cream for a Mediterranean calm.",
+    "description_ar": "شيفون مطرز بأغصان الزيتون بالمريمية على الكريمي بروح متوسطية.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, embroidered sheer, cream, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, embroidery pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-LA-13",
+    "name_en": "Silver Rain",
+    "name_ar": "مطر فضي",
+    "collection": "Light & Air",
+    "usage": "curtains",
+    "material": "polyester voile",
+    "composition": "100% polyester",
+    "weight_gsm": 62,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "semi-sheer",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "stripes",
+    "primary_color": "light grey",
+    "secondary_colors": [
+      "silver"
+    ],
+    "tone": "cool",
+    "styles": [
+      "modern",
+      "minimalist"
+    ],
+    "features": [
+      "crease-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "office"
+    ],
+    "price_sar_per_m": 80,
+    "description_en": "A sleek polyester voile with fine silver striping that stretches windows taller.",
+    "description_ar": "فوال بخطوط فضية رفيعة يمنح النوافذ إحساسا بالارتفاع.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, polyester voile, light grey, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, stripes pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-LA-14",
+    "name_en": "Taif Rose",
+    "name_ar": "ورد الطائف",
+    "collection": "Light & Air",
+    "usage": "curtains",
+    "material": "embroidered sheer",
+    "composition": "100% polyester base, embroidered",
+    "weight_gsm": 74,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "semi-sheer",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "floral",
+    "primary_color": "soft pink",
+    "secondary_colors": [
+      "rose",
+      "cream"
+    ],
+    "tone": "warm",
+    "styles": [
+      "bohemian",
+      "classic"
+    ],
+    "features": [
+      "washable",
+      "antibacterial"
+    ],
+    "suitable_for": [
+      "home",
+      "kids",
+      "hotel"
+    ],
+    "price_sar_per_m": 115,
+    "description_en": "An embroidered sheer with Taif roses in soft pink, sweet and clean for family rooms.",
+    "description_ar": "شيفون مطرز بورود طائفية وردية يضفي بهجة نظيفة على غرف العائلة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, embroidered sheer, soft pink, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, floral pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-LA-15",
+    "name_en": "Lattice Light",
+    "name_ar": "شبكة النور",
+    "collection": "Light & Air",
+    "usage": "curtains",
+    "material": "sheer linen",
+    "composition": "68% linen, 32% polyester",
+    "weight_gsm": 85,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "semi-sheer",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "lattice",
+    "primary_color": "natural white",
+    "secondary_colors": [
+      "beige"
+    ],
+    "tone": "neutral",
+    "styles": [
+      "modern",
+      "scandinavian"
+    ],
+    "features": [
+      "washable"
+    ],
+    "suitable_for": [
+      "home",
+      "office"
+    ],
+    "price_sar_per_m": 90,
+    "description_en": "A sheer linen lattice in natural white that structures light into neat geometry.",
+    "description_ar": "كتان شفاف بنقشة شبكية بيضاء ينظم الضوء بشكل هندسي مرتب.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, sheer linen, natural white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, lattice pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-LA-16",
+    "name_en": "Palm Frond",
+    "name_ar": "سعفة النخيل",
+    "collection": "Light & Air",
+    "usage": "curtains",
+    "material": "embroidered sheer",
+    "composition": "polyester base, cotton embroidery",
+    "weight_gsm": 76,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "semi-sheer",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "palm",
+    "primary_color": "sand white",
+    "secondary_colors": [
+      "palm green"
+    ],
+    "tone": "warm",
+    "styles": [
+      "bohemian",
+      "coastal"
+    ],
+    "features": [
+      "fade-resistant",
+      "washable"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 108,
+    "description_en": "An embroidered sheer with palm fronds in green on sand white for resort ease.",
+    "description_ar": "شيفون مطرز بسعف النخيل بالأخضر على الرملي بروح المنتجعات.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, embroidered sheer, sand white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, palm pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-SC-01",
+    "name_en": "Night Fortress",
+    "name_ar": "حصن الليل",
+    "collection": "Shade & Calm",
+    "usage": "curtains",
+    "material": "blackout polyester",
+    "composition": "100% polyester with blackout coating",
+    "weight_gsm": 320,
+    "width_cm": 280,
+    "martindale": null,
+    "opacity": "blackout",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "deep charcoal",
+    "secondary_colors": [],
+    "tone": "cool",
+    "styles": [
+      "modern",
+      "minimalist"
+    ],
+    "features": [
+      "blackout",
+      "thermal-insulating"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel",
+      "office"
+    ],
+    "price_sar_per_m": 135,
+    "description_en": "A total blackout polyester in deep charcoal that seals bedrooms into true night.",
+    "description_ar": "ستارة تعتيم كاملة بلون رمادي عميق تمنح غرف النوم ظلاما تاما.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, blackout polyester, deep charcoal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-SC-02",
+    "name_en": "Winter House",
+    "name_ar": "بيت الشتاء",
+    "collection": "Shade & Calm",
+    "usage": "curtains",
+    "material": "thermal velvet",
+    "composition": "80% polyester, 20% cotton with thermal backing",
+    "weight_gsm": 350,
+    "width_cm": 280,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "warm taupe",
+    "secondary_colors": [],
+    "tone": "warm",
+    "styles": [
+      "classic",
+      "bohemian"
+    ],
+    "features": [
+      "thermal-insulating",
+      "sound-absorbing"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 148,
+    "description_en": "A plush thermal velvet in warm taupe that keeps winter rooms warm and quiet.",
+    "description_ar": "مخمل حراري بلون ترابي يحافظ على حرارة الغرف وراحتها شتاء.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, thermal velvet, warm taupe, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-SC-03",
+    "name_en": "Storm Shield",
+    "name_ar": "درع العاصفة",
+    "collection": "Shade & Calm",
+    "usage": "curtains",
+    "material": "blackout linen-look",
+    "composition": "70% polyester, 30% linen with blackout lining",
+    "weight_gsm": 300,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "blackout",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "slate grey",
+    "secondary_colors": [],
+    "tone": "cool",
+    "styles": [
+      "modern",
+      "minimalist"
+    ],
+    "features": [
+      "blackout",
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "office",
+      "hotel"
+    ],
+    "price_sar_per_m": 128,
+    "description_en": "A blackout linen-look in slate grey that blocks glare while looking natural.",
+    "description_ar": "ستارة تعتيم بمظهر كتاني رمادي تحجب الوهج بمظهر طبيعي.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, blackout linen-look, slate grey, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-SC-04",
+    "name_en": "Cocoa Blanket",
+    "name_ar": "بطانية الكاكاو",
+    "collection": "Shade & Calm",
+    "usage": "curtains",
+    "material": "thermal cotton",
+    "composition": "100% cotton with thermal interlining",
+    "weight_gsm": 290,
+    "width_cm": 280,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "cocoa brown",
+    "secondary_colors": [
+      "beige"
+    ],
+    "tone": "warm",
+    "styles": [
+      "classic",
+      "bohemian"
+    ],
+    "features": [
+      "thermal-insulating",
+      "fire-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 122,
+    "description_en": "A cosy thermal cotton in cocoa brown that wraps living rooms in steady warmth.",
+    "description_ar": "قطن حراري بلون الكاكاو يمنح غرف المعيشة أجواء مريحة وثابتة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, thermal cotton, cocoa brown, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-SC-05",
+    "name_en": "Pearl Dimout",
+    "name_ar": "ستارة اللؤلؤ",
+    "collection": "Shade & Calm",
+    "usage": "curtains",
+    "material": "dimout polyester",
+    "composition": "100% polyester dimout weave",
+    "weight_gsm": 220,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "pearl white",
+    "secondary_colors": [],
+    "tone": "neutral",
+    "styles": [
+      "minimalist",
+      "scandinavian"
+    ],
+    "features": [
+      "fade-resistant",
+      "crease-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "office",
+      "hotel"
+    ],
+    "price_sar_per_m": 85,
+    "description_en": "A smooth dimout polyester in pearl white that dims daylight to a soft haze.",
+    "description_ar": "ستارة نصف معتمة بلون لؤلؤي تخفف ضوء النهار بشكل ناعم.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, dimout polyester, pearl white, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-SC-06",
+    "name_en": "Forest Night",
+    "name_ar": "ليل الغابة",
+    "collection": "Shade & Calm",
+    "usage": "curtains",
+    "material": "blackout velvet",
+    "composition": "85% polyester, 15% cotton with blackout backing",
+    "weight_gsm": 340,
+    "width_cm": 280,
+    "martindale": null,
+    "opacity": "blackout",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "forest green",
+    "secondary_colors": [],
+    "tone": "cool",
+    "styles": [
+      "luxury",
+      "classic"
+    ],
+    "features": [
+      "blackout",
+      "sound-absorbing"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 145,
+    "description_en": "A deep blackout velvet in forest green for cinematic bedrooms and lounges.",
+    "description_ar": "مخمل تعتيم بلون أخضر غابي يليق بغرف النوم الفاخرة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, blackout velvet, forest green, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-SC-07",
+    "name_en": "Desert Dusk",
+    "name_ar": "غروب الصحراء",
+    "collection": "Shade & Calm",
+    "usage": "curtains",
+    "material": "dimout linen-look",
+    "composition": "60% linen, 40% polyester dimout",
+    "weight_gsm": 230,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "dusty terracotta",
+    "secondary_colors": [],
+    "tone": "warm",
+    "styles": [
+      "bohemian",
+      "mediterranean"
+    ],
+    "features": [
+      "fade-resistant",
+      "fire-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "restaurant"
+    ],
+    "price_sar_per_m": 95,
+    "description_en": "A warm dimout linen-look in dusty terracotta that mellows harsh afternoon sun.",
+    "description_ar": "ستارة نصف معتمة بمظهر كتاني بلون طيني تخفف شمس العصر.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, dimout linen-look, dusty terracotta, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-SC-08",
+    "name_en": "Harbor Fog",
+    "name_ar": "ضباب الميناء",
+    "collection": "Shade & Calm",
+    "usage": "curtains",
+    "material": "thermal polyester",
+    "composition": "100% polyester with thermal coating",
+    "weight_gsm": 250,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "light grey",
+    "secondary_colors": [],
+    "tone": "neutral",
+    "styles": [
+      "modern",
+      "minimalist"
+    ],
+    "features": [
+      "thermal-insulating",
+      "antibacterial"
+    ],
+    "suitable_for": [
+      "home",
+      "office",
+      "hotel"
+    ],
+    "price_sar_per_m": 98,
+    "description_en": "A neat thermal polyester in light grey that steadies room temperature year-round.",
+    "description_ar": "ستارة حرارية رمادية فاتحة تحافظ على حرارة الغرفة طوال العام.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, thermal polyester, light grey, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-SC-09",
+    "name_en": "Marble Vein",
+    "name_ar": "عرق الرخام",
+    "collection": "Shade & Calm",
+    "usage": "curtains",
+    "material": "dimout jacquard",
+    "composition": "75% polyester, 25% viscose dimout",
+    "weight_gsm": 240,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "marble",
+    "primary_color": "ivory",
+    "secondary_colors": [
+      "grey veins"
+    ],
+    "tone": "neutral",
+    "styles": [
+      "luxury",
+      "modern"
+    ],
+    "features": [
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 118,
+    "description_en": "A dimout jacquard with marble veining in ivory with a serene premium character.",
+    "description_ar": "جاكار نصف معتم بنقشة رخامية عاجية يمنح الستائر مظهرا راقيا.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, dimout jacquard, ivory, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, marble pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-SC-10",
+    "name_en": "Nile Stripe",
+    "name_ar": "شريط النيل",
+    "collection": "Shade & Calm",
+    "usage": "curtains",
+    "material": "blackout polyester",
+    "composition": "100% polyester with blackout coating",
+    "weight_gsm": 310,
+    "width_cm": 280,
+    "martindale": null,
+    "opacity": "blackout",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "stripes",
+    "primary_color": "navy blue",
+    "secondary_colors": [
+      "sky blue"
+    ],
+    "tone": "cool",
+    "styles": [
+      "modern",
+      "coastal"
+    ],
+    "features": [
+      "blackout",
+      "fire-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel",
+      "office"
+    ],
+    "price_sar_per_m": 132,
+    "description_en": "A tailored blackout polyester stripe in navy that suits kids rooms and media lounges.",
+    "description_ar": "ستارة تعتيم مخططة بالكحلي تناسب غرف الأطفال وصالات المشاهدة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, blackout polyester, navy blue, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, stripes pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-SC-11",
+    "name_en": "Sahara Weave",
+    "name_ar": "نسيج الصحارى",
+    "collection": "Shade & Calm",
+    "usage": "curtains",
+    "material": "thermal linen-look",
+    "composition": "55% linen, 45% polyester with thermal backing",
+    "weight_gsm": 270,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "basketweave",
+    "primary_color": "oatmeal",
+    "secondary_colors": [
+      "sand"
+    ],
+    "tone": "warm",
+    "styles": [
+      "bohemian",
+      "scandinavian"
+    ],
+    "features": [
+      "thermal-insulating",
+      "eco-friendly"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 125,
+    "description_en": "A thermal linen-look basketweave in oatmeal that insulates with an artisanal hand.",
+    "description_ar": "كتان حراري بنسيج سلالي بلون الشوفان يعزل الحرارة بلمسة حرفية.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, thermal linen-look, oatmeal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, basketweave pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-SC-12",
+    "name_en": "Deco Fan",
+    "name_ar": "مروحة الديكو",
+    "collection": "Shade & Calm",
+    "usage": "curtains",
+    "material": "dimout jacquard",
+    "composition": "80% polyester, 20% cotton dimout",
+    "weight_gsm": 235,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "art-deco",
+    "primary_color": "champagne",
+    "secondary_colors": [
+      "bronze"
+    ],
+    "tone": "warm",
+    "styles": [
+      "luxury",
+      "art-deco"
+    ],
+    "features": [
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "restaurant",
+      "hotel"
+    ],
+    "price_sar_per_m": 120,
+    "description_en": "A glamorous dimout jacquard fan motif in champagne for lounges with character.",
+    "description_ar": "جاكار نصف معتم بنقشة مروحية شمبين يليق بالصالات ذات الطابع.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, dimout jacquard, champagne, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, art-deco pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-SC-13",
+    "name_en": "Granite Line",
+    "name_ar": "خط الغرانيت",
+    "collection": "Shade & Calm",
+    "usage": "curtains",
+    "material": "blackout polyester",
+    "composition": "100% polyester with blackout coating",
+    "weight_gsm": 315,
+    "width_cm": 280,
+    "martindale": null,
+    "opacity": "blackout",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "geometric",
+    "primary_color": "deep charcoal",
+    "secondary_colors": [
+      "silver"
+    ],
+    "tone": "neutral",
+    "styles": [
+      "modern",
+      "minimalist"
+    ],
+    "features": [
+      "blackout",
+      "sound-absorbing"
+    ],
+    "suitable_for": [
+      "home",
+      "office"
+    ],
+    "price_sar_per_m": 138,
+    "description_en": "A graphic blackout polyester with granite lines in charcoal for focused workrooms.",
+    "description_ar": "ستارة تعتيم بنقشة خطوط غرانيتية تناسب غرف العمل والتركيز.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, blackout polyester, deep charcoal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, geometric pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-SC-14",
+    "name_en": "Garden Dimout",
+    "name_ar": "حديقة معتمة",
+    "collection": "Shade & Calm",
+    "usage": "curtains",
+    "material": "dimout print",
+    "composition": "100% polyester dimout with printed finish",
+    "weight_gsm": 225,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "floral",
+    "primary_color": "sage green",
+    "secondary_colors": [
+      "cream"
+    ],
+    "tone": "cool",
+    "styles": [
+      "bohemian",
+      "classic"
+    ],
+    "features": [
+      "fade-resistant",
+      "antibacterial"
+    ],
+    "suitable_for": [
+      "home",
+      "kids",
+      "hotel"
+    ],
+    "price_sar_per_m": 105,
+    "description_en": "A printed dimout with garden sprigs in sage on cream that keeps mornings gentle.",
+    "description_ar": "ستارة مطبوعة نصف معتمة بأغصان خضراء على الكريمي تلطف صباحات الغرف.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, dimout print, sage green, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, floral pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-SC-15",
+    "name_en": "Camel Track",
+    "name_ar": "مسار الجمال",
+    "collection": "Shade & Calm",
+    "usage": "curtains",
+    "material": "thermal cotton",
+    "composition": "100% cotton with thermal interlining",
+    "weight_gsm": 285,
+    "width_cm": 280,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "stripes",
+    "primary_color": "camel",
+    "secondary_colors": [
+      "brown",
+      "cream"
+    ],
+    "tone": "warm",
+    "styles": [
+      "classic",
+      "bohemian"
+    ],
+    "features": [
+      "thermal-insulating",
+      "fire-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 115,
+    "description_en": "A thermal cotton stripe in camel and brown that warms chalets and family majlis.",
+    "description_ar": "قطن حراري مخطط بالجملي والبني يدفئ الاستراحات والمجالس العائلية.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, thermal cotton, camel, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, stripes pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-SC-16",
+    "name_en": "Moon Ripple",
+    "name_ar": "تموج القمر",
+    "collection": "Shade & Calm",
+    "usage": "curtains",
+    "material": "dimout jacquard",
+    "composition": "70% polyester, 30% rayon dimout",
+    "weight_gsm": 245,
+    "width_cm": 300,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "wave",
+    "primary_color": "silver grey",
+    "secondary_colors": [
+      "pearl"
+    ],
+    "tone": "cool",
+    "styles": [
+      "modern",
+      "minimalist"
+    ],
+    "features": [
+      "sound-absorbing",
+      "crease-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "office",
+      "hotel"
+    ],
+    "price_sar_per_m": 112,
+    "description_en": "A dimout jacquard ripple in silver grey that quiets bright open-plan rooms.",
+    "description_ar": "جاكار نصف معتم بتموجات فضية يهدئ المساحات المفتوحة المشرقة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, dimout jacquard, silver grey, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, wave pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-AC-01",
+    "name_en": "Saffron Velvet",
+    "name_ar": "مخمل الزعفران",
+    "collection": "Accent",
+    "usage": "cushions",
+    "material": "cotton velvet",
+    "composition": "100% cotton velvet",
+    "weight_gsm": 300,
+    "width_cm": 140,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "saffron yellow",
+    "secondary_colors": [],
+    "tone": "warm",
+    "styles": [
+      "bohemian",
+      "modern"
+    ],
+    "features": [
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 95,
+    "description_en": "A vivid cotton velvet in saffron yellow that energises cushions and small seats.",
+    "description_ar": "مخمل قطني بلون الزعفران يمنح الوسائد حضورا مشرقا وحيويا.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, saffron yellow, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-AC-02",
+    "name_en": "Fig Velvet",
+    "name_ar": "مخمل التين",
+    "collection": "Accent",
+    "usage": "cushions",
+    "material": "cotton velvet",
+    "composition": "100% cotton velvet",
+    "weight_gsm": 310,
+    "width_cm": 140,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "fig purple",
+    "secondary_colors": [
+      "plum"
+    ],
+    "tone": "cool",
+    "styles": [
+      "modern",
+      "luxury"
+    ],
+    "features": [
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 98,
+    "description_en": "A moody cotton velvet in fig purple for cushions with quiet drama.",
+    "description_ar": "مخمل قطني بلون التين يمنح الوسائد طابعا دراميا ناعما.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, fig purple, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-AC-03",
+    "name_en": "Linen Oat",
+    "name_ar": "شوفان الكتان",
+    "collection": "Accent",
+    "usage": "cushions",
+    "material": "linen canvas",
+    "composition": "100% linen",
+    "weight_gsm": 240,
+    "width_cm": 150,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "oatmeal",
+    "secondary_colors": [],
+    "tone": "neutral",
+    "styles": [
+      "scandinavian",
+      "minimalist"
+    ],
+    "features": [
+      "washable",
+      "eco-friendly"
+    ],
+    "suitable_for": [
+      "home",
+      "kids"
+    ],
+    "price_sar_per_m": 65,
+    "description_en": "An honest linen canvas in oatmeal, washable and soft for everyday cushions.",
+    "description_ar": "كتان طبيعي بلون الشوفان قابل للغسل يناسب وسائد الاستخدام اليومي.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, linen canvas, oatmeal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-AC-04",
+    "name_en": "Clay Velvet",
+    "name_ar": "مخمل الطين",
+    "collection": "Accent",
+    "usage": "cushions",
+    "material": "cotton velvet",
+    "composition": "100% cotton velvet",
+    "weight_gsm": 305,
+    "width_cm": 140,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "burnt clay",
+    "secondary_colors": [
+      "terracotta"
+    ],
+    "tone": "warm",
+    "styles": [
+      "bohemian",
+      "mediterranean"
+    ],
+    "features": [
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "restaurant"
+    ],
+    "price_sar_per_m": 88,
+    "description_en": "An earthy cotton velvet in burnt clay that grounds bohemian cushion mixes.",
+    "description_ar": "مخمل قطني بلون طيني محروق يمنح تشكيلات الوسائد ثباتا وأناقة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, burnt clay, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-AC-05",
+    "name_en": "Sage Linen",
+    "name_ar": "مريمية الكتان",
+    "collection": "Accent",
+    "usage": "cushions",
+    "material": "linen canvas",
+    "composition": "100% linen",
+    "weight_gsm": 235,
+    "width_cm": 150,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "sage grey",
+    "secondary_colors": [
+      "stone"
+    ],
+    "tone": "neutral",
+    "styles": [
+      "scandinavian",
+      "modern"
+    ],
+    "features": [
+      "washable",
+      "hypoallergenic"
+    ],
+    "suitable_for": [
+      "home",
+      "kids",
+      "hotel"
+    ],
+    "price_sar_per_m": 68,
+    "description_en": "A soft linen canvas in sage grey, gentle and washable for calm cushions.",
+    "description_ar": "كتان بلون المريمية الرمادية قابل للغسل يناسب الوسائد الهادئة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, linen canvas, sage grey, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-AC-06",
+    "name_en": "Peacock Velvet",
+    "name_ar": "مخمل الطاووس",
+    "collection": "Accent",
+    "usage": "cushions",
+    "material": "cotton velvet",
+    "composition": "100% cotton velvet",
+    "weight_gsm": 315,
+    "width_cm": 140,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "peacock teal",
+    "secondary_colors": [],
+    "tone": "cool",
+    "styles": [
+      "luxury",
+      "bohemian"
+    ],
+    "features": [
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 102,
+    "description_en": "A jewel cotton velvet in peacock teal that turns cushions into centrepieces.",
+    "description_ar": "مخمل قطني بلون تركوازي غني يجعل الوسائد قطعة محورية في الغرفة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, peacock teal, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-AC-07",
+    "name_en": "Sand Linen",
+    "name_ar": "رمل الكتان",
+    "collection": "Accent",
+    "usage": "cushions",
+    "material": "linen canvas",
+    "composition": "100% linen",
+    "weight_gsm": 230,
+    "width_cm": 150,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "desert sand",
+    "secondary_colors": [],
+    "tone": "warm",
+    "styles": [
+      "bohemian",
+      "coastal"
+    ],
+    "features": [
+      "eco-friendly",
+      "washable"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 62,
+    "description_en": "A breezy linen canvas in desert sand that pairs with every cushion pattern.",
+    "description_ar": "كتان بلون رمال الصحراء ينسجم مع كل نقشات الوسائد.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, linen canvas, desert sand, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-AC-08",
+    "name_en": "Ink Velvet",
+    "name_ar": "مخمل الحبر",
+    "collection": "Accent",
+    "usage": "cushions",
+    "material": "cotton velvet",
+    "composition": "100% cotton velvet",
+    "weight_gsm": 320,
+    "width_cm": 140,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "plain",
+    "pattern_type": "solid",
+    "primary_color": "ink navy",
+    "secondary_colors": [],
+    "tone": "cool",
+    "styles": [
+      "modern",
+      "classic"
+    ],
+    "features": [
+      "fade-resistant",
+      "antibacterial"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel",
+      "office"
+    ],
+    "price_sar_per_m": 105,
+    "description_en": "A deep cotton velvet in ink navy, neat and clean for hotel-style cushions.",
+    "description_ar": "مخمل قطني بلون كحلي عميق يليق بوسائد بطابع فندقي مرتب.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton velvet, ink navy, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text"
+  },
+  {
+    "code": "FA-AC-09",
+    "name_en": "Desert Sadu",
+    "name_ar": "سدو الصحراء",
+    "collection": "Accent",
+    "usage": "cushions",
+    "material": "sadu weave",
+    "composition": "70% wool, 30% cotton hand-finished",
+    "weight_gsm": 280,
+    "width_cm": 140,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "sadu",
+    "primary_color": "burgundy",
+    "secondary_colors": [
+      "black",
+      "cream",
+      "orange"
+    ],
+    "tone": "warm",
+    "styles": [
+      "traditional",
+      "bohemian"
+    ],
+    "features": [
+      "eco-friendly"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 140,
+    "description_en": "An authentic sadu weave in burgundy, black and cream carrying Najdi heritage.",
+    "description_ar": "نسيج سدو أصيل بالعنابي والأسود والكريمي يحمل روح التراث النجدي.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, sadu weave, burgundy, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, sadu pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-AC-10",
+    "name_en": "Najdi Sadu",
+    "name_ar": "سدو نجدي",
+    "collection": "Accent",
+    "usage": "cushions",
+    "material": "sadu weave",
+    "composition": "70% wool, 30% cotton hand-finished",
+    "weight_gsm": 285,
+    "width_cm": 140,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "sadu",
+    "primary_color": "deep brown",
+    "secondary_colors": [
+      "red",
+      "beige",
+      "black"
+    ],
+    "tone": "warm",
+    "styles": [
+      "traditional",
+      "bohemian"
+    ],
+    "features": [
+      "eco-friendly",
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel",
+      "restaurant"
+    ],
+    "price_sar_per_m": 145,
+    "description_en": "A heritage sadu weave in deep brown and red woven for storied cushions.",
+    "description_ar": "نسيج سدو تراثي بالبني والعنابي يمنح الوسائد حكاية نجدية أصيلة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, sadu weave, deep brown, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, sadu pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-AC-11",
+    "name_en": "Kilim Road",
+    "name_ar": "طريق الكليم",
+    "collection": "Accent",
+    "usage": "cushions",
+    "material": "kilim weave",
+    "composition": "100% wool flatweave",
+    "weight_gsm": 260,
+    "width_cm": 140,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "kilim",
+    "primary_color": "rust red",
+    "secondary_colors": [
+      "navy",
+      "cream"
+    ],
+    "tone": "warm",
+    "styles": [
+      "bohemian",
+      "traditional"
+    ],
+    "features": [
+      "washable"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 120,
+    "description_en": "A flat kilim weave in rust and navy with tribal geometry for layered cushions.",
+    "description_ar": "نسيج كليم مسطح بأحمر صدئ وكحلي بنقشات قبلية لوسائد متعددة الطبقات.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, kilim weave, rust red, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, kilim pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-AC-12",
+    "name_en": "Ikat River",
+    "name_ar": "نهر الإيكات",
+    "collection": "Accent",
+    "usage": "cushions",
+    "material": "ikat print",
+    "composition": "100% cotton with ikat print",
+    "weight_gsm": 220,
+    "width_cm": 150,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "ikat",
+    "primary_color": "indigo blue",
+    "secondary_colors": [
+      "white"
+    ],
+    "tone": "cool",
+    "styles": [
+      "bohemian",
+      "modern"
+    ],
+    "features": [
+      "washable",
+      "fade-resistant"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 85,
+    "description_en": "A flowing cotton ikat print in indigo and white that moves like river water.",
+    "description_ar": "قطن مطبوع بنقشة إيكات زرقاء وبيضاء بانسيابية ماء النهر.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, ikat print, indigo blue, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, ikat pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-AC-13",
+    "name_en": "Geo Souq",
+    "name_ar": "سوق الهندسة",
+    "collection": "Accent",
+    "usage": "cushions",
+    "material": "geometric print",
+    "composition": "100% cotton with geometric print",
+    "weight_gsm": 215,
+    "width_cm": 150,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "geometric",
+    "primary_color": "mustard yellow",
+    "secondary_colors": [
+      "black",
+      "white"
+    ],
+    "tone": "warm",
+    "styles": [
+      "modern",
+      "bohemian"
+    ],
+    "features": [
+      "washable"
+    ],
+    "suitable_for": [
+      "home",
+      "kids"
+    ],
+    "price_sar_per_m": 75,
+    "description_en": "A playful cotton geometric print in mustard, black and white for youthful cushions.",
+    "description_ar": "قطن مطبوع بأشكال هندسية صفراء وسوداء يناسب وسائد الشباب.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, geometric print, mustard yellow, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, geometric pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-AC-14",
+    "name_en": "Palm Kilim",
+    "name_ar": "نخلة الكليم",
+    "collection": "Accent",
+    "usage": "cushions",
+    "material": "kilim weave",
+    "composition": "90% wool, 10% cotton flatweave",
+    "weight_gsm": 255,
+    "width_cm": 140,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "kilim",
+    "primary_color": "forest green",
+    "secondary_colors": [
+      "beige",
+      "brown"
+    ],
+    "tone": "cool",
+    "styles": [
+      "bohemian",
+      "traditional"
+    ],
+    "features": [
+      "eco-friendly"
+    ],
+    "suitable_for": [
+      "home",
+      "hotel"
+    ],
+    "price_sar_per_m": 118,
+    "description_en": "A kilim weave with palm motifs in forest green and beige for grounded seating.",
+    "description_ar": "نسيج كليم بنقشات نخيل خضراء وبيجية يمنح الجلسات طابعا أصيلا.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, kilim weave, forest green, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, kilim pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-AC-15",
+    "name_en": "Coral Bloom",
+    "name_ar": "زهر المرجان",
+    "collection": "Accent",
+    "usage": "cushions",
+    "material": "floral print",
+    "composition": "100% cotton with floral print",
+    "weight_gsm": 210,
+    "width_cm": 150,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "floral",
+    "primary_color": "coral pink",
+    "secondary_colors": [
+      "teal",
+      "cream"
+    ],
+    "tone": "warm",
+    "styles": [
+      "bohemian",
+      "coastal"
+    ],
+    "features": [
+      "washable",
+      "hypoallergenic"
+    ],
+    "suitable_for": [
+      "home",
+      "kids",
+      "hotel"
+    ],
+    "price_sar_per_m": 78,
+    "description_en": "A fresh cotton floral print in coral and teal that brightens family cushions.",
+    "description_ar": "قطن مطبوع بزهور مرجانية وفيروزية يبهج وسائد العائلة.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, floral print, coral pink, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, floral pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  },
+  {
+    "code": "FA-AC-16",
+    "name_en": "Mono Grid",
+    "name_ar": "شبكة أحادية",
+    "collection": "Accent",
+    "usage": "cushions",
+    "material": "geometric print",
+    "composition": "100% cotton with geometric print",
+    "weight_gsm": 205,
+    "width_cm": 150,
+    "martindale": null,
+    "opacity": "opaque",
+    "plain_or_patterned": "patterned",
+    "pattern_type": "geometric",
+    "primary_color": "black",
+    "secondary_colors": [
+      "white"
+    ],
+    "tone": "neutral",
+    "styles": [
+      "modern",
+      "minimalist"
+    ],
+    "features": [
+      "washable",
+      "antibacterial"
+    ],
+    "suitable_for": [
+      "home",
+      "office",
+      "hotel"
+    ],
+    "price_sar_per_m": 72,
+    "description_en": "A crisp cotton geometric print in black and white for sharp graphic cushions.",
+    "description_ar": "قطن مطبوع بشبكة هندسية سوداء وبيضاء لوسائد بطابع حاد وعصري.",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, geometric print, black, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, geometric pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs"
+  }
+]
