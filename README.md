@@ -41,6 +41,12 @@ recover-ai/
 └── README.md
 ```
 
+## Demo catalog
+
+All 80 fabric images were generated with Muse Image (muse-image-1.0) from
+structured specs written by Muse Spark. In production, suppliers upload
+real fabric photos and Muse Spark auto-builds the catalog.
+
 ## Language rule
 
 - All code, comments, commit messages, docs, and README are in English.
