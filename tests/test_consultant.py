@@ -27,6 +27,8 @@ def block(codes):
 
 
 def test_rejects_invented_codes():
+    # Ranked order for plain upholstery search (price tiebreak).
+    good = ["FA-NL-07", "FA-NL-03", "FA-NL-10"]
     calls = {"n": 0}
 
     def fake(messages, tools=None):
@@ -34,13 +36,13 @@ def test_rejects_invented_codes():
         if calls["n"] == 1:
             return tool_call("search_catalog", {"usage": "upholstery"})
         if calls["n"] == 2:
-            return final_text(block(["FA-XX-99", "FA-VL-01", "FA-VL-02"]))
-        return final_text(block(["FA-VL-01", "FA-VL-02", "FA-NL-01"]))
+            return final_text(block([good[0], good[1], "FA-XX-99"]))
+        return final_text(block(good))
 
     out = c.chat("test-invented", "sofa fabric please", chat_fn=fake)
     codes = [r["code"] for r in out["recommendations"]]
     assert "FA-XX-99" not in codes
-    assert codes == ["FA-VL-01", "FA-VL-02", "FA-NL-01"]
+    assert codes == good
     assert all(get_fabric(code) for code in codes)
 
 
@@ -92,7 +94,7 @@ def test_budget_not_mentioned_when_nothing_relaxed():
         if fake.n == 1:
             return tool_call("search_catalog",
                              {"usage": "curtains", "max_price": 200})
-        return final_text(block(["FA-LA-01", "FA-LA-02", "FA-LA-03"]))
+        return final_text(block(["FA-LA-01", "FA-LA-08", "FA-LA-04"]))
 
     out = c.chat("test-no-relax", "curtains please", chat_fn=fake)
     assert "budget" not in out["reply"].lower()
@@ -180,6 +182,14 @@ def test_pet_turn_enforces_low_snag():
 
 
 def test_partial_mention_still_discloses_the_rest():
+    turn = {"seen": [], "relaxed": [], "needs_any": ["pet-friendly"],
+            "needs_all": [], "protected": ["pet-friendly"],
+            "pet_safe": True, "has_kids": False}
+    pre = c.run_search({"usage": "upholstery", "max_price": 100,
+                        "snag_levels": ["low"]}, turn)
+    good = [s["code"] for s in pre["fabrics"][:3]]
+    assert len(good) == 3
+
     def fake(messages, tools=None):
         if not hasattr(fake, "n"):
             fake.n = 0
@@ -188,9 +198,7 @@ def test_partial_mention_still_discloses_the_rest():
             return tool_call("search_catalog",
                              {"usage": "upholstery", "max_price": 100,
                               "snag_levels": ["low"]})
-        return final_text(
-            "All three fit your budget.\n"
-            + block(["FA-VL-01", "FA-VL-03", "FA-VL-04"]))
+        return final_text("All three fit your budget.\n" + block(good))
 
     import unittest.mock as mock
     real_search = c.search_catalog
@@ -309,11 +317,71 @@ def test_kids_light_note_mentions_fabric():
         fake.n += 1
         if fake.n == 1:
             return tool_call("search_catalog", {"usage": "upholstery"})
-        return final_text(block(["FA-VL-06", "FA-VL-01", "FA-VL-04"]))
+        if fake.n == 2:
+            return tool_call("get_fabric", {"code": "FA-VL-06"},
+                             call_id="t2")
+        return final_text(block(["FA-VL-06", "FA-NL-16", "FA-NL-02"]))
 
     out = c.chat("test-kids-note", "sofa for my kids please", chat_fn=fake)
     assert "FA-VL-06" in out["reply"]
     assert "extra care with kids" in out["reply"]
+
+
+def test_light_note_unit():
+    recs = [{"code": "FA-VL-06"}, {"code": "FA-VL-01"}]
+    note = c.light_color_note(recs, False, "kids")
+    assert "FA-VL-06" in note and "extra care with kids" in note
+    assert c.light_color_note([{"code": "FA-VL-01"}], False,
+                              "kids") == ""
+    note_ar = c.light_color_note(recs, True, "pets")
+    assert "الحيوانات" in note_ar
+
+
+def test_pets_never_get_high_snag(monkeypatch):
+    import app.services.catalog as cat
+    base = dict(name_en="T", name_ar="ت", material="cotton velvet",
+                primary_color="red", secondary_colors=[], tone="warm",
+                styles=["modern"], features=["pet-friendly"],
+                suitable_for=["home"], opacity="opaque", usage="upholstery",
+                pattern_type="solid", image="", price_sar_per_m=100)
+    items = [dict(base, code="P-MED", snag_risk="medium"),
+             dict(base, code="P-HI", snag_risk="high")]
+    monkeypatch.setattr(cat, "_SPECS", items)
+    summaries, relaxed = search_catalog(
+        usage="upholstery", snag_levels=["low"], pet_safe=True,
+        any_features=["pet-friendly"], limit=10)
+    assert [s["code"] for s in summaries] == ["P-MED"]
+    assert "P-HI" not in [s["code"] for s in summaries]
+
+
+def test_unseen_code_is_rejected_like_invented():
+    def fake(messages, tools=None):
+        if not hasattr(fake, "n"):
+            fake.n = 0
+        fake.n += 1
+        if fake.n == 1:
+            return tool_call("search_catalog", {"usage": "upholstery"})
+        if fake.n == 2:
+            return final_text(block(["FA-NL-07", "FA-NL-03", "FA-SC-01"]))
+        return final_text(block(["FA-NL-07", "FA-NL-03", "FA-NL-10"]))
+
+    out = c.chat("test-unseen", "sofa fabric please", chat_fn=fake)
+    codes = [r["code"] for r in out["recommendations"]]
+    assert "FA-SC-01" not in codes
+    assert codes == ["FA-NL-07", "FA-NL-03", "FA-NL-10"]
+
+
+def test_context_accumulates_across_turns():
+    ok = final_text("noted")
+    c.chat("test-acc", "my cat needs sofa fabric",
+           chat_fn=lambda messages, tools=None: ok)
+    session = c.SESSIONS["test-acc"]
+    assert session["pet_safe"] is True
+    assert "pet-friendly" in session["needs_any"]
+    c.chat("test-acc", "recommend now",
+           chat_fn=lambda messages, tools=None: ok)
+    assert c.SESSIONS["test-acc"]["pet_safe"] is True
+    assert "pet-friendly" in c.SESSIONS["test-acc"]["needs_any"]
 
 
 def test_room_photo_language_rule():
@@ -333,7 +401,7 @@ def test_relaxed_constraint_message():
         if fake.n == 1:
             return tool_call("search_catalog",
                              {"usage": "curtains", "max_price": 10})
-        return final_text(block(["FA-LA-01", "FA-LA-02", "FA-LA-03"]))
+        return final_text(block(["FA-LA-01", "FA-LA-08", "FA-LA-04"]))
 
     out = c.chat("test-relaxed", "cheap curtains", chat_fn=fake)
     assert "budget" in out["reply"].lower()

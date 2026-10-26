@@ -1,0 +1,428 @@
+[
+  {
+    "id": "hotel-lobby-sofa",
+    "turns": [
+      {
+        "message": "Our hotel lobby sofa gets heavy daily use. I need a fire-resistant fabric with high martindale."
+      },
+      {
+        "message": "Please recommend 3 specific fabrics now."
+      }
+    ],
+    "checks": [
+      {
+        "type": "recs_min_count",
+        "value": 3
+      },
+      {
+        "type": "all_have_feature",
+        "feature": "fire-resistant"
+      },
+      {
+        "type": "min_martindale",
+        "value": 40000
+      }
+    ]
+  },
+  {
+    "id": "restaurant-chairs",
+    "turns": [
+      {
+        "message": "Durable easy-clean fabric for restaurant chairs that must handle stains."
+      },
+      {
+        "message": "Please recommend 3 specific fabrics now."
+      }
+    ],
+    "checks": [
+      {
+        "type": "recs_min_count",
+        "value": 3
+      },
+      {
+        "type": "each_has_any_feature",
+        "features": [
+          "fire-resistant",
+          "stain-resistant"
+        ]
+      },
+      {
+        "type": "all_have_feature",
+        "feature": "easy-clean"
+      }
+    ]
+  },
+  {
+    "id": "bedroom-curtains",
+    "turns": [
+      {
+        "message": "I am a light sleeper and need blackout curtains for my bedroom."
+      },
+      {
+        "message": "Please recommend 3 specific fabrics now."
+      }
+    ],
+    "checks": [
+      {
+        "type": "recs_min_count",
+        "value": 3
+      },
+      {
+        "type": "all_field_in",
+        "field": "collection",
+        "values": [
+          "Shade & Calm"
+        ]
+      },
+      {
+        "type": "all_field_in",
+        "field": "opacity",
+        "values": [
+          "blackout"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "sunny-sheer",
+    "turns": [
+      {
+        "message": "I want sheer curtains for my sunny living room, something light and airy."
+      },
+      {
+        "message": "Please recommend 3 specific fabrics now."
+      }
+    ],
+    "checks": [
+      {
+        "type": "recs_min_count",
+        "value": 3
+      },
+      {
+        "type": "all_field_in",
+        "field": "usage",
+        "values": [
+          "curtains"
+        ]
+      },
+      {
+        "type": "all_field_in",
+        "field": "opacity",
+        "values": [
+          "sheer",
+          "semi-sheer"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "office-chairs",
+    "turns": [
+      {
+        "message": "Office chairs for heavy daily use, I need very durable fabric with high martindale."
+      },
+      {
+        "message": "Please recommend 3 specific fabrics now."
+      }
+    ],
+    "checks": [
+      {
+        "type": "recs_min_count",
+        "value": 3
+      },
+      {
+        "type": "min_martindale",
+        "value": 50000
+      }
+    ]
+  },
+  {
+    "id": "kids-curtains",
+    "turns": [
+      {
+        "message": "Washable curtains for my kids room, they make a mess."
+      },
+      {
+        "message": "Please recommend 3 specific fabrics now."
+      }
+    ],
+    "checks": [
+      {
+        "type": "recs_min_count",
+        "value": 3
+      },
+      {
+        "type": "each_has_any_feature",
+        "features": [
+          "washable",
+          "antibacterial"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "allergy-sofa",
+    "turns": [
+      {
+        "message": "I have allergies, I need a hypoallergenic sofa fabric."
+      },
+      {
+        "message": "Please recommend 3 specific fabrics now."
+      }
+    ],
+    "checks": [
+      {
+        "type": "recs_min_count",
+        "value": 1
+      },
+      {
+        "type": "hypo_or_disclosed"
+      }
+    ]
+  },
+  {
+    "id": "majlis-luxury",
+    "turns": [
+      {
+        "message": "I want a luxury fabric for a classic Saudi majlis sofa, warm and opulent, preferably velvet or jacquard."
+      },
+      {
+        "message": "Please recommend 3 specific fabrics now."
+      }
+    ],
+    "checks": [
+      {
+        "type": "recs_min_count",
+        "value": 3
+      },
+      {
+        "type": "lux_or_jacquard"
+      },
+      {
+        "type": "all_field_in",
+        "field": "tone",
+        "values": [
+          "warm"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "sadu-cushions",
+    "turns": [
+      {
+        "message": "Cushions with a Saudi heritage Sadu pattern for my majlis."
+      },
+      {
+        "message": "Please recommend 3 specific fabrics now."
+      }
+    ],
+    "checks": [
+      {
+        "type": "recs_min_count",
+        "value": 1
+      },
+      {
+        "type": "all_field_in",
+        "field": "collection",
+        "values": [
+          "Accent"
+        ]
+      },
+      {
+        "type": "any_pattern",
+        "value": "sadu"
+      }
+    ]
+  },
+  {
+    "id": "scandi-cushions",
+    "turns": [
+      {
+        "message": "Cool minimalist Scandinavian cushions in soft tones."
+      },
+      {
+        "message": "Please recommend 3 specific fabrics now."
+      }
+    ],
+    "checks": [
+      {
+        "type": "recs_min_count",
+        "value": 3
+      },
+      {
+        "type": "all_field_in",
+        "field": "usage",
+        "values": [
+          "cushions"
+        ]
+      },
+      {
+        "type": "all_field_in",
+        "field": "tone",
+        "values": [
+          "cool",
+          "neutral"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "velvet-budget",
+    "turns": [
+      {
+        "message": "I want a velvet sofa fabric, my budget is 60 per meter."
+      },
+      {
+        "message": "Please recommend 3 specific fabrics now."
+      }
+    ],
+    "checks": [
+      {
+        "type": "reply_contains_any",
+        "values": [
+          "budget",
+          "الميزانية",
+          "60"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "sofa-plus-curtains",
+    "turns": [
+      {
+        "message": "I need upholstery for my beige sofa."
+      },
+      {
+        "message": "Recommend 3 sofa fabrics now."
+      },
+      {
+        "message": "Now matching curtains in the same beige tones."
+      },
+      {
+        "message": "Recommend 3 curtain fabrics now."
+      }
+    ],
+    "checks": [
+      {
+        "type": "usages_present",
+        "values": [
+          "upholstery",
+          "curtains"
+        ],
+        "scope": "all"
+      },
+      {
+        "type": "coordinated",
+        "scope": "all"
+      }
+    ]
+  },
+  {
+    "id": "white-dogs",
+    "turns": [
+      {
+        "message": "I want a white sofa fabric, I have two dogs."
+      },
+      {
+        "message": "Please recommend 3 specific fabrics now."
+      }
+    ],
+    "checks": [
+      {
+        "type": "recs_min_count",
+        "value": 1
+      },
+      {
+        "type": "max_snag",
+        "value": "medium"
+      },
+      {
+        "type": "light_warning"
+      }
+    ]
+  },
+  {
+    "id": "lang-replies",
+    "variants": [
+      {
+        "lang": "ar",
+        "message": "أبغى قماش للكنبة، عندي أطفال. المجلس أخضر وبيج.",
+        "checks": [
+          {
+            "type": "reply_lang",
+            "lang": "ar"
+          },
+          {
+            "type": "no_egyptian"
+          }
+        ]
+      },
+      {
+        "lang": "en",
+        "message": "I need sofa fabric, I have kids. The room is green and beige.",
+        "checks": [
+          {
+            "type": "reply_lang",
+            "lang": "en"
+          }
+        ]
+      },
+      {
+        "lang": "hi",
+        "message": "मुझे सोफ़े के लिए कपड़ा चाहिए, मेरे बच्चे हैं। कमरा हरा और बेज है।",
+        "checks": [
+          {
+            "type": "reply_lang",
+            "lang": "hi"
+          }
+        ]
+      },
+      {
+        "lang": "fr",
+        "message": "Je cherche un tissu pour mon canapé, j'ai des enfants. Le salon est vert et beige.",
+        "checks": [
+          {
+            "type": "reply_lang",
+            "lang": "fr"
+          }
+        ]
+      },
+      {
+        "lang": "es",
+        "message": "Busco tela para mi sofá, tengo niños. La sala es verde y beige.",
+        "checks": [
+          {
+            "type": "reply_lang",
+            "lang": "es"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "off-topic",
+    "turns": [
+      {
+        "message": "I need a modern blue sofa fabric."
+      },
+      {
+        "message": "What is 1+1?"
+      },
+      {
+        "message": "Something plain and washable."
+      }
+    ],
+    "checks": [
+      {
+        "type": "declined",
+        "turn": 1
+      },
+      {
+        "type": "not_declined",
+        "turn": 2
+      }
+    ]
+  }
+]

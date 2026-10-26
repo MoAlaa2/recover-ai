@@ -1,0 +1,135 @@
+{
+  "scenarios": [
+    {
+      "id": "hotel-lobby-sofa",
+      "pass": true,
+      "detail": [
+        "recs_min_count PASS (3 recs)",
+        "all_have_feature PASS (all match)",
+        "min_martindale PASS (all match)"
+      ]
+    },
+    {
+      "id": "restaurant-chairs",
+      "pass": true,
+      "detail": [
+        "recs_min_count PASS (3 recs)",
+        "each_has_any_feature PASS (all match)",
+        "all_have_feature PASS (all match)"
+      ]
+    },
+    {
+      "id": "bedroom-curtains",
+      "pass": true,
+      "detail": [
+        "recs_min_count PASS (3 recs)",
+        "all_field_in PASS (all match)",
+        "all_field_in PASS (all match)"
+      ]
+    },
+    {
+      "id": "sunny-sheer",
+      "pass": true,
+      "detail": [
+        "recs_min_count PASS (3 recs)",
+        "all_field_in PASS (all match)",
+        "all_field_in PASS (all match)"
+      ]
+    },
+    {
+      "id": "office-chairs",
+      "pass": true,
+      "detail": [
+        "recs_min_count PASS (3 recs)",
+        "min_martindale PASS (all match)"
+      ]
+    },
+    {
+      "id": "kids-curtains",
+      "pass": true,
+      "detail": [
+        "recs_min_count PASS (3 recs)",
+        "each_has_any_feature PASS (all match)"
+      ]
+    },
+    {
+      "id": "allergy-sofa",
+      "pass": true,
+      "detail": [
+        "recs_min_count PASS (3 recs)",
+        "hypo_or_disclosed PASS (relaxation disclosed)"
+      ]
+    },
+    {
+      "id": "majlis-luxury",
+      "pass": true,
+      "detail": [
+        "recs_min_count PASS (3 recs)",
+        "lux_or_jacquard PASS (all luxe)",
+        "all_field_in PASS (all match)"
+      ]
+    },
+    {
+      "id": "sadu-cushions",
+      "pass": true,
+      "detail": [
+        "recs_min_count PASS (3 recs)",
+        "all_field_in PASS (all match)",
+        "any_pattern PASS (found)"
+      ]
+    },
+    {
+      "id": "scandi-cushions",
+      "pass": true,
+      "detail": [
+        "recs_min_count PASS (3 recs)",
+        "all_field_in PASS (all match)",
+        "all_field_in PASS (all match)"
+      ]
+    },
+    {
+      "id": "velvet-budget",
+      "pass": true,
+      "detail": [
+        "reply_contains_any PASS (mentioned)"
+      ]
+    },
+    {
+      "id": "sofa-plus-curtains",
+      "pass": true,
+      "detail": [
+        "usages_present PASS (have ['curtains', 'upholstery'])",
+        "coordinated PASS (coordinated)"
+      ]
+    },
+    {
+      "id": "white-dogs",
+      "pass": true,
+      "detail": [
+        "recs_min_count PASS (3 recs)",
+        "max_snag PASS (all match)",
+        "light_warning PASS (no risky light fabric shown)"
+      ]
+    },
+    {
+      "id": "lang-replies",
+      "pass": true,
+      "detail": [
+        "ar:reply_lang PASS (got ar)",
+        "ar:no_egyptian PASS (saudi dialect)",
+        "en:reply_lang PASS (got en)",
+        "hi:reply_lang PASS (got hi)",
+        "fr:reply_lang PASS (got fr)",
+        "es:reply_lang PASS (got es)"
+      ]
+    },
+    {
+      "id": "off-topic",
+      "pass": true,
+      "detail": [
+        "declined PASS (declined)",
+        "not_declined PASS (continued)"
+      ]
+    }
+  ]
+}

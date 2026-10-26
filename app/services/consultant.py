@@ -18,7 +18,8 @@ from app.services.catalog import (PIECE_NAMES_AR, contains_egyptian,
                                   detect_piece, get_fabric, has_kids,
                                   has_pets, is_arabic, is_in_scope,
                                   is_light_unprotected,
-                                  map_needs_to_features, search_catalog)
+                                  map_needs_to_features, needs_durable,
+                                  search_catalog)
 
 SESSIONS = {}
 MAX_TOOL_ROUNDS = 6
@@ -28,10 +29,11 @@ SYSTEM_PROMPT = """You are the ReCover consultant, a luxury fabric and \
 upholstery advisor for a premium Saudi showroom.
 Voice: warm, premium, concise. No emoji spam (at most one emoji, or none).
 
-LANGUAGE: reply in the user's language. Arabic means refined white Saudi \
-dialect only (use: أبغى، أبي، ودي، الحين، مره، زين، مجلس، صالة). Never use \
-Egyptian words such as: عايز، ازيك، كده، علشان، دلوقتي، فين، ليه. English \
-means warm, premium, concise.
+LANGUAGE: reply in the user's language and script: Hindi in Devanagari, \
+Arabic in Arabic script, French in French, Spanish in Spanish, English in \
+English. Arabic means refined white Saudi dialect only (use: أبغى، أبي، \
+ودي، الحين، مره، زين، مجلس، صالة). Never use Egyptian words such as: عايز، \
+ازيك، كده، علشان، دلوقتي، فين، ليه. English means warm, premium, concise.
 
 OPENING (first message only): introduce yourself in exactly 2 short lines \
 (who you are, what you can do: recommend fabrics, analyze a room photo, \
@@ -121,6 +123,9 @@ TOOLS = [
             "snag_levels": {"type": "array", "items": {"type": "string"},
                             "description": "allowed snag_risk values "
                                            "(low, medium, high)"},
+            "min_martindale": {"type": "integer",
+                               "description": "minimum rub cycles for "
+                                              "heavy use"},
             "suitable_for": {"type": "array", "items": {"type": "string"}},
             "opacity": {"type": "string"},
             "max_price": {"type": "number"},
@@ -181,6 +186,9 @@ def run_search(args, turn):
     snag = _as_list(args.get("snag_levels"))
     if turn.get("pet_safe") and not snag:
         snag = ["low"]
+    mart = args.get("min_martindale")
+    if turn.get("min_martindale") and not mart:
+        mart = turn["min_martindale"]
     wanted = args.get("limit", 6) or 6
     summaries, relaxed = search_catalog(
         usage=args.get("usage"), colors=_as_list(args.get("colors")),
@@ -194,7 +202,8 @@ def run_search(args, turn):
         limit=50,
         protected=turn.get("protected", ()),
         pet_safe=turn.get("pet_safe", False),
-        snag_levels=snag or None)
+        snag_levels=snag or None,
+        min_martindale=mart)
     required = model_all + needs_all + model_any + needs_any
     summaries.sort(key=lambda s: rank_key(
         s, required, _as_list(args.get("styles")), args.get("tone"),
@@ -262,6 +271,7 @@ RELAX_LABELS = {
     "features": ("features", "المواصفات"),
     "any_features": ("pet-friendly filter", "شرط مقاومة الحيوانات"),
     "snag_levels": ("claw-safe filter", "شرط تحمل المخالب"),
+    "min_martindale": ("durability", "المتانة"),
     "opacity": ("opacity", "التعتيم"),
     "colors": ("colors", "الألوان"),
     "tone": ("tone", "الدرجة"),
@@ -316,7 +326,10 @@ def execute_tool(name, args, turn):
                 turn["relaxed"].append(name)
         return result
     if name == "get_fabric":
-        item = get_fabric((args or {}).get("code", ""))
+        code = (args or {}).get("code", "")
+        item = get_fabric(code)
+        if item and code not in turn["seen"]:
+            turn["seen"].append(code)
         return item or {"error": "unknown code"}
     if name == "analyze_room":
         return analyze_room((args or {}).get("image_path", ""))
@@ -351,31 +364,78 @@ def agent_turn(messages, chat_fn, turn):
 
 
 def valid_recommendations(data, seen):
-    """Check exactly 3 known codes. Returns (recs, bad_code)."""
+    """Check exactly 3 grounded codes. Returns (recs, bad_code).
+
+    Every code must exist and have come from a tool result this turn;
+    memory-only picks are rejected the same way as invented codes.
+    """
     if not isinstance(data, list) or len(data) != 3:
         return None, "want exactly 3"
     recs = []
     for entry in data:
         code = (entry or {}).get("code", "")
-        if not get_fabric(code):
+        if not get_fabric(code) or code not in (seen or []):
             return None, code
         recs.append({"code": code,
                      "reason": (entry or {}).get("reason", "")})
     return recs, None
 
 
-def kids_color_note(recommendations, arabic):
-    """Warn when a light, non-washable fabric is shown for kids."""
+def light_color_note(recommendations, arabic, who):
+    """Warn when a light, non-washable fabric is shown for kids or pets."""
     flagged = [r["code"] for r in recommendations
                if is_light_unprotected(get_fabric(r["code"]))]
     if not flagged:
         return ""
     codes = ", ".join(flagged)
     if arabic:
+        tail = "مع الأطفال" if who == "kids" else "مع الحيوانات"
         return ("ملاحظة: %s فاتح اللون وغير مقاوم للبقع، ويحتاج عناية "
-                "إضافية مع الأطفال." % codes)
+                "إضافية %s." % (codes, tail))
+    tail = "with kids" if who == "kids" else "with pets"
     return ("Note: %s is light-colored and not stain-resistant, so expect "
-            "extra care with kids." % codes)
+            "extra care %s." % (codes, tail))
+
+
+def turn_for(message):
+    """Build the expert-rule context for one user message."""
+    needs = map_needs_to_features(message)
+    pet_needs = [f for f in needs if f in PET_OR_FEATURES]
+    core_needs = [f for f in needs if f not in PET_OR_FEATURES]
+    protected = []
+    if has_pets(message):
+        protected.append("pet-friendly")
+    if has_kids(message):
+        protected.extend(["washable", "antibacterial"])
+    return {"seen": [], "relaxed": [],
+            "needs_any": pet_needs, "needs_all": core_needs,
+            "protected": protected,
+            "pet_safe": has_pets(message),
+            "has_kids": has_kids(message),
+            "min_martindale": 50000 if needs_durable(message) else None}
+
+
+def accumulate_context(session, turn):
+    """Union this turn's needs with the session's running needs.
+
+    Follow-up turns ("recommend now", "something darker") rarely restate
+    the household, so protection must persist across the session.
+    """
+    for key in ("needs_any", "needs_all", "protected"):
+        merged = list(session.get(key, []))
+        for value in turn[key]:
+            if value not in merged:
+                merged.append(value)
+        turn[key] = merged
+        session[key] = merged
+    for key in ("pet_safe", "has_kids"):
+        turn[key] = turn[key] or session.get(key, False)
+        session[key] = turn[key]
+    turn["min_martindale"] = max(
+        [m for m in (turn["min_martindale"],
+                     session.get("min_martindale")) if m] or [None])
+    session["min_martindale"] = turn["min_martindale"]
+    return turn
 
 
 def confirm_piece_question(stated, detected, arabic):
@@ -422,14 +482,7 @@ def chat(session_id, message, image_path=None, chat_fn=None):
         history.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
     room_analysis = None
     user_text = message or ""
-    needs = map_needs_to_features(message)
-    pet_needs = [f for f in needs if f in PET_OR_FEATURES]
-    core_needs = [f for f in needs if f not in PET_OR_FEATURES]
-    turn = {"seen": [], "relaxed": [],
-            "needs_any": pet_needs, "needs_all": core_needs,
-            "protected": ["pet-friendly"] if has_pets(message) else [],
-            "pet_safe": has_pets(message),
-            "has_kids": has_kids(message)}
+    turn = accumulate_context(session, turn_for(message))
     confirm = ""
     if image_path:
         path = image_path if os.path.isabs(image_path) else \
@@ -439,7 +492,8 @@ def chat(session_id, message, image_path=None, chat_fn=None):
         room_analysis = analyze_room(image_path)
         user_text += "\n[Room photo analyzed: %s]" % json.dumps(
             room_analysis, ensure_ascii=False)
-        needs_text = ", ".join(needs) or "none"
+        needs_text = ", ".join(turn["needs_all"] + turn["needs_any"]) \
+            or "none"
         user_text += "\nSuggested features from my needs: %s" % needs_text
         stated = detect_piece(message)
         detected = detect_piece((room_analysis or {}).get("furniture", ""))
@@ -458,9 +512,9 @@ def chat(session_id, message, image_path=None, chat_fn=None):
         seen_codes = [c for c in turn["seen"] if get_fabric(c)]
         history.append({"role": "assistant", "content": final_text})
         history.append({"role": "user", "content":
-                        "Code %s does not exist. Reply again with exactly "
-                        "3 real codes from your tool results%s, same reply "
-                        "text, ending with the ```recommendations block."
+                        "Code %s is not allowed: use only codes from your "
+                        "tool results%s, same reply text, ending with the "
+                        "```recommendations block."
                         % (bad, " (for example %s)" % ", ".join(
                             seen_codes[:5]) if seen_codes else "")})
         final_text = agent_turn(list(history), chat_fn, turn)
@@ -482,8 +536,11 @@ def chat(session_id, message, image_path=None, chat_fn=None):
     if missing:
         reply = (reply + "\n\n" + disclosure_note(
             missing, is_arabic(user_text))).strip()
-    if recommendations and turn.get("has_kids"):
-        note = kids_color_note(recommendations, is_arabic(user_text))
+    who = ("kids" if turn.get("has_kids")
+           else "pets" if turn.get("pet_safe") else None)
+    if recommendations and who:
+        note = light_color_note(recommendations, is_arabic(user_text),
+                                who)
         if note and note not in reply:
             reply = (reply + "\n\n" + note).strip()
     history.append({"role": "assistant", "content": final_text})

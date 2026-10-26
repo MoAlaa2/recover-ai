@@ -15,7 +15,7 @@ MIN_RESULTS = 3
 # snag-safe filter last.
 RELAX_ORDER = ["styles", "tone", "colors", "suitable_for",
                "plain_or_patterned", "opacity", "max_price",
-               "features", "any_features", "snag_risk"]
+               "features", "any_features", "min_martindale", "snag_risk"]
 
 USAGE_SYNONYMS = {
     "sofa": "upholstery", "couch": "upholstery", "chair": "upholstery",
@@ -95,6 +95,10 @@ def _matches(item, flt):
     if flt.get("snag_levels") is not None and \
             item.get("snag_risk") not in flt["snag_levels"]:
         return False
+    if flt.get("min_martindale") is not None:
+        mart = item.get("martindale") or 0
+        if mart < flt["min_martindale"]:
+            return False
     return True
 
 
@@ -132,7 +136,8 @@ def search_catalog(usage=None, colors=None, tone=None,
                    plain_or_patterned=None, styles=None, features=None,
                    any_features=None, suitable_for=None, opacity=None,
                    max_price=None, limit=6, protected=(),
-                   pet_safe=False, snag_levels=None):
+                   pet_safe=False, snag_levels=None,
+                   min_martindale=None):
     """Filter the catalog. Returns (summaries, relaxed_constraints).
 
     Filters are relaxed in RELAX_ORDER until at least MIN_RESULTS match.
@@ -145,7 +150,8 @@ def search_catalog(usage=None, colors=None, tone=None,
            "any_features": list(any_features or []),
            "suitable_for": list(suitable_for or []), "opacity": opacity,
            "max_price": max_price,
-           "snag_levels": list(snag_levels) if snag_levels else None}
+           "snag_levels": list(snag_levels) if snag_levels else None,
+           "min_martindale": min_martindale}
     original = {k: (list(v) if isinstance(v, list) else v)
                 for k, v in flt.items()}
     specs = load_specs()
@@ -163,8 +169,9 @@ def search_catalog(usage=None, colors=None, tone=None,
                 continue
             if flt["snag_levels"] == ["low"]:
                 flt["snag_levels"] = ["low", "medium"]
-            else:
+            elif not pet_safe:
                 flt["snag_levels"] = None
+            # With pets, medium is the floor: high snag is never allowed.
         elif name in ("features", "any_features"):
             keepable = [f for f in flt[name] if f in protected]
             if len(keepable) == len(flt[name]):
@@ -174,8 +181,8 @@ def search_catalog(usage=None, colors=None, tone=None,
             flt["max_price"] = None
         elif name in ("colors", "styles", "suitable_for") and flt[name]:
             flt[name] = []
-        elif name in ("tone", "opacity", "plain_or_patterned") \
-                and flt[name]:
+        elif name in ("tone", "opacity", "plain_or_patterned",
+                      "min_martindale") and flt[name]:
             flt[name] = None
         else:
             continue
@@ -213,6 +220,18 @@ def has_kids(text):
     return any(w in t for w in KID_WORDS)
 
 
+DURABLE_WORDS = ("heavy use", "durable", "durability", "high martindale",
+                 "martindale", "long-lasting", "commercial",
+                 "متين", "متانة", "استخدام مكثف", "استخدام يومي مكثف",
+                 "يتحمل")
+
+
+def needs_durable(text):
+    """True if the user stresses heavy-duty durability."""
+    t = (text or "").lower()
+    return any(w in t for w in DURABLE_WORDS)
+
+
 LIGHT_COLOR_WORDS = ("ivory", "white", "cream")
 
 
@@ -244,6 +263,8 @@ SCOPE_KEEP_WORDS = [
     "welcome", "okay", "great", "nice", "perfect", "lol", "haha",
     "how are you", "who are you", "what do you do", "what can you do",
     "recommend", "suggest", "buy", "choose", "match", "swatch", "catalog",
+    "tissu", "canape", "canapé", "tela", "sofá", "ninos", "niños",
+    "enfants", "sala", "salon", "कपड़ा", "सोफ़े", "बच्चे",
     "sample", "texture", "fabric", "upholstery", "curtain", "sofa",
     "couch", "chair", "cushion", "pillow", "velvet", "linen", "chenille",
     "boucle", "jacquard", "cotton", "silk", "wool", "sadu", "kilim",
@@ -327,6 +348,20 @@ def map_needs_to_features(text):
     if any(w in t for w in
            ["hotel", "restaurant", "فندق", "مطعم", "hospitality", "ضيافة"]):
         found.add("fire-resistant")
+    if any(w in t for w in
+           ["allergy", "allergies", "allergic", "asthma", "حساسية",
+            "ربو"]):
+        found.add("hypoallergenic")
+    if any(w in t for w in
+           ["stain", "spots", "spill", "mess", "بقعة", "بقع"]):
+        found.add("stain-resistant")
+    if any(w in t for w in
+           ["easy-clean", "easy clean", "easy to clean", "تنظيف سهل"]):
+        found.add("easy-clean")
+    if any(w in t for w in
+           ["washable", "machine wash", "يغسل", "قابل للغسل",
+            "قابلة للغسل"]):
+        found.add("washable")
     bedroom = any(w in t for w in ["bedroom", "غرفة نوم", "غرف نوم"])
     curtain = any(w in t for w in ["curtain", "ستارة", "ستائر"])
     if bedroom and curtain:
