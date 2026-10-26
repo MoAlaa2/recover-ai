@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReCover — Change the look, not the furniture.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">R</div>
+    <div>
+      <div class="brand-name">ReCover</div>
+      <div class="brand-tag" data-i18n="tagline">Change the look, not the furniture.</div>
+    </div>
+  </div>
+  <button id="langToggle" class="lang-toggle" type="button" aria-label="Language">عربي</button>
+</header>
+
+<main class="layout">
+  <section class="chat-pane" aria-label="Chat">
+    <div id="messages" class="messages" role="log" aria-live="polite"></div>
+    <div id="chips" class="chips" hidden></div>
+    <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload a room photo">
+      <svg class="camera" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M9 3l1.5 2h3L15 3h4a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1h4zm3 5.5A4.5 4.5 0 1012 17a4.5 4.5 0 000-8.5zm0 2A2.5 2.5 0 1112 15a2.5 2.5 0 010-5z"/></svg>
+      <span data-i18n="dropHint">Drop a room photo here, or tap to choose one</span>
+      <input id="fileInput" type="file" accept="image/*" hidden>
+    </div>
+    <form id="composer" class="composer">
+      <input id="composerInput" type="text" autocomplete="off"
+             data-i18n-ph="placeholder" placeholder="Ask about fabrics…">
+      <button type="submit" aria-label="Send">➤</button>
+    </form>
+  </section>
+
+  <aside class="side-pane" aria-label="Recommendations">
+    <div id="roomCard" class="room-card" hidden></div>
+    <h2 class="panel-title" data-i18n="forYou">For you</h2>
+    <div id="recs" class="recs">
+      <p class="empty" data-i18n="emptyRecs">Your recommended fabrics will appear here.</p>
+    </div>
+  </aside>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>
