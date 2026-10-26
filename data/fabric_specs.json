@@ -210,7 +210,7 @@
     "price_sar_per_m": 145,
     "description_en": "A refined cotton jacquard in ivory with a subtle woven grain for calm elegant upholstery.",
     "description_ar": "جاكار قطني عاجي بنسيج ناعم يمنح الكنب مظهرا هادئا وأنيقا.",
-    "image_prompt": "Flat seamless fabric swatch, top-down view, cotton jacquard, ivory, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
+    "image_prompt": "Flat seamless fabric swatch, top-down view, ivory cotton jacquard fabric, solid plain, absolutely no pattern, no motif, no floral, no figure, uniform ivory color with fine cotton woven texture, square format, soft even studio lighting, no folds, no shadows, no objects, no text",
     "image": "data/catalog/FA-VL-06.jpg"
   },
   {
@@ -1103,7 +1103,7 @@
     "price_sar_per_m": 175,
     "description_en": "A playful polyester boucle speckle in cream with grey and caramel flecks for family sofas.",
     "description_ar": "بوكلية منقطة بالكريمي مع رشات رمادية تناسب كنب العائلات العملية.",
-    "image_prompt": "Flat seamless fabric swatch, top-down view, polyester boucle, cream, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, speckle pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
+    "image_prompt": "Flat seamless fabric swatch, top-down view of cream polyester boucle fabric with seamless repeating pattern of speckle, clearly visible contrasting multicolor flecks in black, brown, grey and tan on cream background, textured looped boucle weave, square format, soft even studio lighting, no folds, no shadows, no objects, no text",
     "image": "data/catalog/FA-NL-14.jpg"
   },
   {

@@ -1,0 +1,64 @@
+{
+  "fixed": [
+    "FA-NL-14"
+  ],
+  "still_weak": [
+    "FA-VL-06"
+  ],
+  "attempts": [
+    {
+      "code": "FA-VL-06",
+      "attempt": 1,
+      "old_score": {
+        "color_match": 9,
+        "pattern_match": 3,
+        "material_look": 9
+      },
+      "new_score": {
+        "color_match": 10,
+        "pattern_match": 10,
+        "material_look": 6
+      },
+      "old_prompt": "Flat seamless fabric swatch, top-down view, cotton jacquard, ivory, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text",
+      "new_prompt": "Flat seamless fabric swatch, top-down view, ivory cotton jacquard fabric, solid plain, absolutely no pattern, no motif, no floral, no figure, uniform ivory color with fine cotton woven texture, square format, soft even studio lighting, no folds, no shadows, no objects, no text",
+      "issues": "lacks jacquard weave texture",
+      "kept": true
+    },
+    {
+      "code": "FA-VL-06",
+      "attempt": 2,
+      "old_score": {
+        "color_match": 10,
+        "pattern_match": 10,
+        "material_look": 6
+      },
+      "new_score": {
+        "color_match": 10,
+        "pattern_match": 10,
+        "material_look": 6
+      },
+      "old_prompt": "Flat seamless fabric swatch, top-down view, ivory cotton jacquard fabric, solid plain, absolutely no pattern, no motif, no floral, no figure, uniform ivory color with fine cotton woven texture, square format, soft even studio lighting, no folds, no shadows, no objects, no text",
+      "new_prompt": "Flat seamless fabric swatch, top-down view of ivory cotton jacquard fabric, solid plain, absolutely no pattern, no motif, highly detailed jacquard weave texture with visible interwoven yarns and subtle raised woven structure, natural matte cotton finish, square format, soft even studio lighting, no folds, no shadows, no objects, no text",
+      "issues": "plain weave, no jacquard pattern visible",
+      "kept": false
+    },
+    {
+      "code": "FA-NL-14",
+      "attempt": 1,
+      "old_score": {
+        "color_match": 9,
+        "pattern_match": 6,
+        "material_look": 9
+      },
+      "new_score": {
+        "color_match": 10,
+        "pattern_match": 10,
+        "material_look": 9
+      },
+      "old_prompt": "Flat seamless fabric swatch, top-down view, polyester boucle, cream, realistic textile texture, soft even studio lighting, square, no folds, no shadows, no objects, no text, speckle pattern, single consistent seamless repeating pattern across the entire swatch, evenly tiled, consistent pattern scale, real woven or printed textile, not wallpaper, not digital art, no mixed motifs",
+      "new_prompt": "Flat seamless fabric swatch, top-down view of cream polyester boucle fabric with seamless repeating pattern of speckle, clearly visible contrasting multicolor flecks in black, brown, grey and tan on cream background, textured looped boucle weave, square format, soft even studio lighting, no folds, no shadows, no objects, no text",
+      "issues": "none",
+      "kept": true
+    }
+  ]
+}

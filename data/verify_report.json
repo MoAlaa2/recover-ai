@@ -3,7 +3,560 @@
     "color_match": 10,
     "pattern_match": 10,
     "material_look": 9,
+    "issues": "no defects, matches spec",
+    "code": "FA-AC-01"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-AC-02"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-AC-03"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-AC-04"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-AC-05"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 10,
+    "issues": "none",
+    "code": "FA-AC-06"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "matches spec, no defects",
+    "code": "FA-AC-07"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-AC-08"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none, matches spec",
+    "code": "FA-AC-09"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 10,
+    "issues": "none",
+    "code": "FA-AC-10"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 10,
+    "issues": "none",
+    "code": "FA-AC-11"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 10,
+    "issues": "none",
+    "code": "FA-AC-12"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 10,
+    "issues": "none",
+    "code": "FA-AC-13"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "matches spec well",
+    "code": "FA-AC-14"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 10,
+    "issues": "none",
+    "code": "FA-AC-15"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 10,
+    "issues": "none",
+    "code": "FA-AC-16"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none visible",
+    "code": "FA-LA-01"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-LA-02"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "no visible defects",
+    "code": "FA-LA-03"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "no issues, matches spec",
+    "code": "FA-LA-04"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-LA-05"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "no defects noted",
+    "code": "FA-LA-06"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-LA-07"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-LA-08"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 10,
+    "issues": "none",
+    "code": "FA-LA-09"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none, matches spec",
+    "code": "FA-LA-10"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "no visible issues",
+    "code": "FA-LA-11"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 10,
+    "issues": "none",
+    "code": "FA-LA-12"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "no defects, matches spec",
+    "code": "FA-LA-13"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 10,
+    "issues": "none",
+    "code": "FA-LA-14"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 9,
+    "material_look": 8,
+    "issues": "matches spec, no defects",
+    "code": "FA-LA-15"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 10,
+    "issues": "none",
+    "code": "FA-LA-16"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 10,
+    "issues": "none",
+    "code": "FA-NL-01"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-NL-02"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-NL-03"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "matches spec, no defects",
+    "code": "FA-NL-04"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 10,
+    "issues": "none",
+    "code": "FA-NL-05"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-NL-06"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-NL-07"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none visible",
+    "code": "FA-NL-08"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "no defects, matches spec",
+    "code": "FA-NL-09"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 7,
+    "issues": "weave looks lighter than canvas",
+    "code": "FA-NL-10"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-NL-11"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "no issues, matches spec",
+    "code": "FA-NL-12"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-NL-13"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-NL-14"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-NL-15"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 10,
+    "issues": "none",
+    "code": "FA-NL-16"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-SC-01"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "no issues, matches spec",
+    "code": "FA-SC-02"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-SC-03"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 10,
+    "issues": "none",
+    "code": "FA-SC-04"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none visible",
+    "code": "FA-SC-05"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-SC-06"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none observed",
+    "code": "FA-SC-07"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 9,
+    "material_look": 9,
+    "issues": "thermal knit texture visible, otherwise matches",
+    "code": "FA-SC-08"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-SC-09"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 8,
+    "issues": "matches spec, no defects",
+    "code": "FA-SC-10"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 9,
+    "material_look": 9,
+    "issues": "no issues found",
+    "code": "FA-SC-11"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "no defects visible",
+    "code": "FA-SC-12"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 9,
+    "material_look": 8,
+    "issues": "no major issues",
+    "code": "FA-SC-13"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 9,
+    "material_look": 8,
+    "issues": "good match, no defects seen",
+    "code": "FA-SC-14"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "no defects noted",
+    "code": "FA-SC-15"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none visible",
+    "code": "FA-SC-16"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
     "issues": "none",
     "code": "FA-VL-01"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none visible",
+    "code": "FA-VL-02"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-VL-03"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-VL-04"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-VL-05"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 6,
+    "issues": "lacks jacquard weave texture",
+    "code": "FA-VL-06"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-VL-07"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-VL-08"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 9,
+    "material_look": 9,
+    "issues": "matches spec, no defects",
+    "code": "FA-VL-09"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-VL-10"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "no defects, matches spec",
+    "code": "FA-VL-11"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-VL-12"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none",
+    "code": "FA-VL-13"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "matches spec, no defects",
+    "code": "FA-VL-14"
+  },
+  {
+    "color_match": 10,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "matches spec, no defects",
+    "code": "FA-VL-15"
+  },
+  {
+    "color_match": 9,
+    "pattern_match": 10,
+    "material_look": 9,
+    "issues": "none visible",
+    "code": "FA-VL-16"
   }
 ]
