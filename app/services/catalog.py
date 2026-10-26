@@ -216,6 +216,71 @@ PIECE_NAMES_AR = {"sofa": "الكنبة", "armchair": "كرسي الاسترخا
                   "chair": "الكرسي", "curtains": "الستائر",
                   "cushions": "الوسائد", "bed": "السرير"}
 
+# Words that keep a turn inside the consultant's scope.
+SCOPE_KEEP_WORDS = [
+    "hi", "hello", "hey", "thanks", "thank", "bye", "morning", "evening",
+    "welcome", "okay", "great", "nice", "perfect", "lol", "haha",
+    "how are you", "who are you", "what do you do", "what can you do",
+    "recommend", "suggest", "buy", "choose", "match", "swatch", "catalog",
+    "sample", "texture", "fabric", "upholstery", "curtain", "sofa",
+    "couch", "chair", "cushion", "pillow", "velvet", "linen", "chenille",
+    "boucle", "jacquard", "cotton", "silk", "wool", "sadu", "kilim",
+    "color", "colour", "pattern", "plain", "print", "clean", "wash",
+    "stain", "care", "maintain", "light", "sun", "decor", "interior",
+    "furniture", "room", "bedroom", "living", "majlis", "wall", "paint",
+    "floor", "rug", "carpet", "style", "modern", "classic", "budget",
+    "price", "cost", "meter", "martindale", "durable", "pet", "kid",
+    "hotel", "office", "photo", "picture", "image", "blue", "green",
+    "red", "beige", "white", "grey", "gray", "black", "ivory", "gold",
+    "silver", "pink", "yellow", "brown", "navy", "teal", "terracotta",
+    "olive", "mustard", "help",
+    "مرحبا", "هلا", "السلام", "صباح الخير", "مساء الخير", "شكرا",
+    "يعطيك العافية", "تمام", "حلو", "ممتاز", "ههه", "طيب", "من انت",
+    "وش تسوي", "وش تقدر", "وش تقدم", "ساعدني", "لو سمحت", "قماش",
+    "أقمشة", "تنجيد", "ستارة", "ستائر", "كنب", "كنبة", "كرسي",
+    "كراسي", "وسادة", "وسائد", "مخدة", "مخمل", "كتان", "قطن",
+    "حرير", "صوف", "لون", "ألوان", "نقشة", "سادة", "مشجر",
+    "تنظيف", "غسيل", "بقعة", "بقع", "عناية", "إضاءة", "نور",
+    "شمس", "ديكور", "أثاث", "غرفة", "غرف", "مجلس", "صالة",
+    "جدار", "حائط", "أرضية", "سجاد", "ستايل", "مودرن", "كلاسيك",
+    "ميزانية", "سعر", "أسعار", "متر", "متانة", "حيوان", "قطة",
+    "كلب", "أطفال", "فندق", "مكتب", "صورة", "صور", "تنصح",
+    "أبغى", "أبي", "ودي", "بيت", "منزل", "شقة",
+]
+
+# Regexes that mark a turn as outside the consultant's scope.
+SCOPE_DECLINE_PATTERNS = [
+    r"\d\s*[+\-*/×÷%^]\s*\d",
+    r"calculate|equation|\bmath\b|solve for|احسب|رياضيات|معادلة",
+    r"python|javascript|\bjava\b|programming|function\s*\(|def\s+\w+\s*\(|"
+    r"import\s+\w+|\bbug\b|compiler|\bapi\b|software|database|برمجة|بايثون",
+    r"\bnews\b|election|president|minister|\bwar\b|أخبار|انتخابات|رئيس|"
+    r"حرب|وزير|حكومة",
+    r"relationship|divorce|marry|marriage|health|doctor|diet|invest|"
+    r"stock|salary|loan|lawyer|court|زواج|طلاق|علاقة|صحة|دكتور|طبيب|"
+    r"رجيم|راتب|قرض|استثمار|محامي|محكمة|قانون",
+    r"capital of|who invented|who discovered|tallest|longest|عاصمة|"
+    r"من اخترع|من اكتشف|أطول|أين تقع",
+    r"football|soccer|premier league|world cup|مباراة|الدوري|كأس العالم|"
+    r"كرة القدم",
+]
+
+
+def is_in_scope(text):
+    """True when the turn belongs to the consultant.
+
+    Greetings, thanks, session small talk and anything home-related
+    stay in scope. Explicit decline categories (math, coding, news,
+    personal advice, general knowledge, sports) do not.
+    """
+    import re
+    t = (text or "").lower()
+    if not t.strip():
+        return True
+    if any(w in t for w in SCOPE_KEEP_WORDS):
+        return True
+    return not any(re.search(p, t) for p in SCOPE_DECLINE_PATTERNS)
+
 
 def detect_piece(text):
     """Coarse furniture type mentioned in text, or None."""

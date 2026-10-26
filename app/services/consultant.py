@@ -16,8 +16,8 @@ from app.core.config import (BASE_DIR, CHAT_URL, SPARK_MODEL,
                              require_api_key)
 from app.services.catalog import (PIECE_NAMES_AR, contains_egyptian,
                                   detect_piece, get_fabric, has_pets,
-                                  is_arabic, map_needs_to_features,
-                                  search_catalog)
+                                  is_arabic, is_in_scope,
+                                  map_needs_to_features, search_catalog)
 
 SESSIONS = {}
 MAX_TOOL_ROUNDS = 6
@@ -349,11 +349,35 @@ def confirm_piece_question(stated, detected, arabic):
             % (stated, detected))
 
 
+def decline_reply(topic, arabic):
+    """One-line polite decline with a steer back. No model call."""
+    if arabic:
+        base = "هذا خارج تخصصي، أنا هنا لأقمشتك وديكورك."
+        if topic and topic in PIECE_NAMES_AR:
+            return base + " نكمل على %s؟" % PIECE_NAMES_AR[topic]
+        return base + " أساعدك بأي قماش اليوم؟"
+    base = ("That's outside my expertise — I'm here for your fabrics "
+            "and interiors.")
+    if topic:
+        return base + " Shall we continue with your %s?" % topic
+    return base + " What fabric can I help you with?"
+
+
 def chat(session_id, message, image_path=None, chat_fn=None):
     """One user turn. Returns {reply, recommendations, room_analysis?}."""
     session = SESSIONS.setdefault(session_id, {"messages": [],
-                                               "detected_piece": None})
+                                               "detected_piece": None,
+                                               "topic": None})
     history = session["messages"]
+    if not image_path and not is_in_scope(message):
+        arabic = is_arabic(message)
+        reply = decline_reply(session.get("topic"), arabic)
+        history.append({"role": "user", "content": message or ""})
+        history.append({"role": "assistant", "content": reply})
+        return {"reply": reply, "recommendations": []}
+    piece = detect_piece(message)
+    if piece:
+        session["topic"] = piece
     if not history or history[0].get("role") != "system":
         history.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
     room_analysis = None

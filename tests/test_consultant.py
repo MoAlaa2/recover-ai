@@ -210,6 +210,46 @@ def test_partial_mention_still_discloses_the_rest():
     assert len(out["recommendations"]) == 3
 
 
+def test_math_question_is_declined_without_model_call():
+    def boom(messages, tools=None):
+        raise AssertionError("model must not be called")
+
+    out = c.chat("test-scope-math", "what is 1+1", chat_fn=boom)
+    assert out["recommendations"] == []
+    assert out["reply"] == ("That's outside my expertise — I'm here for "
+                            "your fabrics and interiors. What fabric can I "
+                            "help you with?")
+
+
+def test_arabic_decline_without_model_call():
+    def boom(messages, tools=None):
+        raise AssertionError("model must not be called")
+
+    out = c.chat("test-scope-ar", "من هو رئيس فرنسا؟", chat_fn=boom)
+    assert out["recommendations"] == []
+    assert "خارج تخصصي" in out["reply"]
+    assert "أقمشتك" in out["reply"]
+
+
+def test_decline_steers_back_to_known_topic():
+    def boom(messages, tools=None):
+        raise AssertionError("model must not be called")
+
+    c.chat("test-scope-topic", "fabric for my sofa please",
+           chat_fn=lambda messages, tools=None: final_text("noted"))
+    out = c.chat("test-scope-topic", "who won the election", chat_fn=boom)
+    assert out["reply"].endswith("your sofa?")
+
+
+def test_velvet_cleaning_is_answered():
+    def fake(messages, tools=None):
+        return final_text("Vacuum velvet weekly with a soft brush.")
+
+    out = c.chat("test-scope-care", "how do I clean velvet", chat_fn=fake)
+    assert "outside my expertise" not in out["reply"].lower()
+    assert "Vacuum" in out["reply"]
+
+
 def test_room_photo_language_rule():
     assert "never \"sounds\"" in c.SYSTEM_PROMPT
     assert "\"looks\"" in c.SYSTEM_PROMPT
