@@ -158,7 +158,9 @@
       div.appendChild(av);
     }
     var body = document.createElement("div");
-    body.textContent = text;
+    body.innerHTML = esc(text)
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/\n/g, "<br>");
     if (photo) {
       var img = document.createElement("img");
       img.className = "chat-photo";
@@ -360,7 +362,10 @@
     });
 
     typingOn();
-    postJSON("/api/chat", { session_id: state.sessionId, message: "Hello" })
+    postJSON("/api/chat", {
+      session_id: state.sessionId,
+      message: state.lang === "ar" ? "مرحبا" : "Hello"
+    })
       .then(function (res) {
         typingOff();
         handleResult(res);
