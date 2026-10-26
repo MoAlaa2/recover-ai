@@ -1,2 +1,49 @@
-# recover-ai
-  ReCover — AI fabric consultant. Change the look, not the furniture. Built on Meta Muse Spark, Muse Image &amp; SAM 3.1.
+# ReCover — منصة استشارات أقمشة وتنجيد بالذكاء الاصطناعي
+
+> **"Change the look, not the furniture."**
+
+ReCover مساعد ذكي يقترح أقمشة وتنجيد مناسبة لقطع الأثاث من صورة، مع شرح عملي للاختيارات.
+
+## الموديلات
+
+- **muse-spark-1.3** — التحليل والمحادثة
+- **muse-image-1.0** — توليد الصور
+- **SAM 3.1** — تحديد مناطق التنجيد في الصورة
+
+## الإعداد
+
+1. انسخ ملف البيئة وتأكد أن المفتاح موجود فيه فقط (ممنوع كتابته في الكود):
+
+   ```bash
+   echo 'MODEL_API_KEY=...' > .env
+   ```
+
+2. ثبّت الاعتماديات وشغّل (بعد إضافة كود التطبيق لاحقًا):
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+## هيكل المشروع
+
+```text
+recover-ai/
+├── app/            # كود FastAPI (يُضاف لاحقًا)
+│   ├── api/        # الراوترات
+│   ├── core/       # الإعدادات (تقرأ المفتاح من .env فقط)
+│   ├── services/   # التكامل مع الموديلات
+│   └── schemas/    # موديلات Pydantic
+├── tests/          # اختبارات
+├── uploads/        # صور مرفوعة (gitignored)
+├── results/        # نتائج مولدة (gitignored)
+├── requirements.txt
+└── README.md
+```
+
+## قواعد ثابتة
+
+- كل الكود جديد ولا يعتمد على ملفات قديمة.
+- المفتاح يُقرأ من `.env` فقط وممنوع كتابته في الكود.
+- Python + FastAPI.
+- لا تغيير في أي شيء شغّال بدون سؤال صاحب المشروع.
+- commit بعد كل خطوة شغّالة.
