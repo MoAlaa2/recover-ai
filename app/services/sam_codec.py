@@ -125,6 +125,149 @@ def _context_at(raster, pos, prior, earlier):
             | (raster[earlier + 1] << 10) | (raster[earlier + 2] << 11))
 
 
+def _paeth(left, up, upper_left):
+    est = left + up - upper_left
+    dl, du, dul = abs(est - left), abs(est - up), abs(est - upper_left)
+    if dl <= du and dl <= dul:
+        return left
+    return up if du <= dul else upper_left
+
+
+def _predict_byte(buf, offset, x, y, mode, width):
+    left = buf[offset - 1] if x > 0 else 0
+    up = buf[offset - width] if y > 0 else 0
+    if mode == 1:
+        return up
+    if mode == 2:
+        return left
+    if mode == 3:
+        return (left + up) >> 1
+    ul = buf[offset - width - 1] if (x > 0 and y > 0) else 0
+    if mode == 0:
+        return _paeth(left, up, ul)
+    if ul >= max(left, up):
+        return min(left, up)
+    if ul <= min(left, up):
+        return max(left, up)
+    return left + up - ul
+
+
+def _unzig(value, prediction):
+    delta = -((value + 1) >> 1) if value & 1 else value >> 1
+    return (prediction + delta) & 0xFF
+
+
+def _zero_context(residuals, offset, x, y, width):
+    left = 1 if (x == 0 or residuals[offset - 1] == 0) else 0
+    up = 1 if (y == 0 or residuals[offset - width] == 0) else 0
+    ul = 1 if (x == 0 or y == 0
+               or residuals[offset - width - 1] == 0) else 0
+    ur = 1 if (y == 0 or x >= width - 1
+               or residuals[offset - width + 1] == 0) else 0
+    return left | (up << 1) | (ul << 2) | (ur << 3)
+
+
+_ZERO_INC = 32
+_ZERO_LIMIT = 16384
+_ORDER1_INC = 56
+_ORDER1_LIMIT = 8192
+_ORDER2_STEP = 14 * 44
+_ORDER2_LIMIT = 14 * 3584
+_ORDER0_STEP = 2 * 16
+_ORDER0_LIMIT = 2 * 2048
+
+
+def decode_lossless(payload, width, height):
+    """Decode a ~-marked payload to a row-major bytes object of 0/1."""
+    if not payload.startswith("~"):
+        raise MaskError("lossless mask payloads must start with ~")
+    packed = unpack(payload[1:])
+    if len(packed) < 5:
+        raise MaskError("lossless mask payload is truncated")
+    selector = packed[0]
+    if selector > 4:
+        raise MaskError("lossless mask payload uses an invalid predictor")
+    decoder = _RangeDecoder(packed[1:])
+    length = width * height
+    out = bytearray(length)
+    residuals = bytearray(length)
+    zero_counts = [1] * 32
+    order_one = [1] * (256 * 256)
+    order_one_totals = [256] * 256
+    order_zero = [2] * 256
+    order_zero_total = 512
+    order_two = {}
+    previous = 0
+    for offset in range(length):
+        x = offset % width
+        y = offset // width
+        zctx = _zero_context(residuals, offset, x, y, width) << 1
+        zero, nonzero = zero_counts[zctx], zero_counts[zctx + 1]
+        bit = 0 if decoder.freq(zero + nonzero) < zero else 1
+        if bit == 0:
+            decoder.decode(0, zero)
+        else:
+            decoder.decode(zero, nonzero)
+        zero_counts[zctx + bit] += _ZERO_INC
+        if zero_counts[zctx] + zero_counts[zctx + 1] >= _ZERO_LIMIT:
+            zero_counts[zctx] = zero_counts[zctx] >> 1 or 1
+            zero_counts[zctx + 1] = zero_counts[zctx + 1] >> 1 or 1
+        symbol = 0
+        if bit == 1:
+            above = residuals[offset - width] if offset >= width else 0
+            key = (previous << 8) | above
+            second = order_two.get(key)
+            if second is None:
+                second = [0] * 257
+                order_two[key] = second
+            first = previous << 8
+            excluded = second[0] + order_one[first] + order_zero[0]
+            total = (second[256] + order_one_totals[previous]
+                     + order_zero_total - excluded)
+            target = decoder.freq(total)
+            cumulative = 0
+            symbol = 1
+            frequency = (second[1] + order_one[first + 1]
+                         + order_zero[1])
+            while cumulative + frequency <= target:
+                cumulative += frequency
+                symbol += 1
+                if symbol >= 256:
+                    raise MaskError("lossless mask payload is malformed")
+                frequency = (second[symbol] + order_one[first + symbol]
+                             + order_zero[symbol])
+            decoder.decode(cumulative, frequency)
+            second[symbol] += _ORDER2_STEP
+            second[256] += _ORDER2_STEP
+            if second[256] >= _ORDER2_LIMIT:
+                total_after = 0
+                for v in range(256):
+                    second[v] >>= 1
+                    total_after += second[v]
+                second[256] = total_after
+            order_one[first + symbol] += _ORDER1_INC
+            order_one_totals[previous] += _ORDER1_INC
+            if order_one_totals[previous] >= _ORDER1_LIMIT:
+                total_after = 0
+                for v in range(256):
+                    scaled = order_one[first + v] >> 1 or 1
+                    order_one[first + v] = scaled
+                    total_after += scaled
+                order_one_totals[previous] = total_after
+            order_zero[symbol] += _ORDER0_STEP
+            order_zero_total += _ORDER0_STEP
+            if order_zero_total >= _ORDER0_LIMIT:
+                order_zero_total = 0
+                for v in range(256):
+                    order_zero[v] >>= 1
+                    order_zero_total += order_zero[v]
+        residuals[offset] = symbol
+        out[offset] = _unzig(
+            symbol, _predict_byte(out, offset, x, y, selector, width))
+        previous = symbol
+    return bytes(1 if b >= 129 else 0 for b in out)
+
+
 def decode_one_bit(payload, width, height):
     """Decode a !-marked payload to a row-major bytes object of 0/1."""
     if not payload.startswith("!"):
@@ -197,10 +340,13 @@ def parse_output_text(text):
 
 def decode_record(record):
     """Decode one parsed record to (bytes 0/1 raster, width, height)."""
-    if record["mask_encoding"] != "one_bit":
-        raise MaskError("request one_bit masks via metadata mask_encoding")
     height, width = record["mask_size"]
-    raster = decode_one_bit(record["mask_payload"], width, height)
+    if record["mask_encoding"] == "one_bit":
+        raster = decode_one_bit(record["mask_payload"], width, height)
+    elif record["mask_encoding"] == "lossless":
+        raster = decode_lossless(record["mask_payload"], width, height)
+    else:
+        raise MaskError("unknown mask encoding")
     if len(raster) != width * height:
         raise MaskError("decoded mask size mismatch")
     return raster, width, height
