@@ -496,6 +496,32 @@ RELAX_LABELS = {
     "usage": ("fabric use", "استخدام القماش"),
 }
 
+FEATURE_NAMES = {
+    "pet-friendly": ("pet-friendly", "مناسب للحيوانات"),
+    "scratch-resistant": ("scratch-resistant", "مقاوم للخدش"),
+    "easy-clean": ("easy-clean", "سهل التنظيف"),
+    "stain-resistant": ("stain-resistant", "مقاوم للبقع"),
+    "washable": ("washable", "قابل للغسل"),
+    "antibacterial": ("antibacterial", "مضاد للبكتيريا"),
+    "fire-resistant": ("fire-resistant", "مقاوم للحريق"),
+    "hypoallergenic": ("hypoallergenic", "مضاد للحساسية"),
+    "blackout": ("blackout", "تعتيم كامل"),
+    "fade-resistant": ("fade-resistant", "مقاوم للبهتان"),
+}
+
+
+def _specific_feature_labels(specific, arabic):
+    labels = []
+    for key in specific or []:
+        pair = FEATURE_NAMES.get(key)
+        labels.append(pair[1 if arabic else 0] if pair else key)
+    seen = []
+    for label in labels:
+        if label not in seen:
+            seen.append(label)
+    return seen
+
+
 RELAX_PHRASES = {
     "max_price": ("stretched the budget", "وسّعت الميزانية"),
     "tone": ("widened the color tone", "فتحت درجات اللون"),
@@ -543,12 +569,23 @@ def _money(value, arabic):
     return text
 
 
-def _relax_phrase(key, arabic, budget_over=0):
+def _relax_phrase(key, arabic, budget_over=0, specific=()):
     if key == "max_price" and budget_over > 0:
         over = _money(budget_over, arabic)
         if arabic:
             return "طلعت فوق ميزانيتك بـ %s ر.س" % over
         return "went %s SAR over your budget" % over
+    if key in ("features", "any_features"):
+        labels = _specific_feature_labels(specific, arabic)
+        if labels:
+            if arabic:
+                tail = "، ".join(labels[:-1]) + " و" + labels[-1] \
+                    if len(labels) > 1 else labels[0]
+                return "خففت شروط %s" % tail
+            tail = ", ".join(labels[:-1]) + " and " + labels[-1] \
+                if len(labels) > 1 else labels[0]
+            return "eased the %s requirement%s" % (
+                tail, "s" if len(labels) > 1 else "")
     pair = RELAX_PHRASES.get(key)
     if pair:
         return pair[1 if arabic else 0]
@@ -556,14 +593,16 @@ def _relax_phrase(key, arabic, budget_over=0):
     return ("عدّلت " + noun) if arabic else ("adjusted " + noun)
 
 
-def disclosure_note(relaxed, arabic, budget_over=0):
+def disclosure_note(relaxed, arabic, budget_over=0, specific=()):
     """Friendly one-line note naming what was relaxed, never raw keys.
 
     Budget overruns state the real amount: never "slightly" when the
-    price is more than 15% over budget.
+    price is more than 15% over budget. Relaxed features name the
+    specific features instead of the vague "fabric features".
     """
     phrases = [_relax_phrase(r, arabic,
-                             budget_over if r == "max_price" else 0)
+                             budget_over if r == "max_price" else 0,
+                             specific)
                for r in relaxed]
     over = budget_over > 0 and "max_price" in relaxed
     if arabic:
@@ -980,8 +1019,9 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     missing = missing_relaxation(reply, turn["relaxed"],
                                  is_arabic(user_text))
     if missing:
+        needs = turn.get("needs_all", []) + turn.get("needs_any", [])
         reply = (reply + "\n\n" + disclosure_note(
-            missing, is_arabic(user_text), max_over)).strip()
+            missing, is_arabic(user_text), max_over, needs)).strip()
     who = ("kids" if turn.get("has_kids")
            else "pets" if turn.get("pet_safe") else None)
     if recommendations and who:

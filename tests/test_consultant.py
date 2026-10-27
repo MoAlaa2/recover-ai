@@ -570,3 +570,16 @@ def test_disclosure_states_real_overrun():
     assert "٥٥" in note_ar and "شوي" not in note_ar
     mild = c.disclosure_note(["max_price"], False, 0)
     assert "slightly" in mild
+
+
+def test_disclosure_names_specific_features():
+    note = c.disclosure_note(["features"], False, 0,
+                             ["antibacterial", "scratch-resistant"])
+    assert "fabric features" not in note
+    assert "antibacterial" in note and "scratch-resistant" in note
+    note_ar = c.disclosure_note(["any_features"], True, 0,
+                                ["pet-friendly"])
+    assert "مواصفات القماش" not in note_ar
+    assert "مناسب للحيوانات" in note_ar
+    vague = c.disclosure_note(["features"], False, 0)
+    assert "fabric features" in vague

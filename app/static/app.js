@@ -22,7 +22,7 @@
       micLabel: "Voice input",
       steps: { search: "Searching 80 fabrics…", claw: "Checking claw safety…", details: "Comparing details…", room: "Reading your room's colors…" },
       needPhoto: "Please upload a room photo first, then tap “See it in my space” again.",
-      pieceYou: { sofa: "your sofa", armchair: "your armchair", curtains: "your curtains", cushions: "your cushions" },
+      pieceYou: { sofa: "sofa", armchair: "armchair", curtains: "curtains", cushions: "cushions" },
       stepRetry: "Retrying with corrections",
       tryAgain: "Try again",
       followSwap: "Looks lovely in your space. Want to see the next fabric on it, or should I estimate the meters?",
@@ -187,7 +187,7 @@
       steps: { search: "Je parcours 80 tissus…", claw: "Je vérifie la résistance aux griffes…", details: "Je compare les détails…", room: "Je lis les couleurs de votre pièce…" },
       thinkingNote: "Je réfléchis…",
       snag: { low: "Résistant aux griffes", medium: "Risque moyen", high: "Risque élevé", unknown: "N/A" },
-      pieceYou: { sofa: "votre canapé", armchair: "votre fauteuil", curtains: "vos rideaux", cushions: "vos coussins" },
+      pieceYou: { sofa: "canapé", armchair: "fauteuil", curtains: "rideaux", cushions: "coussins" },
       stepRetry: "Nouvel essai corrigé",
       tryAgain: "Réessayer",
       followSwap: "C'est ravissant chez vous. Voir le tissu suivant, ou estimer le métrage ?",
@@ -236,7 +236,7 @@
       steps: { search: "Busco entre 80 telas…", claw: "Compruebo la resistencia a las garras…", details: "Comparo los detalles…", room: "Leo los colores de tu espacio…" },
       thinkingNote: "Estoy pensando…",
       snag: { low: "Resistente a garras", medium: "Riesgo medio", high: "Riesgo alto", unknown: "N/D" },
-      pieceYou: { sofa: "tu sofá", armchair: "tu sillón", curtains: "tus cortinas", cushions: "tus cojines" },
+      pieceYou: { sofa: "sofá", armchair: "sillón", curtains: "cortinas", cushions: "cojines" },
       stepRetry: "Reintento con correcciones",
       tryAgain: "Reintentar",
       followSwap: "Se ve precioso en tu espacio. ¿Vemos la siguiente tela o calculo los metros?",
@@ -400,8 +400,8 @@
   function budgetPill(rb) {
     var price = state.lang === "ar" ? toArabicDigits(rb.price) + " ر.س/م" : rb.price + " SAR/m";
     var over = state.lang === "ar" ? toArabicDigits(rb.over) : rb.over;
-    if (state.lang === "ar") return "⚠ " + price + " — أعلى من ميزانيتك بـ " + over;
-    return "⚠ " + price + " — " + over + " over budget";
+    if (state.lang === "ar") return price + " — أعلى من ميزانيتك بـ " + over;
+    return price + " — " + over + " over budget";
   }
 
   function relaxLabel(key) {
@@ -783,7 +783,7 @@
     if (res.recommendations && res.recommendations.length) {
       state.lastRecs = res.recommendations;
     }
-    if (res.options) state.lastOptions = res.options;
+    state.lastOptions = res.options || [];
     renderRoomCard(state.lastRoom, state.lastDetected);
     if (res.reply) addMsg(res.reply, "them");
     if (state.lastRecs && state.lastRecs.length) renderRecs(state.lastRecs);
@@ -1249,7 +1249,7 @@
     if (res.recommendations && res.recommendations.length) {
       state.lastRecs = res.recommendations;
     }
-    if (res.options) state.lastOptions = res.options;
+    state.lastOptions = res.options || [];
     renderRoomCard(state.lastRoom, state.lastDetected);
     if (state.lastRecs && state.lastRecs.length) {
       renderRecs(state.lastRecs);
@@ -1383,10 +1383,7 @@
     icons();
 
     $("langToggle").addEventListener("click", function () {
-      state.lang = state.lang === "ar" ? "en" : "ar";
-      state.pinned = true;
-      applyI18n();
-      renderChips();
+      setLang(state.lang === "ar" ? "en" : "ar", true);
     });
 
     $("composer").addEventListener("submit", function (e) {
@@ -1471,12 +1468,14 @@
 
   function bootGreeting() {
     typingOn();
+    var sid = state.sessionId;
     postJSON("/api/chat", {
-      session_id: state.sessionId,
+      session_id: sid,
       message: GREET[state.lang] || "Hello",
       lang: state.lang
     }, 60000, 1)
       .then(function (res) {
+        if (sid !== state.sessionId) return;
         typingOff();
         handleResult(res);
         showLangRow();
@@ -1484,6 +1483,7 @@
         fetchPreviews();
       })
       .catch(function () {
+        if (sid !== state.sessionId) return;
         typingOff();
         addMsg(t("sendFail"), "them");
       });
