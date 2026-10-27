@@ -23,8 +23,23 @@ from app.services.catalog import (LANG_NAMES, PIECE_NAMES_AR,
                                   search_catalog)
 
 SESSIONS = {}
-MAX_TOOL_ROUNDS = 6
-MAX_RETRIES = 2
+MAX_TOOL_ROUNDS = 4
+MAX_RETRIES = 1
+CHAT_TIMEOUT = 60
+
+# Temporary latency instrumentation. Active only with CHAT_PERF=1 in the
+# environment; writes one JSON line per model/tool/turn event to /tmp.
+PERF = os.environ.get("CHAT_PERF") == "1"
+PERF_LOG = "/tmp/chat_perf.jsonl"
+
+
+def _perf(event):
+    if not PERF:
+        return
+    event = dict(event)
+    event["ts"] = time.time()
+    with open(PERF_LOG, "a") as f:
+        f.write(json.dumps(event) + "\n")
 
 SYSTEM_PROMPT = """You are the ReCover consultant, a luxury fabric and \
 upholstery advisor for a premium Saudi showroom.
@@ -93,8 +108,118 @@ def _call_chat(messages, tools=None):
                 headers={"Authorization": "Bearer " + require_api_key(),
                          "Content-Type": "application/json"},
                 method="POST")
-            with urllib.request.urlopen(req, timeout=180) as resp:
-                return json.loads(resp.read().decode("utf-8"))
+            t0 = time.time()
+            with urllib.request.urlopen(req, timeout=CHAT_TIMEOUT) as resp:
+                body = json.loads(resp.read().decode("utf-8"))
+            usage = (body.get("usage") or {}) if isinstance(body, dict) \
+                else {}
+            chars = 0
+            for m in messages:
+                c = m.get("content", "")
+                chars += len(c) if isinstance(c, str) else len(
+                    json.dumps(c, ensure_ascii=False))
+            _perf({"kind": "model", "seconds": round(time.time() - t0, 2),
+                   "prompt_tokens": usage.get("prompt_tokens"),
+                   "completion_tokens": usage.get("completion_tokens"),
+                   "n_messages": len(messages), "prompt_chars": chars,
+                   "with_tools": bool(tools),
+                   "attempt": attempt})
+            return body
+        except Exception as exc:  # noqa: BLE001 - retry then raise
+            last_err = exc
+            time.sleep(2 * (attempt + 1))
+    raise RuntimeError("chat call failed: %s" % last_err)
+
+
+def _call_chat_stream(messages, tools, on_token):
+    """Streaming chat call. Yields content live via on_token.
+
+    Returns (full_text, tool_calls, usage). tool_calls has the same
+    shape as a non-streaming reply's message["tool_calls"].
+    """
+    payload = {"model": SPARK_MODEL, "messages": messages, "stream": True}
+    if tools:
+        payload["tools"] = tools
+        payload["tool_choice"] = "auto"
+    last_err = None
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            data = json.dumps(payload).encode("utf-8")
+            req = urllib.request.Request(
+                CHAT_URL, data=data,
+                headers={"Authorization": "Bearer " + require_api_key(),
+                         "Content-Type": "application/json"},
+                method="POST")
+            t0 = time.time()
+            parts = []
+            calls = {}
+            usage = {}
+            with urllib.request.urlopen(req,
+                                        timeout=CHAT_TIMEOUT) as resp:
+                buf = b""
+                for chunk in resp:
+                    buf += chunk
+                    while b"\n\n" in buf:
+                        raw, buf = buf.split(b"\n\n", 1)
+                        for line in raw.decode("utf-8",
+                                               "ignore").splitlines():
+                            line = line.strip()
+                            if not line.startswith("data:"):
+                                continue
+                            data_s = line[5:].strip()
+                            if data_s == "[DONE]":
+                                break
+                            try:
+                                evt = json.loads(data_s)
+                            except ValueError:
+                                continue
+                            if "usage" in evt and isinstance(
+                                    evt["usage"], dict):
+                                usage = evt["usage"]
+                            for choice in evt.get("choices", []):
+                                delta = choice.get("delta", {})
+                                text = delta.get("content")
+                                if text:
+                                    parts.append(text)
+                                    on_token(text)
+                                for tc in delta.get("tool_calls",
+                                                    []) or []:
+                                    idx = tc.get("index", 0)
+                                    slot = calls.setdefault(
+                                        idx, {"id": "", "name": "",
+                                              "args": ""})
+                                    if tc.get("id"):
+                                        slot["id"] = tc["id"]
+                                    fn = tc.get("function", {})
+                                    if fn.get("name"):
+                                        slot["name"] = fn["name"]
+                                    if fn.get("arguments"):
+                                        slot["args"] += fn["arguments"]
+            tool_calls = []
+            for idx in sorted(calls):
+                slot = calls[idx]
+                try:
+                    args = json.loads(slot["args"] or "{}")
+                except ValueError:
+                    args = {}
+                tool_calls.append(
+                    {"id": slot["id"] or "call-%d" % idx,
+                     "type": "function",
+                     "function": {"name": slot["name"],
+                                  "arguments": json.dumps(args)}})
+            chars = 0
+            for m in messages:
+                c = m.get("content", "")
+                chars += len(c) if isinstance(c, str) else len(
+                    json.dumps(c, ensure_ascii=False))
+            _perf({"kind": "model", "stream": True,
+                   "seconds": round(time.time() - t0, 2),
+                   "prompt_tokens": (usage or {}).get("prompt_tokens"),
+                   "completion_tokens": (usage or {}).get(
+                       "completion_tokens"),
+                   "n_messages": len(messages), "prompt_chars": chars,
+                   "with_tools": bool(tools), "attempt": attempt})
+            return "".join(parts), tool_calls, usage
         except Exception as exc:  # noqa: BLE001 - retry then raise
             last_err = exc
             time.sleep(2 * (attempt + 1))
@@ -198,7 +323,7 @@ def run_search(args, turn):
         turn.setdefault("tones", [])
         if args["tone"] not in turn["tones"]:
             turn["tones"].append(args["tone"])
-    wanted = args.get("limit", 6) or 6
+    wanted = min(args.get("limit", 6) or 6, 12)
     summaries, relaxed = search_catalog(
         usage=args.get("usage"), colors=_as_list(args.get("colors")),
         tone=args.get("tone"),
@@ -217,6 +342,10 @@ def run_search(args, turn):
     summaries.sort(key=lambda s: rank_key(
         s, required, _as_list(args.get("styles")), args.get("tone"),
         args.get("max_price"), turn.get("has_kids", False)))
+    # Rank over the full fetch but cap the tool payload: the model
+    # only ever recommends 3, so anything past a shortlist only burns
+    # prompt tokens on every later round and turn. Ranking quality is
+    # unchanged because the sort above still sees all fetched items.
     return {"fabrics": summaries[:wanted],
             "relaxed_constraints": relaxed}
 
@@ -402,6 +531,15 @@ def enrich(recommendations, turn):
 
 
 def execute_tool(name, args, turn):
+    t0 = time.time()
+    try:
+        return _execute_tool(name, args, turn)
+    finally:
+        _perf({"kind": "tool", "name": name,
+               "seconds": round(time.time() - t0, 3)})
+
+
+def _execute_tool(name, args, turn):
     if name == "search_catalog":
         result = run_search(args or {}, turn)
         turn["seen"].extend(f["code"] for f in result["fabrics"])
@@ -420,17 +558,36 @@ def execute_tool(name, args, turn):
     return {"error": "unknown tool " + str(name)}
 
 
-def agent_turn(messages, chat_fn, turn):
-    """Run the tool loop. Returns the model's final text."""
+def agent_turn(messages, chat_fn, turn, on_token=None, on_step=None):
+    """Run the tool loop. Returns the model's final text.
+
+    When on_token is given (and chat_fn is None), the live API is used
+    in streaming mode and content deltas are pushed to on_token as
+    they arrive; on_step gets a short label per tool round.
+    """
+    streaming = on_token is not None and chat_fn is None
     call = chat_fn or _call_chat
     for _ in range(MAX_TOOL_ROUNDS):
-        body = call(messages, TOOLS)
-        msg = body["choices"][0]["message"]
-        calls = msg.get("tool_calls") or []
-        if not calls:
-            return msg.get("content") or ""
-        messages.append({"role": "assistant", "content": msg.get("content"),
-                         "tool_calls": calls})
+        if streaming:
+            text, calls, _ = _call_chat_stream(messages, TOOLS, on_token)
+            if not calls:
+                return text
+            messages.append({"role": "assistant", "content": text or None,
+                             "tool_calls": calls})
+        else:
+            body = call(messages, TOOLS)
+            msg = body["choices"][0]["message"]
+            calls = msg.get("tool_calls") or []
+            text = msg.get("content") or ""
+            if not calls:
+                if on_token and text:
+                    on_token(text)
+                return text
+            messages.append({"role": "assistant",
+                             "content": msg.get("content"),
+                             "tool_calls": calls})
+        if on_step:
+            on_step("tool")
         for tc in calls:
             fn = tc["function"]["name"]
             try:
@@ -479,6 +636,36 @@ def light_color_note(recommendations, arabic, who):
     tail = "with kids" if who == "kids" else "with pets"
     return ("Note: %s is light-colored and not stain-resistant, so expect "
             "extra care %s." % (codes, tail))
+
+
+KEEP_RECENT = 6
+
+
+def trim_history(history):
+    """Shrink stored history in place without breaking tool references.
+
+    Only message *contents* are shortened, never removed, so
+    tool_call_id links stay intact. The last KEEP_RECENT messages (the
+    live context) are left untouched; older tool outputs collapse to a
+    one-liner and old room-analysis blocks collapse to a stub, since
+    both are re-derived from the trimmed record on later turns.
+    """
+    system = 1 if history and history[0].get("role") == "system" else 0
+    cutoff = max(system, len(history) - KEEP_RECENT)
+    for msg in history[system:cutoff]:
+        if msg.get("role") == "tool":
+            try:
+                payload = json.loads(msg.get("content") or "{}")
+            except ValueError:
+                payload = {}
+            if isinstance(payload, dict) and "fabrics" in payload:
+                msg["content"] = "[earlier search: %d fabrics]" % len(
+                    payload.get("fabrics") or [])
+            elif isinstance(payload, dict) and "error" not in payload:
+                msg["content"] = "[earlier tool output]"
+        elif msg.get("role") == "user" and "[Room photo analyzed:" in (
+                msg.get("content") or ""):
+            msg["content"] = "[Room photo analyzed before]"
 
 
 def turn_for(message):
@@ -547,12 +734,26 @@ def decline_reply(topic, arabic):
     return base + " What fabric can I help you with?"
 
 
-def chat(session_id, message, image_path=None, chat_fn=None):
+def chat(session_id, message, image_path=None, chat_fn=None,
+         on_token=None, on_step=None):
     """One user turn. Returns {reply, recommendations, room_analysis?}."""
+    t0 = time.time()
+    try:
+        return _chat(session_id, message, image_path, chat_fn,
+                     on_token=on_token, on_step=on_step)
+    finally:
+        _perf({"kind": "turn", "seconds": round(time.time() - t0, 2),
+               "image": bool(image_path),
+               "msg_chars": len(message or "")})
+
+
+def _chat(session_id, message, image_path=None, chat_fn=None,
+          on_token=None, on_step=None):
     session = SESSIONS.setdefault(session_id, {"messages": [],
                                                "detected_piece": None,
                                                "topic": None})
     history = session["messages"]
+    trim_history(history)
     if not image_path and not is_in_scope(message):
         arabic = is_arabic(message)
         reply = decline_reply(session.get("topic"), arabic)
@@ -595,7 +796,10 @@ def chat(session_id, message, image_path=None, chat_fn=None):
             confirm = confirm_piece_question(stated, detected,
                                              is_arabic(message))
     history.append({"role": "user", "content": user_text})
-    final_text = agent_turn(list(history), chat_fn, turn)
+    if on_step and image_path:
+        on_step("analyzing")
+    final_text = agent_turn(list(history), chat_fn, turn,
+                            on_token=on_token, on_step=on_step)
     extracted = extract_recommendations(final_text)
     recs, bad = (None, None)
     if extracted is not None:
@@ -610,7 +814,8 @@ def chat(session_id, message, image_path=None, chat_fn=None):
                         "```recommendations block."
                         % (bad, " (for example %s)" % ", ".join(
                             seen_codes[:5]) if seen_codes else "")})
-        final_text = agent_turn(list(history), chat_fn, turn)
+        final_text = agent_turn(list(history), chat_fn, turn,
+                                    on_token=on_token, on_step=on_step)
         extracted = extract_recommendations(final_text)
         if extracted is not None:
             recs, bad = valid_recommendations(extracted, turn["seen"])
@@ -637,6 +842,7 @@ def chat(session_id, message, image_path=None, chat_fn=None):
         if note and note not in reply:
             reply = (reply + "\n\n" + note).strip()
     history.append({"role": "assistant", "content": final_text})
+    trim_history(history)
 
     result = {"reply": reply,
               "recommendations": enrich(recommendations, turn)}

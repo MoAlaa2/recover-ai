@@ -1,12 +1,16 @@
 """Chat and upload endpoints for the ReCover consultant."""
+import json
 import os
+import queue
 import shutil
 import subprocess
+import threading
 import uuid
 
 from typing import Optional
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.core.config import BASE_DIR, UPLOAD_DIR
@@ -130,3 +134,47 @@ def chat(req: ChatRequest):
         raise HTTPException(400, str(exc))
     except RuntimeError as exc:
         raise HTTPException(502, str(exc))
+
+
+@router.post("/chat/stream")
+def chat_stream(req: ChatRequest):
+    """Same as /api/chat but streams reply tokens as SSE.
+
+    Events: {"type": "token", "text": ...} as text arrives,
+    {"type": "step", "label": ...} for progress, then a final
+    {"type": "done", "result": {...}} with the full /api/chat payload,
+    or {"type": "error", ...} on failure.
+    """
+    if req.image_path:
+        path = req.image_path if os.path.isabs(req.image_path) else \
+            os.path.join(BASE_DIR, req.image_path)
+        if not os.path.exists(path):
+            raise HTTPException(400, "image not found")
+    events = queue.Queue()
+
+    def run():
+        try:
+            res = consultant.chat(
+                req.session_id, req.message, req.image_path,
+                on_token=lambda t: events.put({"type": "token",
+                                                "text": t}),
+                on_step=lambda s: events.put({"type": "step",
+                                               "label": s}))
+            events.put({"type": "done", "result": res})
+        except FileNotFoundError as exc:
+            events.put({"type": "error", "message": str(exc)})
+        except RuntimeError as exc:
+            events.put({"type": "error", "message": str(exc)})
+        except Exception:  # noqa: BLE001 - never hang the stream
+            events.put({"type": "error", "message": "chat failed"})
+
+    threading.Thread(target=run, daemon=True).start()
+
+    def gen():
+        while True:
+            evt = events.get()
+            yield "data: %s\n\n" % json.dumps(evt, ensure_ascii=False)
+            if evt["type"] in ("done", "error"):
+                break
+
+    return StreamingResponse(gen(), media_type="text/event-stream")

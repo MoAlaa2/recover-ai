@@ -16,6 +16,7 @@
       matchSection: "Why this fabric",
       relaxSection: "Adjusted for you",
       sendFail: "Sorry, something went wrong. Please try again.",
+      thinkingNote: "Still thinking…",
       uploadFail: "Upload failed. Please try a JPG or PNG photo.",
       voiceFail: "Sorry, I couldn't hear that. Please try again.",
       micLabel: "Voice input",
@@ -55,6 +56,7 @@
       matchSection: "لماذا هذا القماش",
       relaxSection: "عدّلنا لك",
       sendFail: "عذراً، حدث خطأ. حاول مرة أخرى.",
+      thinkingNote: "لحظة، أفكر…",
       uploadFail: "فشل الرفع. جرب صورة JPG أو PNG.",
       voiceFail: "عذراً، ما سمعتك زين. حاول مرة ثانية.",
       micLabel: "إدخال صوتي",
@@ -180,6 +182,12 @@
 
   var MIC_BADGE = '<span class="voice-badge" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M12 2a3 3 0 013 3v6a3 3 0 01-6 0V5a3 3 0 013-3zm7 10a7 7 0 01-14 0H3a9 9 0 008 8.9V22h2v-1.1A9 9 0 0021 12h-2z"/></svg></span>';
 
+  function formatReply(text) {
+    return esc(text)
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/\n/g, "<br>");
+  }
+
   function addMsg(text, who, photo, voice) {
     var div = document.createElement("div");
     div.className = "msg " + who;
@@ -190,9 +198,7 @@
       div.appendChild(av);
     }
     var body = document.createElement("div");
-    body.innerHTML = (voice ? MIC_BADGE : "") + esc(text)
-      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-      .replace(/\n/g, "<br>");
+    body.innerHTML = (voice ? MIC_BADGE : "") + formatReply(text);
     if (photo) {
       var img = document.createElement("img");
       img.className = "chat-photo";
@@ -428,21 +434,133 @@
     document.body.classList.remove("modal-open");
   }
 
+  function streamChat(text, imagePath) {
+    return new Promise(function (resolve, reject) {
+      var ctrl = new AbortController();
+      var settled = false, stall = null;
+      var bubble = null, bodyEl = null, raw = "";
+      function armStall() {
+        if (stall) clearTimeout(stall);
+        stall = setTimeout(function () {
+          try { ctrl.abort(); } catch (e) {}
+          finish(new Error("stall"));
+        }, 75000);
+      }
+      function finish(err, res) {
+        if (settled) return;
+        settled = true;
+        if (stall) clearTimeout(stall);
+        if (err) reject(err);
+        else resolve(res);
+      }
+      function ensureBubble() {
+        if (bubble) return;
+        bubble = addMsg("", "them");
+        bodyEl = bubble.lastElementChild;
+        bodyEl.textContent = "";
+      }
+      fetch("/api/chat/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: state.sessionId,
+          message: text || "",
+          image_path: imagePath || null
+        }),
+        signal: ctrl.signal
+      }).then(function (r) {
+        if (!r.ok || !r.body) throw new Error("HTTP " + r.status);
+        armStall();
+        var reader = r.body.getReader();
+        var dec = new TextDecoder();
+        var buf = "";
+        function onEvt(evt) {
+          if (evt.type === "token") {
+            ensureBubble();
+            raw += evt.text;
+            bodyEl.textContent = raw;
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+          } else if (evt.type === "done") {
+            if (bodyEl) bodyEl.innerHTML = formatReply(raw);
+            else if (evt.result && evt.result.reply) {
+              addMsg(evt.result.reply, "them");
+            }
+            try { reader.cancel(); } catch (e) {}
+            finish(null, evt.result);
+          } else if (evt.type === "error") {
+            try { reader.cancel(); } catch (e) {}
+            finish(new Error("srv"));
+          }
+        }
+        function pump() {
+          return reader.read().then(function (step) {
+            if (step.done) { finish(new Error("closed")); return; }
+            armStall();
+            buf += dec.decode(step.value, { stream: true });
+            var parts = buf.split("\n\n");
+            buf = parts.pop();
+            parts.forEach(function (part) {
+              part.split("\n").forEach(function (line) {
+                line = line.trim();
+                if (line.indexOf("data:") !== 0) return;
+                try { onEvt(JSON.parse(line.slice(5))); }
+                catch (e) {}
+              });
+            });
+            if (!settled) return pump();
+          });
+        }
+        return pump();
+      }).catch(function (e) {
+        if (bubble || raw) { finish(e); return; }
+        postJSON("/api/chat", {
+          session_id: state.sessionId,
+          message: text || "",
+          image_path: imagePath || null
+        }, 120000, 1).then(function (res) {
+          res.fallback = true;
+          finish(null, res);
+        }).catch(finish);
+      });
+    });
+  }
+
   function send(text, imagePath, photoPreview) {
     if (!text && !imagePath) return;
     addMsg(text || "", "me", photoPreview);
     typingOn();
-    postJSON("/api/chat", {
-      session_id: state.sessionId,
-      message: text || "",
-      image_path: imagePath || null
-    }, 120000, 1).then(function (res) {
+    var thinkingTimer = setTimeout(function () {
+      var el = document.createElement("div");
+      el.className = "msg them";
+      el.id = "thinking";
+      el.innerHTML = '<span class="avatar">R</span><div><i>' +
+        esc(t("thinkingNote")) + "</i></div>";
+      messagesEl.appendChild(el);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }, 8000);
+    function finish() {
+      clearTimeout(thinkingTimer);
+      var th = document.getElementById("thinking");
+      if (th) th.remove();
       typingOff();
-      handleResult(res);
+    }
+    streamChat(text, imagePath).then(function (res) {
+      finish();
+      if (!res) return;
+      if (res.fallback && res.reply) addMsg(res.reply, "them");
+      handleStreamResult(res);
     }).catch(function () {
-      typingOff();
+      finish();
       addMsg(t("sendFail"), "them");
     });
+  }
+
+  function handleStreamResult(res) {
+    renderRoomCard(res.room_analysis, res.detected_piece);
+    if (res.detected_piece) state.detectedPiece = res.detected_piece;
+    if (res.recommendations && res.recommendations.length) {
+      renderRecs(res.recommendations);
+    }
   }
 
   function upload(file) {
