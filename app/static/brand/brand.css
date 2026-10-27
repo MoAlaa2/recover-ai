@@ -1,0 +1,67 @@
+/* ReCover brand tokens
+   Concept: "The Woven Label" — indigo dye + saffron running stitch on chalk linen.
+   Fonts (Google Fonts):
+   https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Figtree:wght@400;500;600&family=El+Messiri:wght@500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap
+   Icons: Lucide (ISC licence), 1.75px stroke, 20px default.
+*/
+:root {
+  /* Color */
+  --rc-indigo: #22305E;        /* primary: indigo dye */
+  --rc-indigo-deep: #161F40;
+  --rc-indigo-soft: #E6E9F3;
+  --rc-saffron: #D9A441;       /* accent: stitch thread, use sparingly */
+  --rc-saffron-soft: #F7EDD6;
+  --rc-chalk: #F7F6F2;         /* page background */
+  --rc-paper: #FFFFFF;         /* surfaces, cards */
+  --rc-ink: #1A1E2B;           /* text */
+  --rc-ink-muted: #5B6172;
+  --rc-line: #E3E1DA;
+  --rc-ok: #2F7A5B;            /* matched need, low snag */
+  --rc-warn: #B7791F;          /* relaxed constraint, medium snag */
+  --rc-risk: #B23A3A;          /* high snag */
+  --rc-fill: #22305E;          /* solid fills with light text: buttons, user bubble */
+
+  /* Type */
+  --rc-display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --rc-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --rc-display-ar: "El Messiri", "IBM Plex Sans Arabic", serif;
+  --rc-body-ar: "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --rc-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Type scale (1.25) */
+  --rc-fs-xs: 0.75rem;   /* 12 labels, codes */
+  --rc-fs-sm: 0.875rem;  /* 14 meta */
+  --rc-fs-md: 1rem;      /* 16 body, chat */
+  --rc-fs-lg: 1.25rem;   /* 20 card titles */
+  --rc-fs-xl: 1.75rem;   /* 28 section heads */
+  --rc-fs-2xl: 2.5rem;   /* 40 hero */
+
+  /* Shape & space */
+  --rc-r-sm: 8px;
+  --rc-r-md: 14px;
+  --rc-r-lg: 22px;
+  --rc-r-pill: 999px;
+  --rc-shadow: 0 1px 2px rgba(22, 31, 64, .06), 0 8px 24px rgba(22, 31, 64, .06);
+  --rc-stitch: 1.4px dashed var(--rc-saffron);  /* signature detail */
+  --rc-space: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --rc-indigo: #8FA2E0;
+    --rc-indigo-deep: #C9D3F2;
+    --rc-indigo-soft: #222A45;
+    --rc-saffron: #E2B35E;
+    --rc-saffron-soft: #3A2F1A;
+    --rc-chalk: #11141C;
+    --rc-paper: #191D28;
+    --rc-ink: #ECEDF1;
+    --rc-ink-muted: #A3A8B6;
+    --rc-line: #2A2F3D;
+    --rc-ok: #5FBF95;
+    --rc-warn: #E0A84E;
+    --rc-risk: #E07272;
+    --rc-fill: #3A4C8C;
+    color-scheme: dark;
+  }
+}

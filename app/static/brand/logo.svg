@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" width="220" height="48" role="img" aria-label="ReCover">
+  <!-- The Fold: new indigo cover laid over old striped fabric, corner lifted. Wordmark in Bodoni Moda; outline text before print. -->
+  <defs><pattern id="old4" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="#E9DFC9"/><rect width="2.2" height="5" fill="#D9A441"/></pattern></defs><rect x="4" y="4" width="40" height="40" rx="9" fill="url(#old4)"/><path d="M4 13a9 9 0 0 1 9-9h12l19 19v12a9 9 0 0 1-9 9H13a9 9 0 0 1-9-9z" fill="#22305E"/><path d="M25 4v14a5 5 0 0 0 5 5h14z" fill="#4A5E9E"/><path d="M9 14.5v-1.5a4 4 0 0 1 4-4h8M39.5 28v7a4 4 0 0 1-4 4H13a4 4 0 0 1-4-4V18" fill="none" stroke="#D9A441" stroke-width="1.2" stroke-dasharray="2 2.2" stroke-linecap="round"/>
+  <text x="58" y="33" font-family="'Bodoni Moda', 'Didot', 'Bodoni 72', Georgia, serif" font-size="27" fill="#1A1E2B"><tspan font-style="italic" fill="#22305E">Re</tspan><tspan font-weight="500">Cover</tspan></text>
+</svg>
