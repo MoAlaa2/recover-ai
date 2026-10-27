@@ -530,17 +530,22 @@ def enrich(recommendations, turn):
     return out
 
 
-def execute_tool(name, args, turn):
+def execute_tool(name, args, turn, on_step=None):
     t0 = time.time()
     try:
-        return _execute_tool(name, args, turn)
+        return _execute_tool(name, args, turn, on_step)
     finally:
         _perf({"kind": "tool", "name": name,
                "seconds": round(time.time() - t0, 3)})
 
 
-def _execute_tool(name, args, turn):
+def _execute_tool(name, args, turn, on_step=None):
     if name == "search_catalog":
+        if on_step:
+            on_step("search")
+            snag = [f for f in _as_list((args or {}).get("snag_levels"))]
+            if turn.get("pet_safe") or snag:
+                on_step("claw")
         result = run_search(args or {}, turn)
         turn["seen"].extend(f["code"] for f in result["fabrics"])
         for name in result["relaxed_constraints"]:
@@ -548,12 +553,16 @@ def _execute_tool(name, args, turn):
                 turn["relaxed"].append(name)
         return result
     if name == "get_fabric":
+        if on_step:
+            on_step("details")
         code = (args or {}).get("code", "")
         item = get_fabric(code)
         if item and code not in turn["seen"]:
             turn["seen"].append(code)
         return item or {"error": "unknown code"}
     if name == "analyze_room":
+        if on_step:
+            on_step("room")
         return analyze_room((args or {}).get("image_path", ""))
     return {"error": "unknown tool " + str(name)}
 
@@ -586,8 +595,6 @@ def agent_turn(messages, chat_fn, turn, on_token=None, on_step=None):
             messages.append({"role": "assistant",
                              "content": msg.get("content"),
                              "tool_calls": calls})
-        if on_step:
-            on_step("tool")
         for tc in calls:
             fn = tc["function"]["name"]
             try:
@@ -595,7 +602,7 @@ def agent_turn(messages, chat_fn, turn, on_token=None, on_step=None):
             except ValueError:
                 args = {}
             try:
-                output = execute_tool(fn, args, turn)
+                output = execute_tool(fn, args, turn, on_step)
             except Exception as exc:  # noqa: BLE001 - report to model
                 output = {"error": str(exc)}
             messages.append({"role": "tool", "tool_call_id": tc["id"],
@@ -797,7 +804,7 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
                                              is_arabic(message))
     history.append({"role": "user", "content": user_text})
     if on_step and image_path:
-        on_step("analyzing")
+        on_step("room")
     final_text = agent_turn(list(history), chat_fn, turn,
                             on_token=on_token, on_step=on_step)
     extracted = extract_recommendations(final_text)

@@ -20,6 +20,7 @@
       uploadFail: "Upload failed. Please try a JPG or PNG photo.",
       voiceFail: "Sorry, I couldn't hear that. Please try again.",
       micLabel: "Voice input",
+      steps: { search: "Searching 80 fabrics…", claw: "Checking claw safety…", details: "Comparing details…", room: "Reading your room's colors…" },
       needPhoto: "Please upload a room photo first, then tap “See it in my space” again.",
       tailoring: "Tailoring your %s…",
       pieceWord: { sofa: "sofa", armchair: "armchair", curtains: "curtains", cushions: "cushions" },
@@ -60,6 +61,7 @@
       uploadFail: "فشل الرفع. جرب صورة JPG أو PNG.",
       voiceFail: "عذراً، ما سمعتك زين. حاول مرة ثانية.",
       micLabel: "إدخال صوتي",
+      steps: { search: "أدوّر في ٨٠ قماش…", claw: "أتأكد إنها آمنة من الخدش…", details: "أقارن التفاصيل…", room: "أقرأ ألوان مساحتك…" },
       needPhoto: "ارفع صورة غرفتك أول، بعدين اضغط “شاهدها في مساحتك”.",
       tailoring: "نفصّل %s بقماشك…",
       pieceWord: { sofa: "الكنبة", armchair: "الكرسي", curtains: "الستائر", cushions: "الوسائد" },
@@ -105,6 +107,29 @@
     "cool-tone": ["Cool tone", "درجة باردة"],
     "neutral-tone": ["Neutral tone", "درجة محايدة"]
   };
+
+  var FEATURE_ICONS = {
+    "pet-friendly": "paw-print",
+    "scratch-resistant": "shield",
+    "easy-clean": "sparkles",
+    "stain-resistant": "droplet-off",
+    "washable": "washing-machine",
+    "antibacterial": "shield-plus",
+    "fire-resistant": "flame",
+    "blackout": "moon",
+    "fade-resistant": "sun",
+    "thermal-insulating": "thermometer",
+    "sound-absorbing": "volume-x",
+    "hypoallergenic": "flower-2",
+    "eco-friendly": "recycle",
+    "crease-resistant": "wind"
+  };
+
+  function icons() {
+    if (window.lucide && lucide.createIcons) {
+      lucide.createIcons({ attrs: { "stroke-width": 1.75 } });
+    }
+  }
 
   var RELAX_LABELS = {
     "max_price": ["Budget", "الميزانية"],
@@ -180,7 +205,9 @@
     if (!state.booted) chipsEl.hidden = false;
   }
 
-  var MIC_BADGE = '<span class="voice-badge" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M12 2a3 3 0 013 3v6a3 3 0 01-6 0V5a3 3 0 013-3zm7 10a7 7 0 01-14 0H3a9 9 0 008 8.9V22h2v-1.1A9 9 0 0021 12h-2z"/></svg></span>';
+  var MIC_BADGE = '<span class="voice-badge" aria-hidden="true"><i data-lucide="mic"></i></span>';
+
+  var AVATAR = '<img class="avatar" src="/brand/mark-plain.svg" alt="ReCover">';
 
   function formatReply(text) {
     return esc(text)
@@ -192,10 +219,9 @@
     var div = document.createElement("div");
     div.className = "msg " + who;
     if (who === "them") {
-      var av = document.createElement("span");
-      av.className = "avatar";
-      av.textContent = "R";
-      div.appendChild(av);
+      var avWrap = document.createElement("span");
+      avWrap.innerHTML = AVATAR;
+      div.appendChild(avWrap.firstChild);
     }
     var body = document.createElement("div");
     body.innerHTML = (voice ? MIC_BADGE : "") + formatReply(text);
@@ -209,14 +235,41 @@
     div.appendChild(body);
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
+    if (voice) icons();
     return div;
+  }
+
+  function showStep(key) {
+    var label = (t("steps") || {})[key] || key;
+    var typing = document.getElementById("typing");
+    var el = document.getElementById("agentStep");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "agentStep";
+      el.className = "agent-step";
+      if (typing && typing.parentNode) {
+        typing.parentNode.insertBefore(el, typing);
+      } else {
+        messagesEl.appendChild(el);
+      }
+    }
+    el.textContent = label;
+    el.classList.remove("swap");
+    void el.offsetWidth;
+    el.classList.add("swap");
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function hideStep() {
+    var el = document.getElementById("agentStep");
+    if (el) el.remove();
   }
 
   function typingOn() {
     var div = document.createElement("div");
     div.className = "msg them";
     div.id = "typing";
-    div.innerHTML = '<span class="avatar">R</span><span class="typing"><span></span><span></span><span></span></span>';
+    div.innerHTML = '<img class="avatar" src="/brand/mark-plain.svg" alt="ReCover"><span class="typing"><span></span><span></span><span></span></span>';
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
@@ -269,11 +322,11 @@
   }
 
   function snagClass(level) {
-    return level === "low" ? "snag-low" : level === "medium" ? "snag-medium" : "snag-high";
+    return "snag " + (level === "low" ? "snag-low" : level === "medium" ? "snag-medium" : level === "high" ? "snag-high" : "snag-unknown");
   }
 
   function renderRoomCard(room, detectedPiece) {
-    if (!room) { roomCardEl.hidden = true; return; }
+    if (!room) { roomCardEl.hidden = true; $("roomDiv").hidden = true; return; }
     var rows = "";
     rows += "<div><b>" + esc(t("roomType")) + ":</b> " + esc(room.room_type || "—") + "</div>";
     rows += "<div><b>" + esc(t("style")) + ":</b> " + esc(room.style || "—") + "</div>";
@@ -289,6 +342,7 @@
       '<div><b>' + esc(t("palette")) + ":</b></div>" +
       '<div class="palette">' + pal + "</div>";
     roomCardEl.hidden = false;
+    $("roomDiv").hidden = false;
   }
 
   function renderRecs(recs) {
@@ -305,31 +359,38 @@
       card.className = "card";
       var name = state.lang === "ar" ? r.name_ar : r.name_en;
       var feats = (r.features || []).map(function (f) {
-        return '<span class="tag">' + esc(featLabel(f)) + "</span>";
+        var icon = FEATURE_ICONS[f] || "sparkles";
+        var label = featLabel(f);
+        return '<span class="feat" title="' + esc(label) + '" aria-label="' + esc(label) +
+          '"><i data-lucide="' + icon + '" aria-hidden="true"></i></span>';
       }).join("");
       var matched = (r.matched || []).map(function (m) {
-        return '<li><span class="yes">✓</span> ' + esc(featLabel(m)) + "</li>";
+        return '<li class="yes"><span>✓</span> ' + esc(featLabel(m)) + "</li>";
       }).join("");
       var relaxed = (r.relaxed || []).map(function (m) {
-        return '<li><span class="warn">⚠</span> ' + esc(relaxLabel(m)) + "</li>";
+        return '<li class="warn"><span>⚠</span> ' + esc(relaxLabel(m)) + "</li>";
       }).join("");
       var receipts = "";
       if (matched || relaxed) {
         receipts = '<ul class="receipts">' + matched + relaxed + "</ul>";
       }
       card.innerHTML =
-        '<div class="swatch"><img src="/' + esc(r.image) + '" alt="' + esc(name) + '" loading="lazy"></div>' +
+        '<div class="swatch"><img src="/' + esc(r.image) + '" alt="' + esc(name) + '" loading="lazy">' +
+        '<span class="code-pill">' + esc(r.code) + "</span></div>" +
         '<div class="body">' +
         '<div class="name">' + esc(name) + "</div>" +
-        '<div class="meta">' + esc(r.code) + " · " + esc(r.price_sar_per_m) + " " + esc(t("perMeter")) + "</div>" +
-        '<div class="tagrow">' + feats +
-        '<span class="tag ' + snagClass(r.snag_risk) + '">' + esc(t("snag")[r.snag_risk] || r.snag_risk) + "</span></div>" +
+        '<div class="meta"><i data-lucide="ruler" aria-hidden="true"></i><span>' +
+        esc(r.price_sar_per_m) + " " + esc(t("perMeter")) + "</span></div>" +
+        '<div class="featrow">' + feats +
+        '<span class="' + snagClass(r.snag_risk) + '">' + esc(t("snag")[r.snag_risk] || r.snag_risk) + "</span></div>" +
         (r.reason ? '<p class="why">' + esc(r.reason) + "</p>" : "") +
         receipts +
-        '<button class="seeit" type="button" data-code="' + esc(r.code) + '">' + esc(t("seeIt")) + "</button>" +
+        '<button class="seeit" type="button" data-code="' + esc(r.code) + '">' +
+        '<i data-lucide="wand-sparkles" aria-hidden="true"></i><span>' + esc(t("seeIt")) + "</span></button>" +
         "</div>";
       recsEl.appendChild(card);
     });
+    icons();
   }
 
   function handleResult(res) {
@@ -475,7 +536,9 @@
         var dec = new TextDecoder();
         var buf = "";
         function onEvt(evt) {
-          if (evt.type === "token") {
+          if (evt.type === "step") {
+            showStep(evt.label);
+          } else if (evt.type === "token") {
             ensureBubble();
             raw += evt.text;
             bodyEl.textContent = raw;
@@ -533,7 +596,7 @@
       var el = document.createElement("div");
       el.className = "msg them";
       el.id = "thinking";
-      el.innerHTML = '<span class="avatar">R</span><div><i>' +
+      el.innerHTML = '<img class="avatar" src="/brand/mark-plain.svg" alt="ReCover"><div><i>' +
         esc(t("thinkingNote")) + "</i></div>";
       messagesEl.appendChild(el);
       messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -542,6 +605,7 @@
       clearTimeout(thinkingTimer);
       var th = document.getElementById("thinking");
       if (th) th.remove();
+      hideStep();
       typingOff();
     }
     streamChat(text, imagePath).then(function (res) {
@@ -676,6 +740,7 @@
     composerInput = $("composerInput");
 
     applyI18n();
+    icons();
 
     $("langToggle").addEventListener("click", function () {
       state.lang = state.lang === "ar" ? "en" : "ar";

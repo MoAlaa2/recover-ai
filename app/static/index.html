@@ -6,17 +6,16 @@
 <title>ReCover — Change the look, not the furniture.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Figtree:wght@400;500;600&family=El+Messiri:wght@500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/brand/brand.css">
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 <header class="topbar">
-  <div class="brand">
-    <div class="brand-mark" aria-hidden="true">R</div>
-    <div>
-      <div class="brand-name">ReCover</div>
-      <div class="brand-tag" data-i18n="tagline">Change the look, not the furniture.</div>
-    </div>
+  <div class="brand" dir="ltr">
+    <img class="brand-logo" src="/brand/logo.svg" alt="ReCover" width="220" height="48">
+    <div class="brand-tag" data-i18n="tagline">Change the look, not the furniture.</div>
   </div>
   <button id="langToggle" class="lang-toggle" type="button" aria-label="Language">عربي</button>
 </header>
@@ -26,7 +25,7 @@
     <div id="messages" class="messages" role="log" aria-live="polite"></div>
     <div id="chips" class="chips" hidden></div>
     <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload a room photo">
-      <svg class="camera" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M9 3l1.5 2h3L15 3h4a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1h4zm3 5.5A4.5 4.5 0 1012 17a4.5 4.5 0 000-8.5zm0 2A2.5 2.5 0 1112 15a2.5 2.5 0 010-5z"/></svg>
+      <i data-lucide="image-plus" aria-hidden="true"></i>
       <span data-i18n="dropHint">Drop a room photo here, or tap to choose one</span>
       <input id="fileInput" type="file" accept="image/*" hidden>
     </div>
@@ -37,13 +36,14 @@
         <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
         <span id="recTimer" class="rec-timer">0:00</span>
       </div>
-      <button id="micBtn" type="button" class="mic" aria-label="Voice input"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 2a3 3 0 013 3v6a3 3 0 01-6 0V5a3 3 0 013-3zm7 10a7 7 0 01-14 0H3a9 9 0 008 8.9V22h2v-1.1A9 9 0 0021 12h-2z"/></svg></button>
-      <button type="submit" aria-label="Send">➤</button>
+      <button id="micBtn" type="button" class="mic" aria-label="Voice input"><i data-lucide="mic" aria-hidden="true"></i></button>
+      <button type="submit" aria-label="Send"><i data-lucide="arrow-up" aria-hidden="true"></i></button>
     </form>
   </section>
 
   <aside class="side-pane" aria-label="Recommendations">
     <div id="roomCard" class="room-card" hidden></div>
+    <hr class="sec-div" id="roomDiv" hidden>
     <h2 class="panel-title" data-i18n="forYou">For you</h2>
     <div id="recs" class="recs">
       <p class="empty" data-i18n="emptyRecs">Your recommended fabrics will appear here.</p>
@@ -55,7 +55,10 @@
   <div class="modal-card" role="dialog" aria-modal="true">
     <div id="swapLoading" class="swap-loading">
       <div class="spinner" aria-hidden="true"></div>
-      <h3 id="swapTitle"></h3>
+      <div class="swap-title-row">
+        <i data-lucide="message-circle" aria-hidden="true"></i>
+        <h3 id="swapTitle"></h3>
+      </div>
       <ol id="swapSteps" class="steps">
         <li data-i18n="stepDetect">Detecting piece</li>
         <li data-i18n="stepApply">Applying fabric</li>
@@ -70,8 +73,9 @@
         <div id="baHandle" class="ba-handle" aria-hidden="true"></div>
         <input id="baRange" class="ba-range" type="range" min="0" max="100" value="50" aria-label="Before and after">
       </div>
+      <hr class="sec-div">
       <div class="ba-meta">
-        <span id="matchBadge" class="match-badge"></span>
+        <span class="match-badge"><i data-lucide="badge-check" aria-hidden="true"></i><span id="matchBadge"></span></span>
         <a id="swapDownload" class="dl" download="recover-swap.jpg" data-i18n="downloadLabel">Download</a>
         <button id="swapClose" type="button" data-i18n="closeLabel">Close</button>
       </div>
@@ -79,6 +83,7 @@
   </div>
 </div>
 
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>
