@@ -320,6 +320,31 @@
     ]
   },
   {
+    "id": "cushions-after-sofa",
+    "turns": [
+      {
+        "message": "I need fabric for the beige sofa, modern style, warm colors, I have a cat and kids, budget 150 per meter."
+      },
+      {
+        "message": "Please recommend 3 specific fabrics now."
+      },
+      {
+        "message": "can i change only cushions now with the new sofa fabric"
+      }
+    ],
+    "checks": [
+      {
+        "type": "reply_nonempty",
+        "turn": 2
+      },
+      {
+        "type": "recs_min_count",
+        "value": 1,
+        "turn": 1
+      }
+    ]
+  },
+  {
     "id": "white-dogs",
     "turns": [
       {

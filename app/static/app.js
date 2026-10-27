@@ -26,6 +26,9 @@
       stepRetry: "Retrying with corrections",
       tryAgain: "Try again",
       followSwap: "Looks lovely in your space. Want to see the next fabric on it, or should I estimate the meters?",
+      emptyLeadOptions: "Sure — which of these works for you?",
+      emptyLeadRecs: "Here are my top picks for you:",
+      emptyLeadGeneric: "Could you tell me a little more about what you need?",
       viewAgain: "View again",
       rephoto: "Try on another photo",
       previewsTitle: "Your previews",
@@ -91,6 +94,9 @@
       stepRetry: "أعيد المحاولة بتعديل",
       tryAgain: "حاول مرة ثانية",
       followSwap: "شكلها حلو في مجلسك. تبي أجرب القماش الثاني، ولا أحسب لك الأمتار؟",
+      emptyLeadOptions: "تمام — أي واحد يناسبك؟",
+      emptyLeadRecs: "هذه أفضل اختياراتي لك:",
+      emptyLeadGeneric: "ممكن تقول لي أكثر عن اللي تحتاجه؟",
       viewAgain: "شاهدها مرة ثانية",
       rephoto: "جرّب على صورة ثانية",
       previewsTitle: "معايناتك",
@@ -142,6 +148,9 @@
       stepRetry: "सुधार के साथ पुनः प्रयास",
       tryAgain: "फिर से कोशिश करें",
       followSwap: "आपके स्थान पर सुंदर लग रहा है। अगला कपड़ा देखना चाहेंगे, या मीटर का अनुमान लगाऊँ?",
+      emptyLeadOptions: "बताइए — इनमें से कौन सा चलेगा?",
+      emptyLeadRecs: "ये मेरे सबसे अच्छे सुझाव हैं:",
+      emptyLeadGeneric: "अपनी ज़रूरत के बारे में थोड़ा और बताइए?",
       viewAgain: "फिर से देखें",
       rephoto: "दूसरी फोटो पर आज़माएँ",
       previewsTitle: "आपकी झलकियाँ",
@@ -191,6 +200,9 @@
       stepRetry: "Nouvel essai corrigé",
       tryAgain: "Réessayer",
       followSwap: "C'est ravissant chez vous. Voir le tissu suivant, ou estimer le métrage ?",
+      emptyLeadOptions: "Dites-moi — lequel vous convient ?",
+      emptyLeadRecs: "Voici mes meilleurs choix :",
+      emptyLeadGeneric: "Pouvez-vous m'en dire un peu plus ?",
       viewAgain: "Revoir",
       rephoto: "Essayer sur une autre photo",
       previewsTitle: "Vos aperçus",
@@ -240,6 +252,9 @@
       stepRetry: "Reintento con correcciones",
       tryAgain: "Reintentar",
       followSwap: "Se ve precioso en tu espacio. ¿Vemos la siguiente tela o calculo los metros?",
+      emptyLeadOptions: "Dime — ¿cuál te conviene?",
+      emptyLeadRecs: "Estas son mis mejores opciones:",
+      emptyLeadGeneric: "¿Me cuentas un poco más lo que necesitas?",
       viewAgain: "Ver de nuevo",
       rephoto: "Probar en otra foto",
       previewsTitle: "Tus vistas previas",
@@ -610,6 +625,15 @@
     return div;
   }
 
+  function leadIn(res) {
+    if (res && res.reply && res.reply.trim()) return res.reply;
+    var hasOpts = res && res.options && res.options.length;
+    var hasRecs = res && res.recommendations && res.recommendations.length;
+    if (hasOpts) return t("emptyLeadOptions");
+    if (hasRecs) return t("emptyLeadRecs");
+    return t("emptyLeadGeneric");
+  }
+
   function finalizePending(reply) {
     var pending = document.getElementById("pending");
     if (!pending) return null;
@@ -618,7 +642,10 @@
     var dots = document.getElementById("pDots");
     if (dots) dots.remove();
     var body = document.getElementById("pText");
-    if (body) body.innerHTML = formatReply(reply || body.textContent);
+    var text = (reply && reply.trim()) ? reply :
+      (body && body.textContent && body.textContent.trim() ?
+        body.textContent : t("emptyLeadGeneric"));
+    if (body) body.innerHTML = formatReply(text);
     pending.removeAttribute("id");
     return pending;
   }
@@ -785,7 +812,7 @@
     }
     state.lastOptions = res.options || [];
     renderRoomCard(state.lastRoom, state.lastDetected);
-    if (res.reply) addMsg(res.reply, "them");
+    addMsg(leadIn(res), "them");
     if (state.lastRecs && state.lastRecs.length) renderRecs(state.lastRecs);
     if (state.lastOptions && state.lastOptions.length) renderOptions(state.lastOptions);
   }

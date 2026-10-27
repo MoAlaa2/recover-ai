@@ -583,3 +583,71 @@ def test_disclosure_names_specific_features():
     assert "مناسب للحيوانات" in note_ar
     vague = c.disclosure_note(["features"], False, 0)
     assert "fabric features" in vague
+
+
+def test_options_only_reply_retries_for_prose():
+    opts = '```options\n["Cushions only", "Sofa + cushions"]\n```'
+    calls = {"n": 0}
+
+    def fake(messages, tools=None):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return final_text(opts)
+        return final_text("Absolutely — cushions only is a lovely start.")
+
+    out = c.chat("test-empty-opts", "cushions now please", chat_fn=fake)
+    assert calls["n"] == 2
+    assert out["reply"].strip()
+    assert "```" not in out["reply"]
+    assert out["options"] == ["Cushions only", "Sofa + cushions"]
+
+
+def test_recommendations_only_reply_keeps_recs():
+    good = ["FA-NL-07", "FA-NL-03", "FA-NL-10"]
+    items = [{"code": code, "reason": "reason for %s" % code}
+             for code in good]
+    recs_only = "```recommendations\n%s\n```" % json.dumps(items)
+    calls = {"n": 0}
+
+    def fake(messages, tools=None):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return tool_call("search_catalog", {"usage": "upholstery"})
+        if calls["n"] == 2:
+            return final_text(recs_only)
+        return final_text("Here you go — three lovely picks for you.")
+
+    out = c.chat("test-empty-recs", "recommend now", chat_fn=fake)
+    assert calls["n"] == 3
+    assert out["reply"].strip()
+    assert "```" not in out["reply"]
+    assert [r["code"] for r in out["recommendations"]] == good
+
+
+def test_empty_reply_falls_back_localized():
+    def fake(messages, tools=None):
+        return final_text("   ")
+
+    out = c.chat("test-empty-both", "cushions now please", chat_fn=fake)
+    assert out["reply"].strip()
+    assert "```" not in out["reply"]
+    assert out["options"] == []
+    assert out["recommendations"] == []
+    assert c.empty_fallback(True, False, "ar") == (
+        "تمام — أي واحد يناسبك؟")
+    assert c.empty_fallback(False, True, "ar") == (
+        "هذه أفضل اختياراتي لك:")
+    assert c.empty_fallback(False, False, "xx").startswith("Could you")
+
+
+def test_confused_message_gets_rephrase_nudge():
+    seen = {}
+
+    def fake(messages, tools=None):
+        seen["prompt"] = " ".join(
+            m.get("content") or "" for m in messages)
+        return final_text("Let me ask again simply: cushions or sofa?")
+
+    out = c.chat("test-confused", "??", chat_fn=fake)
+    assert "confused" in seen["prompt"]
+    assert "cushions or sofa" in out["reply"]

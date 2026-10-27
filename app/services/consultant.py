@@ -96,6 +96,12 @@ end your reply with one fenced block on its own lines:
 2 to 4 short options in the user's language. Only when genuinely offering \
 choices; omit the block otherwise.
 
+PROSE FIRST: every reply must open with at least one full sentence of \
+visible prose in the user's language before any fenced block. Never send \
+a reply that is only a fenced block. If the user sends a confused message \
+like "??", do not start over: simply rephrase your last open question in \
+short, plain words.
+
 ROOM PHOTOS: describe what you see with the word "looks", never "sounds". \
 In Arabic use تبدو / شكلها, never any hearing word.
 
@@ -473,6 +479,59 @@ def strip_options(text):
 
 
 TIP_RE = re.compile(r"(?mi)^\s*(tip|تلميح|نصيحة)\s*[:：-].*$")
+
+
+# Localized one-line lead-ins used only when the model returns no visible
+# prose: options/recs are still shown, so the lead-in just opens the turn.
+EMPTY_LEAD = {
+    "options": {
+        "en": "Sure — which of these works for you?",
+        "ar": "تمام — أي واحد يناسبك؟",
+        "hi": "बताइए — इनमें से कौन सा चलेगा?",
+        "fr": "Dites-moi — lequel vous convient ?",
+        "es": "Dime — ¿cuál te conviene?",
+    },
+    "recs": {
+        "en": "Here are my top picks for you:",
+        "ar": "هذه أفضل اختياراتي لك:",
+        "hi": "ये मेरे सबसे अच्छे सुझाव हैं:",
+        "fr": "Voici mes meilleurs choix :",
+        "es": "Estas son mis mejores opciones:",
+    },
+    "generic": {
+        "en": "Could you tell me a little more about what you need?",
+        "ar": "ممكن تقول لي أكثر عن اللي تحتاجه؟",
+        "hi": "अपनी ज़रूरत के बारे में थोड़ा और बताइए?",
+        "fr": "Pouvez-vous m'en dire un peu plus ?",
+        "es": "¿Me cuentas un poco más lo que necesitas?",
+    },
+}
+
+
+def empty_fallback(has_options, has_recs, lang):
+    """Short localized lead-in when the model returns no visible prose."""
+    pack = EMPTY_LEAD["options"] if has_options else (
+        EMPTY_LEAD["recs"] if has_recs else EMPTY_LEAD["generic"])
+    return pack.get(lang) or pack["en"]
+
+
+def split_final(final_text, turn):
+    """Split final model text into (reply, options, recommendations).
+
+    reply holds only visible prose: both fenced blocks are removed and
+    the tip line is stripped on turns without recommendations.
+    """
+    extracted = extract_recommendations(final_text)
+    recs, bad = (None, None)
+    if extracted is not None:
+        recs, bad = valid_recommendations(extracted, turn["seen"])
+    recommendations = recs if (recs and not bad) else []
+    clean = strip_block(final_text)
+    options = extract_options(clean) or []
+    reply = strip_options(clean)
+    if not recommendations:
+        reply = strip_tip(reply)
+    return reply.strip(), options, recommendations
 
 
 def strip_tip(text):
@@ -956,6 +1015,10 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     else:
         instruction = "Reply in the same language the user wrote in."
     user_text += "\n[%s]" % instruction
+    if re.match(r"^[\s?؟!….…]{1,8}$", message or ""):
+        user_text += ("\n[The user is confused. Do not start over or ask "
+                      "for new information; simply rephrase your last open "
+                      "question in short, plain words.]")
     turn = accumulate_context(session, turn_for(message))
     turn["lang"] = session.get("lang")
     confirm = ""
@@ -1010,6 +1073,26 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     reply = strip_options(reply)
     if not recommendations:
         reply = strip_tip(reply)
+    if not reply.strip():
+        nudge = ("[System: your last reply had no visible text. Say it "
+                 "again with at least one full sentence of visible prose "
+                 "before any fenced block.]")
+        retry_text = agent_turn(
+            list(history) + [{"role": "user", "content": nudge}],
+            chat_fn, turn, on_token=on_token, on_step=on_step)
+        retry_reply, retry_options, retry_recs = split_final(
+            retry_text, turn)
+        if retry_reply:
+            reply = retry_reply
+            options = retry_options or options
+            if retry_recs:
+                recommendations = retry_recs
+            final_text = retry_text
+        else:
+            reply = empty_fallback(
+                bool(options), bool(recommendations),
+                turn.get("lang") or session.get("lang"))
+    reply = reply.strip()
     if confirm:
         reply = (reply + "\n\n" + confirm).strip()
     enriched_early = enrich(recommendations, turn)

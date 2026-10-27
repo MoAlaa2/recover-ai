@@ -148,6 +148,9 @@ def check(check, turns, specs):
                if not (i["collection"] == "Velvet Luxe"
                        or "jacquard" in i["material"])]
         return not bad, "not luxe: %s" % bad if bad else "all luxe"
+    if ctype == "reply_nonempty":
+        ok = bool(reply and reply.strip())
+        return ok, "empty reply" if not ok else "reply has prose"
     if ctype == "light_warning":
         flagged = [i["code"] for i in items if is_light_unprotected(i)]
         if not flagged:
