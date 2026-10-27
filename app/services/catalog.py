@@ -246,7 +246,8 @@ def is_light_unprotected(item):
 
 PIECE_WORDS = {
     "sofa": ["sofa", "couch", "صوفا", "كنبة", "كنب"],
-    "armchair": ["armchair", "wingback"],
+    "armchair": ["armchair", "wingback", "كرسي الاسترخاء",
+                 "كرسي استرخاء"],
     "chair": ["chair", "كرسي"],
     "curtains": ["curtain", "drape", "ستارة", "ستائر"],
     "cushions": ["cushion", "pillow", "وسادة", "وسائد", "مخدة", "مخدات"],

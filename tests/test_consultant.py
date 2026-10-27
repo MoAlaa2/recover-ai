@@ -121,7 +121,8 @@ def test_pet_filter_is_or_and_pet_safe():
 def test_piece_mismatch_asks_for_confirmation(monkeypatch):
     monkeypatch.setattr(
         c, "analyze_room",
-        lambda path: {"furniture": "wingback armchair", "style": "classic"})
+        lambda path, lang=None: {"furniture": "wingback armchair",
+                                 "style": "classic"})
     out = c.chat("test-piece", "fabric for my sofa please",
                  image_path="data/catalog/FA-VL-01.jpg",
                  chat_fn=lambda messages, tools=None: final_text(
@@ -442,7 +443,10 @@ def test_enrich_adds_trust_receipts():
     assert "pet-friendly" in out[0]["matched"]
     assert "easy-clean" in out[0]["matched"]
     assert "under-budget" in out[0]["matched"]
-    assert out[0]["relaxed"] == ["max_price"]
+    # No contradiction: price is under budget, so the relaxed budget
+    # surfaces no pill; specifics live in relaxed_budget when over.
+    assert out[0]["relaxed"] == []
+    assert out[0]["relaxed_budget"] is None
     assert "image" in out[0] and out[0]["image"].endswith(".jpg")
 
 
@@ -500,3 +504,69 @@ def test_detected_lang_returned_without_pin():
     out = c.chat("test-detect-ar", "أبغى قماش للكنبة",
                  chat_fn=lambda messages, tools=None: final_text("تم"))
     assert out["detected_lang"] == "ar"
+
+
+def test_fence_filter_hides_blocks_live():
+    f = c.FenceFilter()
+    assert f.feed("Hello ") == "Hello "
+    assert f.feed("```reco") == ""
+    assert f.feed("mmendations\n[{}]```") == ""
+    assert f.feed(" done") == " done"
+    assert f.flush() == ""
+
+
+def test_fence_filter_split_marker_across_chunks():
+    f = c.FenceFilter()
+    assert f.feed("a``") == "a"
+    assert f.feed("`b```c") == "c"
+    assert f.flush() == ""
+
+
+def test_fence_filter_unclosed_block_discarded():
+    f = c.FenceFilter()
+    assert f.feed("Hi ```options\n[\"a\"]") == "Hi "
+    assert f.feed(" more") == ""
+    assert f.flush() == ""
+
+
+def test_enrich_one_pill_per_dimension():
+    turn = {"needs_all": ["pet-friendly"], "needs_any": [],
+            "budgets": [100], "tones": ["warm"],
+            "relaxed": ["tone", "max_price"],
+            "protected": [], "pet_safe": True, "has_kids": False}
+    recs = [{"code": "FA-VL-01", "reason": "r"}]
+    out = c.enrich(recs, turn)
+    assert out[0]["relaxed_features"] == []
+    assert out[0]["relaxed_budget"] is None or True
+    assert "warm-tone" not in out[0]["matched"]
+
+
+def test_enrich_relaxed_feature_specifics():
+    # blackout never applies to an upholstery fabric: it can only be
+    # missing because the filter was relaxed, never because it matched.
+    turn = {"needs_all": ["blackout"], "needs_any": [], "budgets": [],
+            "tones": [], "relaxed": ["features"],
+            "protected": [], "pet_safe": False, "has_kids": False}
+    out = c.enrich([{"code": "FA-NL-02", "reason": "r"}], turn)
+    assert "blackout" not in out[0]["matched"]
+    assert out[0]["relaxed_features"] == ["blackout"]
+
+
+def test_enrich_budget_over_numbers():
+    turn = {"needs_all": [], "needs_any": [], "budgets": [100],
+            "tones": [], "relaxed": ["max_price"],
+            "protected": [], "pet_safe": False, "has_kids": False}
+    out = c.enrich([{"code": "FA-VL-01", "reason": "r"}], turn)
+    rb = out[0]["relaxed_budget"]
+    price = c.get_fabric("FA-VL-01")["price_sar_per_m"]
+    assert rb == {"price": price, "over": price - 100, "budget": 100}
+    assert "under-budget" not in out[0]["matched"]
+
+
+def test_disclosure_states_real_overrun():
+    note = c.disclosure_note(["max_price"], False, 55)
+    assert "55" in note and "slightly" not in note
+    note_ar = c.disclosure_note(["max_price"], True, 55)
+    assert "٥٥" in note_ar and "شوي" not in note_ar
+    mild = c.disclosure_note(["max_price"], False, 0)
+    assert "slightly" in mild

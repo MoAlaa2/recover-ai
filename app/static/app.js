@@ -22,6 +22,14 @@
       micLabel: "Voice input",
       steps: { search: "Searching 80 fabrics…", claw: "Checking claw safety…", details: "Comparing details…", room: "Reading your room's colors…" },
       needPhoto: "Please upload a room photo first, then tap “See it in my space” again.",
+      pieceYou: { sofa: "your sofa", armchair: "your armchair", curtains: "your curtains", cushions: "your cushions" },
+      stepRetry: "Retrying with corrections",
+      tryAgain: "Try again",
+      followSwap: "Looks lovely in your space. Want to see the next fabric on it, or should I estimate the meters?",
+      viewAgain: "View again",
+      rephoto: "Try on another photo",
+      previewsTitle: "Your previews",
+      previewsHint: "Tap one to view, two to compare",
       tailoring: "Tailoring your %s…",
       pieceWord: { sofa: "sofa", armchair: "armchair", curtains: "curtains", cushions: "cushions" },
       stepDetect: "Detecting piece",
@@ -51,7 +59,7 @@
       dropHint: "أسقط صورة غرفتك هنا، أو اضغط لاختيار صورة",
       placeholder: "اسأل عن الأقمشة…",
       analyzing: "جارٍ تحليل غرفتك…",
-      seeIt: "شاهدها في مساحتك",
+      seeIt: "شاهده في مساحتك",
       comingSoon: "قريباً",
       perMeter: "ر.س/م",
       matchSection: "لماذا هذا القماش",
@@ -73,14 +81,22 @@
       downloadLabel: "تحميل",
       closeLabel: "إغلاق",
       swapFail: "تعذّرت المعاينة. حاول مرة ثانية بصورة ثانية.",
-      roomTitle: "غرفتك",
+      roomTitle: "مساحتك",
       roomType: "الغرفة",
       style: "الستايل",
       light: "الإضاءة",
       piece: "القطعة",
       palette: "ألوان الجدران",
+      pieceYou: { sofa: "كنبتك", armchair: "كرسيك", curtains: "ستارتك", cushions: "وسايدك" },
+      stepRetry: "أعيد المحاولة بتعديل",
+      tryAgain: "حاول مرة ثانية",
+      followSwap: "شكلها حلو في مجلسك. تبي أجرب القماش الثاني، ولا أحسب لك الأمتار؟",
+      viewAgain: "شاهدها مرة ثانية",
+      rephoto: "جرّب على صورة ثانية",
+      previewsTitle: "معايناتك",
+      previewsHint: "اضغط على وحدة للعرض، وثنتين للمقارنة",
       chips: ["تنجيد", "ستائر", "وسائد", "تشكيلة"],
-      snag: { low: "مقاومة عالية للتشابك", medium: "مقاومة متوسطة للتشابك", high: "عرضة للتشابك", unknown: "غير معروف" },
+      snag: { low: "خطر خدش منخفض", medium: "خطر خدش متوسط", high: "خطر خدش مرتفع", unknown: "غير معروف" },
       features: {},
       matched: {},
       relaxed: {}
@@ -122,6 +138,14 @@
       steps: { search: "80 कपड़े खोज रहा हूँ…", claw: "पंजों से सुरक्षा जाँच रहा हूँ…", details: "विवरण मिला रहा हूँ…", room: "आपके कमरे के रंग पढ़ रहा हूँ…" },
       thinkingNote: "सोच रहा हूँ…",
       snag: { low: "पंजा-सुरक्षित", medium: "मध्यम जोखिम", high: "ज्यादा जोखिम", unknown: "अज्ञात" },
+      pieceYou: { sofa: "आपका सोफ़ा", armchair: "आपकी कुर्सी", curtains: "आपके पर्दे", cushions: "आपके कुशन" },
+      stepRetry: "सुधार के साथ पुनः प्रयास",
+      tryAgain: "फिर से कोशिश करें",
+      followSwap: "आपके स्थान पर सुंदर लग रहा है। अगला कपड़ा देखना चाहेंगे, या मीटर का अनुमान लगाऊँ?",
+      viewAgain: "फिर से देखें",
+      rephoto: "दूसरी फोटो पर आज़माएँ",
+      previewsTitle: "आपकी झलकियाँ",
+      previewsHint: "देखने के लिए एक, तुलना के लिए दो दबाएँ",
       features: {},
       matched: {},
       relaxed: {}
@@ -163,6 +187,14 @@
       steps: { search: "Je parcours 80 tissus…", claw: "Je vérifie la résistance aux griffes…", details: "Je compare les détails…", room: "Je lis les couleurs de votre pièce…" },
       thinkingNote: "Je réfléchis…",
       snag: { low: "Résistant aux griffes", medium: "Risque moyen", high: "Risque élevé", unknown: "N/A" },
+      pieceYou: { sofa: "votre canapé", armchair: "votre fauteuil", curtains: "vos rideaux", cushions: "vos coussins" },
+      stepRetry: "Nouvel essai corrigé",
+      tryAgain: "Réessayer",
+      followSwap: "C'est ravissant chez vous. Voir le tissu suivant, ou estimer le métrage ?",
+      viewAgain: "Revoir",
+      rephoto: "Essayer sur une autre photo",
+      previewsTitle: "Vos aperçus",
+      previewsHint: "Touchez-en un pour voir, deux pour comparer",
       features: {},
       matched: {},
       relaxed: {}
@@ -204,6 +236,14 @@
       steps: { search: "Busco entre 80 telas…", claw: "Compruebo la resistencia a las garras…", details: "Comparo los detalles…", room: "Leo los colores de tu espacio…" },
       thinkingNote: "Estoy pensando…",
       snag: { low: "Resistente a garras", medium: "Riesgo medio", high: "Riesgo alto", unknown: "N/D" },
+      pieceYou: { sofa: "tu sofá", armchair: "tu sillón", curtains: "tus cortinas", cushions: "tus cojines" },
+      stepRetry: "Reintento con correcciones",
+      tryAgain: "Reintentar",
+      followSwap: "Se ve precioso en tu espacio. ¿Vemos la siguiente tela o calculo los metros?",
+      viewAgain: "Ver de nuevo",
+      rephoto: "Probar en otra foto",
+      previewsTitle: "Tus vistas previas",
+      previewsHint: "Toca una para ver, dos para comparar",
       features: {},
       matched: {},
       relaxed: {}
@@ -280,13 +320,42 @@
     return "en";
   }
 
+  function newSessionId() {
+    return "web-" + Math.random().toString(36).slice(2, 10);
+  }
+
+  function loadSessionId() {
+    try {
+      var saved = window.localStorage.getItem("recover_sid");
+      if (saved) return saved;
+      var fresh = newSessionId();
+      window.localStorage.setItem("recover_sid", fresh);
+      return fresh;
+    } catch (e) {
+      return newSessionId();
+    }
+  }
+
+  function saveSessionId(sid) {
+    try { window.localStorage.setItem("recover_sid", sid); } catch (e) {}
+  }
+
   var state = {
     lang: initialLang(),
     pinned: false,
-    sessionId: "web-" + Math.random().toString(36).slice(2, 10),
+    sessionId: loadSessionId(),
     booted: false,
     roomPhoto: null,
-    detectedPiece: null
+    detectedPiece: null,
+    lastRoom: null,
+    lastDetected: null,
+    lastRecs: [],
+    lastOptions: [],
+    swaps: {},
+    prevList: [],
+    compareSel: [],
+    pendingSwapCode: null,
+    lastSwap: null
   };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -306,8 +375,33 @@
   }
 
   function featLabel(key) {
-    var pair = FEATURE_LABELS[key] || [key, key];
+    var k = String(key || "");
+    if (k.indexOf("fitted-") === 0) k = k.slice("fitted-".length);
+    if (k.indexOf("feat-") === 0) k = k.slice("feat-".length);
+    var pair = FEATURE_LABELS[k] || [key, key];
     return state.lang === "ar" ? pair[1] : pair[0];
+  }
+
+  function toArabicDigits(value) {
+    return String(value).replace(/\d/g, function (d) { return "٠١٢٣٤٥٦٧٨٩"[+d]; });
+  }
+
+  function formatPrice(sar) {
+    if (state.lang === "ar") return toArabicDigits(sar) + " ر.س/م";
+    return sar + " " + t("perMeter");
+  }
+
+  function notFeatureLabel(key) {
+    var label = featLabel(key);
+    if (state.lang === "ar") return "مو " + label;
+    return "Not " + label.charAt(0).toLowerCase() + label.slice(1);
+  }
+
+  function budgetPill(rb) {
+    var price = state.lang === "ar" ? toArabicDigits(rb.price) + " ر.س/م" : rb.price + " SAR/m";
+    var over = state.lang === "ar" ? toArabicDigits(rb.over) : rb.over;
+    if (state.lang === "ar") return "⚠ " + price + " — أعلى من ميزانيتك بـ " + over;
+    return "⚠ " + price + " — " + over + " over budget";
   }
 
   function relaxLabel(key) {
@@ -327,6 +421,9 @@
     document.documentElement.lang = state.lang;
     document.documentElement.dir = isRTL() ? "rtl" : "ltr";
     document.body.classList.toggle("ar", isRTL());
+    if (state.lastRoom) renderRoomCard(state.lastRoom, state.lastDetected);
+    if (state.lastRecs && state.lastRecs.length) renderRecs(state.lastRecs);
+    renderStrip();
     document.querySelectorAll("[data-i18n]").forEach(function (el) {
       el.textContent = t(el.getAttribute("data-i18n"));
     });
@@ -417,14 +514,25 @@
     applyI18n();
     renderChips();
     if (!greet) return;
-    state.sessionId = "web-" + Math.random().toString(36).slice(2, 10);
+    state.sessionId = newSessionId();
+    saveSessionId(state.sessionId);
     state.booted = false;
     state.roomPhoto = null;
     state.detectedPiece = null;
+    state.lastRoom = null;
+    state.lastDetected = null;
+    state.lastRecs = [];
+    state.lastOptions = [];
+    state.swaps = {};
+    state.prevList = [];
+    state.compareSel = [];
+    state.pendingSwapCode = null;
+    state.lastSwap = null;
     messagesEl.innerHTML = "";
     recsEl.innerHTML = "";
     roomCardEl.hidden = true;
     $("roomDiv").hidden = true;
+    renderStrip();
     bootGreeting();
   }
 
@@ -472,30 +580,52 @@
     return div;
   }
 
+  function stepLabel(key) {
+    var map = t("steps") || {};
+    if (map[key] !== undefined) return map[key];
+    if (key === "thinking") return t("thinkingNote");
+    return key;
+  }
+
   function showStep(key) {
-    var label = (t("steps") || {})[key] || key;
-    var typing = document.getElementById("typing");
     var el = document.getElementById("agentStep");
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "agentStep";
-      el.className = "agent-step";
-      if (typing && typing.parentNode) {
-        typing.parentNode.insertBefore(el, typing);
-      } else {
-        messagesEl.appendChild(el);
-      }
-    }
-    el.textContent = label;
+    if (!el) return;
+    el.textContent = stepLabel(key);
     el.classList.remove("swap");
     void el.offsetWidth;
     el.classList.add("swap");
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
-  function hideStep() {
-    var el = document.getElementById("agentStep");
-    if (el) el.remove();
+  function pendingBubble() {
+    var div = document.createElement("div");
+    div.className = "msg them";
+    div.id = "pending";
+    div.innerHTML = AVATAR +
+      '<div dir="auto"><div class="agent-step" id="agentStep"></div>' +
+      '<span class="typing" id="pDots"><span></span><span></span><span></span></span>' +
+      '<span class="ptext" id="pText"></span></div>';
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+  }
+
+  function finalizePending(reply) {
+    var pending = document.getElementById("pending");
+    if (!pending) return null;
+    var step = document.getElementById("agentStep");
+    if (step) step.remove();
+    var dots = document.getElementById("pDots");
+    if (dots) dots.remove();
+    var body = document.getElementById("pText");
+    if (body) body.innerHTML = formatReply(reply || body.textContent);
+    pending.removeAttribute("id");
+    return pending;
+  }
+
+  function dropPending() {
+    var pending = document.getElementById("pending");
+    if (pending) pending.remove();
   }
 
   function typingOn() {
@@ -574,6 +704,7 @@
     roomCardEl.innerHTML = "<h3>" + esc(t("roomTitle")) + "</h3>" + rows +
       '<div><b>' + esc(t("palette")) + ":</b></div>" +
       '<div class="palette">' + pal + "</div>";
+    roomCardEl.setAttribute("dir", "auto");
     roomCardEl.hidden = false;
     $("roomDiv").hidden = false;
   }
@@ -591,6 +722,7 @@
       var card = document.createElement("div");
       card.className = "card";
       var name = state.lang === "ar" ? r.name_ar : r.name_en;
+      var desc = state.lang === "ar" ? (r.description_ar || "") : (r.description_en || "");
       var feats = (r.features || []).map(function (f) {
         var icon = FEATURE_ICONS[f] || "sparkles";
         var label = featLabel(f);
@@ -603,24 +735,41 @@
       var relaxed = (r.relaxed || []).map(function (m) {
         return '<li class="warn"><span>⚠</span> ' + esc(relaxLabel(m)) + "</li>";
       }).join("");
+      var relaxedFeats = (r.relaxed_features || []).map(function (f) {
+        return '<li class="warn"><span>⚠</span> ' + esc(notFeatureLabel(f)) + "</li>";
+      }).join("");
+      if (r.relaxed_budget) {
+        relaxed += '<li class="warn"><span>⚠</span> ' + esc(budgetPill(r.relaxed_budget)) + "</li>";
+      }
       var receipts = "";
-      if (matched || relaxed) {
-        receipts = '<ul class="receipts">' + matched + relaxed + "</ul>";
+      if (matched || relaxed || relaxedFeats) {
+        receipts = '<ul class="receipts">' + matched + relaxed + relaxedFeats + "</ul>";
+      }
+      var done = state.swaps[r.code];
+      var action;
+      if (done && done.result_url) {
+        action = '<div class="swap-done">' +
+          '<img class="swap-thumb" src="/' + esc(done.result_url) + '" alt="' + esc(name) + '" data-code="' + esc(r.code) + '">' +
+          '<div class="swap-done-btns">' +
+          '<button class="seeit review" type="button" data-code="' + esc(r.code) + '"><span>' + esc(t("viewAgain")) + "</span></button>" +
+          '<button class="ghost rephoto" type="button" data-code="' + esc(r.code) + '"><span>' + esc(t("rephoto")) + "</span></button>" +
+          "</div></div>";
+      } else {
+        action = '<button class="seeit" type="button" data-code="' + esc(r.code) + '">' +
+          '<i data-lucide="wand-sparkles" aria-hidden="true"></i><span>' + esc(t("seeIt")) + "</span></button>";
       }
       card.innerHTML =
         '<div class="swatch"><img src="/' + esc(r.image) + '" alt="' + esc(name) + '" loading="lazy">' +
         '<span class="code-pill">' + esc(r.code) + "</span></div>" +
-        '<div class="body">' +
+        '<div class="body" dir="auto">' +
         '<div class="name">' + esc(name) + "</div>" +
         '<div class="meta"><i data-lucide="ruler" aria-hidden="true"></i><span>' +
-        esc(r.price_sar_per_m) + " " + esc(t("perMeter")) + "</span></div>" +
+        esc(formatPrice(r.price_sar_per_m)) + "</span></div>" +
+        (desc ? '<p class="desc">' + esc(desc) + "</p>" : "") +
         '<div class="featrow">' + feats +
         '<span class="' + snagClass(r.snag_risk) + '">' + esc(t("snag")[r.snag_risk] || r.snag_risk) + "</span></div>" +
         (r.reason ? '<p class="why">' + esc(r.reason) + "</p>" : "") +
-        receipts +
-        '<button class="seeit" type="button" data-code="' + esc(r.code) + '">' +
-        '<i data-lucide="wand-sparkles" aria-hidden="true"></i><span>' + esc(t("seeIt")) + "</span></button>" +
-        "</div>";
+        receipts + action + "</div>";
       recsEl.appendChild(card);
     });
     icons();
@@ -628,11 +777,17 @@
 
   function handleResult(res) {
     autoLang(res);
-    renderRoomCard(res.room_analysis, res.detected_piece);
     if (res.detected_piece) state.detectedPiece = res.detected_piece;
+    state.lastRoom = res.room_analysis || null;
+    state.lastDetected = res.detected_piece || null;
+    if (res.recommendations && res.recommendations.length) {
+      state.lastRecs = res.recommendations;
+    }
+    if (res.options) state.lastOptions = res.options;
+    renderRoomCard(state.lastRoom, state.lastDetected);
     if (res.reply) addMsg(res.reply, "them");
-    if (res.recommendations && res.recommendations.length) renderRecs(res.recommendations);
-    if (res.options && res.options.length) renderOptions(res.options);
+    if (state.lastRecs && state.lastRecs.length) renderRecs(state.lastRecs);
+    if (state.lastOptions && state.lastOptions.length) renderOptions(state.lastOptions);
   }
 
   function swapTarget() {
@@ -655,12 +810,29 @@
   function setStep(n) {
     var items = document.querySelectorAll("#swapSteps li");
     for (var i = 0; i < items.length; i++) {
+      if (items[i].hidden) continue;
       items[i].className = i < n ? "done" : i === n ? "active" : "";
     }
   }
 
-  function openSwap(code) {
-    if (!state.roomPhoto) {
+  var SWAP_STEP = { segment: 0, edit: 1, composite: 1, verify: 2 };
+
+  function swapFabricMeta(code) {
+    var list = state.lastRecs || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].code === code) {
+        return { code: list[i].code,
+                 name_en: list[i].name_en, name_ar: list[i].name_ar,
+                 price: list[i].price_sar_per_m,
+                 image: list[i].image };
+      }
+    }
+    return { code: code };
+  }
+
+  function openSwap(code, opts) {
+    opts = opts || {};
+    if (!state.roomPhoto && !opts.review) {
       addMsg(t("needPhoto"), "them");
       var dz = $("dropzone");
       dz.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -668,54 +840,270 @@
       setTimeout(function () { dz.classList.remove("flash"); }, 1600);
       return;
     }
+    state.swapCode = code;
+    state.swapRetried = !!opts.noRetry;
     var target = swapTarget();
-    var words = t("pieceWord") || {};
+    var words = t("pieceYou") || {};
     $("swapTitle").textContent =
       t("tailoring").replace("%s", words[target] || target);
     $("swapLoading").hidden = false;
     $("swapResult").hidden = true;
+    $("swapCompare").hidden = true;
     $("swapStill").hidden = true;
+    $("swapRetryRow").hidden = true;
+    $("swapRetryRow").className = "";
+    $("swapTryAgain").hidden = true;
+    $("swapTryAgain").textContent = t("tryAgain");
     $("swapModal").hidden = false;
     document.body.classList.add("modal-open");
     setStep(0);
     clearSwapTimers();
-    swapTimers.push(setTimeout(function () { setStep(1); }, 25000));
-    swapTimers.push(setTimeout(function () { setStep(2); }, 100000));
     swapTimers.push(setTimeout(function () {
-      $("swapStill").hidden = false;
-      setStep(2);
+      if (!$("swapModal").hidden) $("swapStill").hidden = false;
     }, 180000));
-    fetchReq("/api/swap", {
-      json: { session_id: state.sessionId,
-              image_path: state.roomPhoto,
-              fabric_code: code, target: target },
-      timeoutMs: 600000, retries: 0
-    }).then(function (res) {
-      clearSwapTimers();
-      var scores = res.scores || {};
-      var vals = [scores.color, scores.pattern, scores.scale,
-                  scores.isolation].map(function (v) { return v || 0; });
-      var match = Math.min.apply(null, vals);
-      var before = "/" + state.roomPhoto.replace(/^\/+/, "");
-      var after = "/" + (res.result_url || "").replace(/^\/+/, "");
-      $("baBeforeImg").src = before;
-      $("baAfterImg").src = after;
-      $("baRange").value = 50;
-      baUpdate(50);
-      var badge = $("matchBadge");
-      badge.textContent = t("matchBadge").replace("%d", match);
-      badge.title = "color " + vals[0] + " · pattern " + vals[1] +
-                    " · scale " + vals[2] + " · isolation " + vals[3];
-      var dl = $("swapDownload");
-      dl.href = after;
-      dl.textContent = t("downloadLabel");
-      $("swapLoading").hidden = true;
-      $("swapResult").hidden = false;
-    }).catch(function () {
-      clearSwapTimers();
-      closeSwap();
+    var meta = swapFabricMeta(code);
+    var reader = null;
+    try {
+      fetch("/api/swap/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: state.sessionId,
+                               image_path: state.roomPhoto,
+                               fabric_code: code, target: target })
+      }).then(function (r) {
+        if (!r.ok || !r.body) throw new Error("HTTP " + r.status);
+        reader = r.body.getReader();
+        var dec = new TextDecoder();
+        var buf = "";
+        function onEvt(evt) {
+          if (evt.type === "step") {
+            if (evt.label === "retry") {
+              var row = $("swapRetryRow");
+              row.hidden = false;
+              row.className = "active";
+            } else if (SWAP_STEP[evt.label] !== undefined) {
+              var n = SWAP_STEP[evt.label];
+              var items = document.querySelectorAll("#swapSteps li");
+              for (var i = 0; i < 3 && i < items.length; i++) {
+                items[i].className = i < n ? "done" : i === n ? "active" : "";
+              }
+            }
+          } else if (evt.type === "done") {
+            try { reader.cancel(); } catch (e) {}
+            finalizeSwap(code, meta, evt.result || {});
+          } else if (evt.type === "error") {
+            try { reader.cancel(); } catch (e) {}
+            hideSwapModal();
+            addMsg(t("swapFail"), "them");
+          }
+        }
+        function pump() {
+          return reader.read().then(function (step) {
+            if (step.done) return;
+            buf += dec.decode(step.value, { stream: true });
+            var parts = buf.split("\n\n");
+            buf = parts.pop();
+            parts.forEach(function (part) {
+              part.split("\n").forEach(function (line) {
+                line = line.trim();
+                if (line.indexOf("data:") !== 0) return;
+                try { onEvt(JSON.parse(line.slice(5))); }
+                catch (e) {}
+              });
+            });
+            return pump();
+          });
+        }
+        return pump();
+      }).catch(function () {
+        if (!$("swapResult") || $("swapResult").hidden) {
+          hideSwapModal();
+          addMsg(t("swapFail"), "them");
+        }
+      });
+    } catch (e) {
+      hideSwapModal();
       addMsg(t("swapFail"), "them");
+    }
+  }
+
+  function finalizeSwap(code, meta, res) {
+    clearSwapTimers();
+    var scores = res.scores || {};
+    var vals = [scores.color, scores.pattern, scores.scale,
+                scores.isolation].map(function (v) { return v || 0; });
+    var match = Math.min.apply(null, vals);
+    var before = state.roomPhoto ?
+      "/" + state.roomPhoto.replace(/^\/+/, "") : "";
+    var after = "/" + (res.result_url || "").replace(/^\/+/, "");
+    renderSwapResult(before, after, res, match, vals, meta);
+    var entry = { fabric_code: code,
+                  result_url: res.result_url || "",
+                  mask_url: res.mask_url || "",
+                  before_url: state.roomPhoto || "",
+                  scores: scores, attempts: res.attempts || 1,
+                  created_at: Date.now() / 1000, meta: meta };
+    state.prevList.push(entry);
+    state.swaps[code] = entry;
+    state.lastSwap = entry;
+    renderStrip();
+    if (state.lastRecs && state.lastRecs.length) renderRecs(state.lastRecs);
+    var showTry = match < 8 && (res.attempts || 1) < 2 && !state.swapRetried;
+    $("swapTryAgain").hidden = !showTry;
+  }
+
+  function renderSwapResult(before, after, res, match, vals, meta) {
+    $("baBeforeImg").src = before;
+    $("baAfterImg").src = after;
+    $("baRange").value = 50;
+    baUpdate(50);
+    var badge = $("matchBadge");
+    badge.textContent = t("matchBadge").replace("%d", match);
+    badge.title = "color " + vals[0] + " · pattern " + vals[1] +
+                  " · scale " + vals[2] + " · isolation " + vals[3];
+    var dl = $("swapDownload");
+    dl.href = after;
+    var name = meta ? (state.lang === "ar" ? meta.name_ar || meta.code
+                                           : meta.name_en || meta.code)
+                    : "";
+    var fabric = $("baFabric");
+    if (meta && (meta.image || name)) {
+      $("baFabricImg").src = meta.image ? "/" + meta.image : "";
+      $("baFabricName").textContent = name || meta.code || "";
+      $("baFabricCode").textContent = meta.code || "";
+      $("baFabricPrice").textContent =
+        meta.price !== undefined ? formatPrice(meta.price) : "";
+      fabric.hidden = false;
+    } else {
+      fabric.hidden = true;
+    }
+    var items = document.querySelectorAll("#swapSteps li");
+    for (var i = 0; i < items.length; i++) items[i].className = "done";
+    $("swapLoading").hidden = true;
+    $("swapCompare").hidden = true;
+    $("swapResult").hidden = false;
+    icons();
+  }
+
+  function openSwapReview(entry) {
+    var meta = entry.meta || { code: entry.fabric_code };
+    var scores = entry.scores || {};
+    var vals = [scores.color, scores.pattern, scores.scale,
+                scores.isolation].map(function (v) { return v || 0; });
+    var match = Math.min.apply(null, vals);
+    $("swapTitle").textContent = t("tailoring")
+      .replace("%s", (t("pieceYou") || {})[swapTarget()] || "");
+    renderSwapResult("/" + (entry.before_url || "").replace(/^\/+/, ""),
+                     "/" + (entry.result_url || "").replace(/^\/+/, ""),
+                     { scores: scores }, match, vals, meta);
+    var attempts = entry.attempts || 1;
+    $("swapTryAgain").hidden = !(match < 8 && attempts < 2);
+    $("swapTryAgain").textContent = t("tryAgain");
+    state.swapCode = entry.fabric_code;
+    state.swapRetried = true;
+    state.lastSwap = null;
+    $("swapLoading").hidden = true;
+    $("swapModal").hidden = false;
+    document.body.classList.add("modal-open");
+  }
+
+  function openSwapCompare(a, b) {
+    function fig(entry) {
+      var meta = entry.meta || {};
+      var name = state.lang === "ar" ? (meta.name_ar || entry.fabric_code)
+                                     : (meta.name_en || entry.fabric_code);
+      return '<figure><img src="/' +
+        esc((entry.result_url || "").replace(/^\/+/, "")) + '" alt="' +
+        esc(name) + '"><figcaption>' + esc(name) + "</figcaption></figure>";
+    }
+    $("swapCompare").innerHTML = '<div class="compare-grid">' +
+      fig(a) + fig(b) + "</div>";
+    $("swapLoading").hidden = true;
+    $("swapResult").hidden = true;
+    $("swapCompare").hidden = false;
+    $("swapTitle").textContent = "";
+    $("swapModal").hidden = false;
+    document.body.classList.add("modal-open");
+  }
+
+  function postSwapMessage(entry) {
+    var meta = entry.meta || { code: entry.fabric_code };
+    var name = state.lang === "ar" ? (meta.name_ar || meta.code || "")
+                                   : (meta.name_en || meta.code || "");
+    var scores = entry.scores || {};
+    var vals = [scores.color, scores.pattern, scores.scale,
+                scores.isolation].map(function (v) { return v || 0; });
+    var match = Math.min.apply(null, vals);
+    var div = document.createElement("div");
+    div.className = "msg them";
+    var fabricImg = meta.image ?
+      '<img class="chat-swap-fabric" src="/' + esc(meta.image) + '" alt="">' : "";
+    div.innerHTML = AVATAR + '<div dir="auto"><div class="chat-swap">' +
+      '<img class="swap-thumb" src="/' +
+      esc((entry.result_url || "").replace(/^\/+/, "")) + '" alt="' +
+      esc(name) + '" data-code="' + esc(entry.fabric_code) + '">' +
+      '<div class="chat-swap-row">' + fabricImg +
+      "<div><div><b>" + esc(name) + "</b></div><div>" +
+      esc(entry.fabric_code) +
+      (meta.price !== undefined ? " · " + esc(formatPrice(meta.price)) : "") +
+      "</div></div>" +
+      '<span class="match-badge small">' +
+      esc(t("matchBadge").replace("%d", match)) + "</span></div>" +
+      '<p class="chat-follow">' + esc(t("followSwap")) + "</p>" +
+      "</div></div>";
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    icons();
+  }
+
+  function renderStrip() {
+    var wrap = $("prevWrap");
+    var strip = $("prevStrip");
+    if (!wrap || !strip) return;
+    strip.innerHTML = "";
+    if (!state.prevList.length) {
+      wrap.hidden = true;
+      return;
+    }
+    wrap.hidden = false;
+    state.prevList.forEach(function (p, idx) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "prev-thumb" +
+        (state.compareSel.indexOf(idx) >= 0 ? " sel" : "");
+      var meta = p.meta || {};
+      var label = state.lang === "ar" ? (meta.name_ar || p.fabric_code)
+                                      : (meta.name_en || p.fabric_code);
+      b.title = label;
+      b.setAttribute("aria-label", label);
+      b.innerHTML = '<img src="/' +
+        esc((p.result_url || "").replace(/^\/+/, "")) + '" alt="' +
+        esc(label) + '"><span>' + esc(p.fabric_code) + "</span>";
+      (function (i) {
+        b.addEventListener("click", function () { onPrevTap(i); });
+      })(idx);
+      strip.appendChild(b);
     });
+  }
+
+  function onPrevTap(idx) {
+    var sel = state.compareSel;
+    if (sel.indexOf(idx) >= 0) {
+      state.compareSel = [];
+      openSwapReview(state.prevList[idx]);
+      renderStrip();
+      return;
+    }
+    if (sel.length === 1) {
+      var a = state.prevList[sel[0]];
+      var b = state.prevList[idx];
+      state.compareSel = [];
+      renderStrip();
+      openSwapCompare(a, b);
+      return;
+    }
+    state.compareSel = [idx];
+    renderStrip();
   }
 
   function baUpdate(pct) {
@@ -724,17 +1112,25 @@
     $("baHandle").style.left = pct + "%";
   }
 
-  function closeSwap() {
+  function hideSwapModal() {
     clearSwapTimers();
     $("swapModal").hidden = true;
     document.body.classList.remove("modal-open");
+  }
+
+  function closeSwap() {
+    if (state.lastSwap) {
+      postSwapMessage(state.lastSwap);
+      state.lastSwap = null;
+    }
+    hideSwapModal();
   }
 
   function streamChat(text, imagePath) {
     return new Promise(function (resolve, reject) {
       var ctrl = new AbortController();
       var settled = false, stall = null;
-      var bubble = null, bodyEl = null, raw = "";
+      var gotToken = false;
       function armStall() {
         if (stall) clearTimeout(stall);
         stall = setTimeout(function () {
@@ -748,13 +1144,6 @@
         if (stall) clearTimeout(stall);
         if (err) reject(err);
         else resolve(res);
-      }
-      function ensureBubble() {
-        if (bubble) return;
-        bubble = addMsg("", "them");
-        bodyEl = bubble.lastElementChild;
-        bodyEl.setAttribute("dir", "auto");
-        bodyEl.textContent = "";
       }
       fetch("/api/chat/stream", {
         method: "POST",
@@ -776,16 +1165,17 @@
           if (evt.type === "step") {
             showStep(evt.label);
           } else if (evt.type === "token") {
-            ensureBubble();
-            raw += evt.text;
-            bodyEl.textContent = raw;
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+            gotToken = true;
+            var pText = document.getElementById("pText");
+            var pDots = document.getElementById("pDots");
+            if (pDots) pDots.remove();
+            if (pText) {
+              pText.textContent += evt.text;
+              messagesEl.scrollTop = messagesEl.scrollHeight;
+            }
           } else if (evt.type === "done") {
             var clean = evt.result && evt.result.reply;
-            if (bodyEl) bodyEl.innerHTML = formatReply(clean !== undefined ? clean : raw);
-            else if (clean) {
-              addMsg(clean, "them");
-            }
+            finalizePending(clean !== undefined ? clean : null);
             try { reader.cancel(); } catch (e) {}
             finish(null, evt.result);
           } else if (evt.type === "error") {
@@ -813,7 +1203,7 @@
         }
         return pump();
       }).catch(function (e) {
-        if (bubble || raw) { finish(e); return; }
+        if (gotToken) { finish(e); return; }
         postJSON("/api/chat", {
           session_id: state.sessionId,
           message: text || "",
@@ -830,43 +1220,42 @@
   function send(text, imagePath, photoPreview, silent) {
     if (!text && !imagePath) return;
     if (!silent) addMsg(text || "", "me", photoPreview);
-    typingOn();
+    pendingBubble();
     var thinkingTimer = setTimeout(function () {
-      var el = document.createElement("div");
-      el.className = "msg them";
-      el.id = "thinking";
-      el.innerHTML = '<img class="avatar" src="/brand/mark-plain.svg" alt="ReCover"><div><i>' +
-        esc(t("thinkingNote")) + "</i></div>";
-      messagesEl.appendChild(el);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+      var body = document.getElementById("pText");
+      if (body && !body.textContent) showStep("thinking");
     }, 8000);
     function finish() {
       clearTimeout(thinkingTimer);
-      var th = document.getElementById("thinking");
-      if (th) th.remove();
-      hideStep();
-      typingOff();
     }
     streamChat(text, imagePath).then(function (res) {
       finish();
-      if (!res) return;
-      if (res.fallback && res.reply) addMsg(res.reply, "them");
+      if (!res) { dropPending(); return; }
+      if (res.fallback && res.reply) finalizePending(res.reply);
       handleStreamResult(res);
     }).catch(function () {
       finish();
+      dropPending();
       addMsg(t("sendFail"), "them");
     });
   }
 
   function handleStreamResult(res) {
     autoLang(res);
-    renderRoomCard(res.room_analysis, res.detected_piece);
+    if (!res) return;
     if (res.detected_piece) state.detectedPiece = res.detected_piece;
+    state.lastRoom = res.room_analysis || null;
+    state.lastDetected = res.detected_piece || null;
     if (res.recommendations && res.recommendations.length) {
-      renderRecs(res.recommendations);
+      state.lastRecs = res.recommendations;
     }
-    if (res && res.options && res.options.length) {
-      renderOptions(res.options);
+    if (res.options) state.lastOptions = res.options;
+    renderRoomCard(state.lastRoom, state.lastDetected);
+    if (state.lastRecs && state.lastRecs.length) {
+      renderRecs(state.lastRecs);
+    }
+    if (state.lastOptions && state.lastOptions.length) {
+      renderOptions(state.lastOptions);
     }
   }
 
@@ -893,6 +1282,11 @@
       .then(function (res) {
         typingOff();
         handleResult(res);
+        if (state.pendingSwapCode) {
+          var code = state.pendingSwapCode;
+          state.pendingSwapCode = null;
+          openSwap(code);
+        }
       })
       .catch(function () {
         typingOff();
@@ -990,7 +1384,9 @@
 
     $("langToggle").addEventListener("click", function () {
       state.lang = state.lang === "ar" ? "en" : "ar";
+      state.pinned = true;
       applyI18n();
+      renderChips();
     });
 
     $("composer").addEventListener("submit", function (e) {
@@ -1026,8 +1422,38 @@
     setupVoice();
 
     recsEl.addEventListener("click", function (e) {
-      var btn = e.target.closest ? e.target.closest(".seeit") : null;
+      if (!e.target.closest) return;
+      var review = e.target.closest(".review");
+      if (review && review.dataset.code && state.swaps[review.dataset.code]) {
+        openSwapReview(state.swaps[review.dataset.code]);
+        return;
+      }
+      var rephoto = e.target.closest(".rephoto");
+      if (rephoto && rephoto.dataset.code) {
+        state.pendingSwapCode = rephoto.dataset.code;
+        var dz = $("dropzone");
+        dz.scrollIntoView({ behavior: "smooth", block: "center" });
+        dz.classList.add("flash");
+        setTimeout(function () { dz.classList.remove("flash"); }, 1600);
+        return;
+      }
+      var thumb = e.target.closest(".swap-thumb");
+      if (thumb && thumb.dataset.code && state.swaps[thumb.dataset.code]) {
+        openSwapReview(state.swaps[thumb.dataset.code]);
+        return;
+      }
+      var btn = e.target.closest(".seeit");
       if (btn && btn.dataset.code) openSwap(btn.dataset.code);
+    });
+    messagesEl.addEventListener("click", function (e) {
+      if (!e.target.closest) return;
+      var thumb = e.target.closest(".swap-thumb");
+      if (thumb && thumb.dataset.code && state.swaps[thumb.dataset.code]) {
+        openSwapReview(state.swaps[thumb.dataset.code]);
+      }
+    });
+    $("swapTryAgain").addEventListener("click", function () {
+      if (state.swapCode) openSwap(state.swapCode, { noRetry: true });
     });
     $("baRange").addEventListener("input", function (e) {
       baUpdate(Number(e.target.value));
@@ -1055,11 +1481,28 @@
         handleResult(res);
         showLangRow();
         chipsEl.hidden = false;
+        fetchPreviews();
       })
       .catch(function () {
         typingOff();
         addMsg(t("sendFail"), "them");
       });
+  }
+
+  function fetchPreviews() {
+    fetchReq("/api/session/" + encodeURIComponent(state.sessionId) +
+             "/previews", { timeoutMs: 15000, retries: 1 })
+      .then(function (data) {
+        state.prevList = (data && data.previews) || [];
+        state.swaps = {};
+        state.prevList.forEach(function (p) {
+          if (p && p.fabric_code) state.swaps[p.fabric_code] = p;
+        });
+        state.compareSel = [];
+        renderStrip();
+        if (state.lastRecs && state.lastRecs.length) renderRecs(state.lastRecs);
+      })
+      .catch(function () {});
   }
 
   document.addEventListener("DOMContentLoaded", boot);

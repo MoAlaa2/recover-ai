@@ -14,7 +14,9 @@
 <body>
 <header class="topbar">
   <div class="brand" dir="ltr">
-    <img class="brand-logo" src="/brand/logo.svg" alt="ReCover" width="220" height="48">
+    <img class="brand-logo logo-light" src="/brand/logo.svg" alt="ReCover" width="220" height="48">
+    <img class="brand-logo logo-dark" src="/brand/mark-reversed.svg" alt="ReCover" width="48" height="48">
+    <span class="wordmark">ReCover</span>
     <div class="brand-tag" data-i18n="tagline">Change the look, not the furniture.</div>
   </div>
   <button id="langToggle" class="lang-toggle" type="button" aria-label="Language">عربي</button>
@@ -42,6 +44,11 @@
   </section>
 
   <aside class="side-pane" aria-label="Recommendations">
+    <div id="prevWrap" hidden>
+      <div class="panel-title" data-i18n="previewsTitle">Your previews</div>
+      <div id="prevStrip" class="prev-strip"></div>
+      <div class="prev-hint" data-i18n="previewsHint">Tap one to view, two to compare</div>
+    </div>
     <div id="roomCard" class="room-card" hidden></div>
     <hr class="sec-div" id="roomDiv" hidden>
     <h2 class="panel-title" data-i18n="forYou">For you</h2>
@@ -56,13 +63,14 @@
     <div id="swapLoading" class="swap-loading">
       <div class="spinner" aria-hidden="true"></div>
       <div class="swap-title-row">
-        <i data-lucide="message-circle" aria-hidden="true"></i>
+        <i data-lucide="wand-sparkles" aria-hidden="true"></i>
         <h3 id="swapTitle"></h3>
       </div>
       <ol id="swapSteps" class="steps">
         <li data-i18n="stepDetect">Detecting piece</li>
         <li data-i18n="stepApply">Applying fabric</li>
         <li data-i18n="stepCheck">Checking match</li>
+        <li id="swapRetryRow" data-i18n="stepRetry" hidden>Retrying with corrections</li>
       </ol>
       <p id="swapStill" class="still" data-i18n="stillWorking" hidden>Still working — complex rooms take a few minutes.</p>
     </div>
@@ -74,12 +82,22 @@
         <input id="baRange" class="ba-range" type="range" min="0" max="100" value="50" aria-label="Before and after">
       </div>
       <hr class="sec-div">
+      <div class="ba-fabric" id="baFabric" hidden>
+        <img id="baFabricImg" alt="">
+        <div class="ba-fabric-meta">
+          <div id="baFabricName" class="ba-fabric-name"></div>
+          <div id="baFabricCode" class="ba-fabric-code"></div>
+        </div>
+        <div id="baFabricPrice" class="ba-fabric-price"></div>
+      </div>
       <div class="ba-meta">
         <span class="match-badge"><i data-lucide="badge-check" aria-hidden="true"></i><span id="matchBadge"></span></span>
         <a id="swapDownload" class="dl" download="recover-swap.jpg" data-i18n="downloadLabel">Download</a>
+        <button id="swapTryAgain" type="button" hidden>Try again</button>
         <button id="swapClose" type="button" data-i18n="closeLabel">Close</button>
       </div>
     </div>
+    <div id="swapCompare" class="swap-compare" hidden></div>
   </div>
 </div>
 

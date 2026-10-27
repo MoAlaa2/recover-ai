@@ -67,8 +67,20 @@ svg.lucide {
   margin-top: 2px;
 }
 
+.logo-dark, .wordmark { display: none; }
+
+.wordmark {
+  font-family: var(--rc-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: var(--rc-fs-lg);
+  color: var(--rc-ink);
+}
+
 @media (prefers-color-scheme: dark) {
-  .brand-logo { filter: invert(1) hue-rotate(180deg); }
+  .logo-light { display: none; }
+  .logo-dark { display: block; }
+  .wordmark { display: inline; }
 }
 
 .lang-toggle {
@@ -617,6 +629,8 @@ body.modal-open { overflow: hidden; }
   font-size: var(--rc-fs-sm);
 }
 
+.steps li[hidden] { display: none; }
+
 .steps li { padding: 4px 0 4px 26px; position: relative; }
 
 .steps li::before {
@@ -752,6 +766,175 @@ body.modal-open { overflow: hidden; }
   font-family: inherit;
   cursor: pointer;
   color: var(--rc-ink);
+}
+
+.card .desc {
+  font-size: var(--rc-fs-sm);
+  color: var(--rc-ink-muted);
+  margin: 0 0 8px;
+}
+
+.ba-fabric {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ba-fabric img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: var(--rc-r-sm);
+  border: 1px solid var(--rc-line);
+  flex: none;
+}
+
+.ba-fabric-meta { flex: 1; min-width: 0; }
+
+.ba-fabric-name {
+  font-family: var(--rc-display);
+  font-size: var(--rc-fs-md);
+}
+
+.ba-fabric-code {
+  font-size: var(--rc-fs-xs);
+  color: var(--rc-ink-muted);
+}
+
+.ba-fabric-price {
+  font-size: var(--rc-fs-sm);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ghost {
+  background: none;
+  border: 1px solid var(--rc-line);
+  border-radius: var(--rc-r-pill);
+  padding: 10px 14px;
+  font-size: var(--rc-fs-sm);
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--rc-ink);
+  width: 100%;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.swap-done img.swap-thumb {
+  width: 100%;
+  border-radius: var(--rc-r-md);
+  border: 1px solid var(--rc-line);
+  display: block;
+  cursor: pointer;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+}
+
+.swap-done-btns { display: flex; flex-direction: column; }
+
+.swap-done-btns .seeit { margin-top: 10px; }
+
+.prev-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.prev-thumb {
+  border: 1px solid var(--rc-line);
+  border-radius: var(--rc-r-sm);
+  background: var(--rc-paper);
+  padding: 0 0 4px;
+  cursor: pointer;
+  flex: none;
+  width: 96px;
+  overflow: hidden;
+  font-family: inherit;
+}
+
+.prev-thumb img {
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  display: block;
+}
+
+.prev-thumb span {
+  font-size: var(--rc-fs-xs);
+  color: var(--rc-ink-muted);
+}
+
+.prev-thumb.sel {
+  border-color: var(--rc-indigo);
+  box-shadow: 0 0 0 2px var(--rc-indigo-soft);
+}
+
+.prev-hint {
+  font-size: var(--rc-fs-xs);
+  color: var(--rc-ink-muted);
+  margin: 4px 0 0;
+}
+
+.swap-compare .compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.swap-compare figure { margin: 0; }
+
+.swap-compare img {
+  width: 100%;
+  border-radius: var(--rc-r-md);
+  border: 1px solid var(--rc-line);
+  display: block;
+}
+
+.swap-compare figcaption {
+  font-size: var(--rc-fs-sm);
+  color: var(--rc-ink-muted);
+  margin-top: 6px;
+  text-align: center;
+}
+
+.chat-swap img.swap-thumb {
+  width: 100%;
+  border-radius: var(--rc-r-md);
+  border: 1px solid var(--rc-line);
+  display: block;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.chat-swap-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chat-swap-fabric {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: var(--rc-r-sm);
+  border: 1px solid var(--rc-line);
+  flex: none;
+}
+
+.chat-swap-row > div { flex: 1; min-width: 0; font-size: var(--rc-fs-sm); }
+
+.match-badge.small { font-size: var(--rc-fs-xs); padding: 4px 10px; }
+
+.chat-follow { font-size: var(--rc-fs-sm); margin: 8px 0 0; }
+
+@media (max-width: 860px) {
+  .swap-compare .compare-grid { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

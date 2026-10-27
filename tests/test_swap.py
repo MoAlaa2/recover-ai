@@ -97,3 +97,32 @@ def test_swap_endpoint_unknown_fabric():
                                           "image_path": "uploads/x.jpg",
                                           "fabric_code": "FA-XX-99"})
     assert resp.status_code == 400
+
+
+def test_preview_store_roundtrip():
+    from app.api import chat as chat_api
+    chat_api.PREVIEWS.clear()
+    res = {"result_url": "uploads/swap/r.jpg",
+           "mask_url": "uploads/swap/m.png",
+           "scores": {"color": 9, "pattern": 9, "scale": 9,
+                      "isolation": 9},
+           "attempts": 1}
+    chat_api.record_preview("sess-1", "FA-NL-02", res)
+    got = chat_api.get_previews("sess-1")
+    assert len(got) == 1
+    assert got[0]["fabric_code"] == "FA-NL-02"
+    assert got[0]["scores"]["color"] == 9
+    assert got[0]["created_at"] > 0
+    assert chat_api.get_previews("other") == []
+    chat_api.PREVIEWS.clear()
+
+
+def test_preview_store_caps_length():
+    from app.api import chat as chat_api
+    chat_api.PREVIEWS.clear()
+    res = {"result_url": "r.jpg", "mask_url": "m.png", "scores": {},
+           "attempts": 1}
+    for _ in range(chat_api.MAX_PREVIEWS + 5):
+        chat_api.record_preview("sess-2", "FA-NL-02", res)
+    assert len(chat_api.get_previews("sess-2")) == chat_api.MAX_PREVIEWS
+    chat_api.PREVIEWS.clear()

@@ -5,6 +5,7 @@ import queue
 import shutil
 import subprocess
 import threading
+import time
 import uuid
 
 from typing import Optional
@@ -106,6 +107,19 @@ class SwapRequest(BaseModel):
 
 @router.post("/swap")
 def swap_fabric(req: SwapRequest):
+    target = _swap_target(req)
+    try:
+        res = swap(req.image_path, req.fabric_code, target)
+    except SwapError as exc:
+        raise HTTPException(400, str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(502, str(exc))
+    record_preview(req.session_id, req.fabric_code, res,
+                         req.image_path or "")
+    return res
+
+
+def _swap_target(req: SwapRequest):
     target = (req.target or "").lower()
     if target not in ("sofa", "armchair", "curtains", "cushions"):
         session = consultant.SESSIONS.get(req.session_id, {})
@@ -113,12 +127,75 @@ def swap_fabric(req: SwapRequest):
         topic = session.get("topic")
         target = (PIECE_TARGET.get(piece or "")
                   or TOPIC_TARGET.get(topic or "") or "sofa")
-    try:
-        return swap(req.image_path, req.fabric_code, target)
-    except SwapError as exc:
-        raise HTTPException(400, str(exc))
-    except RuntimeError as exc:
-        raise HTTPException(502, str(exc))
+    return target
+
+
+# Swap previews, kept per session so a refresh never loses results.
+PREVIEWS = {}
+MAX_PREVIEWS = 20
+
+
+def record_preview(session_id, fabric_code, res, before_url=""):
+    """Store one finished swap for the session. Returns the entry."""
+    entry = {"fabric_code": fabric_code,
+             "result_url": res.get("result_url", ""),
+             "mask_url": res.get("mask_url", ""),
+             "before_url": before_url or "",
+             "scores": res.get("scores", {}),
+             "attempts": res.get("attempts", 1),
+             "created_at": time.time()}
+    if session_id:
+        PREVIEWS.setdefault(session_id, []).append(entry)
+        del PREVIEWS[session_id][:-MAX_PREVIEWS]
+    return entry
+
+
+def get_previews(session_id):
+    """All stored swap previews for one session, oldest first."""
+    return list(PREVIEWS.get(session_id or "", []))
+
+
+@router.get("/session/{session_id}/previews")
+def session_previews(session_id: str):
+    return {"previews": get_previews(session_id)}
+
+
+@router.post("/swap/stream")
+def swap_stream(req: SwapRequest):
+    """Same as /api/swap but streams backend progress as SSE.
+
+    Events: {"type": "step", "label": ...} as each stage starts, then
+    {"type": "done", "result": {...}} with the full /api/swap payload,
+    or {"type": "error", ...} on failure.
+    """
+    target = _swap_target(req)
+    events = queue.Queue()
+
+    def run():
+        try:
+            res = swap(req.image_path, req.fabric_code, target,
+                       on_step=lambda s: events.put({"type": "step",
+                                                    "label": s}))
+            record_preview(req.session_id, req.fabric_code, res,
+                         req.image_path or "")
+            events.put({"type": "done", "result": res})
+        except SwapError as exc:
+            events.put({"type": "error", "message": str(exc)})
+        except RuntimeError as exc:
+            events.put({"type": "error", "message": str(exc)})
+        except Exception:  # noqa: BLE001 - never hang the stream
+            events.put({"type": "error", "message": "swap failed"})
+
+    threading.Thread(target=run, daemon=True).start()
+
+    def gen():
+        while True:
+            evt = events.get()
+            yield "data: %s\n\n" % json.dumps(evt, ensure_ascii=False)
+            if evt["type"] in ("done", "error"):
+                break
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
 
 
 @router.post("/chat")

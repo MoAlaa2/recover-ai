@@ -142,6 +142,47 @@ def _call_chat(messages, tools=None):
     raise RuntimeError("chat call failed: %s" % last_err)
 
 
+class FenceFilter:
+    """Hide fenced blocks from streamed display text.
+
+    The model's ```recommendations / ```options blocks are machine
+    payload, never user text. feed() returns safe outside text
+    immediately; only a trailing run of 1-2 backticks (a possibly
+    split fence marker) is held for the next chunk. flush() releases
+    the hold. The full unfiltered text is still returned to the
+    caller for parsing.
+    """
+
+    def __init__(self):
+        self.carry = ""
+        self.open = False
+
+    def feed(self, chunk):
+        text = self.carry + chunk
+        self.carry = ""
+        tail = ""
+        run = re.search(r"`+$", text)
+        if run and len(run.group(0)) < 3:
+            tail = run.group(0)
+            text = text[:-len(tail)]
+        out = []
+        for part in re.split(r"(```+)", text):
+            if not part:
+                continue
+            if set(part) == {"`"}:
+                self.open = not self.open
+            elif not self.open:
+                out.append(part)
+        self.carry = tail
+        return "".join(out)
+
+    def flush(self):
+        tail, self.carry = self.carry, ""
+        if self.open:
+            return ""
+        return tail
+
+
 def _call_chat_stream(messages, tools, on_token):
     """Streaming chat call. Yields content live via on_token.
 
@@ -361,20 +402,26 @@ def run_search(args, turn):
             "relaxed_constraints": relaxed}
 
 
-def analyze_room(image_path):
-    """Vision analysis of a room photo. Returns a JSON dict."""
+def analyze_room(image_path, lang=None):
+    """Vision analysis of a room photo. Returns a JSON dict.
+
+    When lang is a known language code, values come back in that
+    language so the room card can render localized.
+    """
     path = image_path if os.path.isabs(image_path) else \
         os.path.join(BASE_DIR, image_path)
     with open(path, "rb") as f:
         b64 = base64.b64encode(f.read()).decode("ascii")
+    ask = ("Analyze this room photo for an upholstery consultant. Reply "
+           "with JSON only: {\"room_type\": \"...\", \"wall_colors\": "
+           "[{\"name\": \"...\", \"hex\": \"#...\"}] (5 entries), "
+           "\"floor\": \"...\", \"furniture\": \"...\", "
+           "\"existing_fabrics\": \"...\", \"light_level\": \"low/medium/"
+           "high\", \"style\": \"...\"}.")
+    if lang in LANG_NAMES:
+        ask += " Write every value in %s." % LANG_NAMES[lang]
     messages = [{"role": "user", "content": [
-        {"type": "text", "text":
-         "Analyze this room photo for an upholstery consultant. Reply with "
-         "JSON only: {\"room_type\": \"...\", \"wall_colors\": "
-         "[{\"name\": \"...\", \"hex\": \"#...\"}] (5 entries), "
-         "\"floor\": \"...\", \"furniture\": \"...\", "
-         "\"existing_fabrics\": \"...\", \"light_level\": \"low/medium/"
-         "high\", \"style\": \"...\"}."},
+        {"type": "text", "text": ask},
         {"type": "image_url",
          "image_url": {"url": "data:image/jpeg;base64," + b64}}]}]
     body = _call_chat(messages)
@@ -487,7 +534,21 @@ RELAX_MATCH = {
 }
 
 
-def _relax_phrase(key, arabic):
+def _money(value, arabic):
+    """Format a SAR amount, Arabic-Indic digits for Arabic."""
+    text = str(int(round(value)))
+    if arabic:
+        text = "".join("٠١٢٣٤٥٦٧٨٩"[int(c)] if c.isdigit() else c
+                       for c in text)
+    return text
+
+
+def _relax_phrase(key, arabic, budget_over=0):
+    if key == "max_price" and budget_over > 0:
+        over = _money(budget_over, arabic)
+        if arabic:
+            return "طلعت فوق ميزانيتك بـ %s ر.س" % over
+        return "went %s SAR over your budget" % over
     pair = RELAX_PHRASES.get(key)
     if pair:
         return pair[1 if arabic else 0]
@@ -495,19 +556,29 @@ def _relax_phrase(key, arabic):
     return ("عدّلت " + noun) if arabic else ("adjusted " + noun)
 
 
-def disclosure_note(relaxed, arabic):
-    """Friendly one-line note naming what was relaxed, never raw keys."""
-    phrases = [_relax_phrase(r, arabic) for r in relaxed]
+def disclosure_note(relaxed, arabic, budget_over=0):
+    """Friendly one-line note naming what was relaxed, never raw keys.
+
+    Budget overruns state the real amount: never "slightly" when the
+    price is more than 15% over budget.
+    """
+    phrases = [_relax_phrase(r, arabic,
+                             budget_over if r == "max_price" else 0)
+               for r in relaxed]
+    over = budget_over > 0 and "max_price" in relaxed
     if arabic:
         if len(phrases) == 1:
-            return ("عشان ألقى لك الأنسب، %s شوي." % phrases[0])
+            return ("عشان ألقى لك الأنسب، %s%s."
+                    % (phrases[0], "" if over else " شوي"))
         if len(phrases) == 2:
-            return ("عشان ألقى لك الأنسب، %s و%s شوي."
-                    % (phrases[0], phrases[1]))
+            return ("عشان ألقى لك الأنسب، %s و%s%s."
+                    % (phrases[0], phrases[1], "" if over else " شوي"))
         tail = "، ".join(phrases[:-1]) + "، و" + phrases[-1]
-        return "عشان ألقى لك الأنسب، %s شوي." % tail
+        return "عشان ألقى لك الأنسب، %s%s." % (tail,
+                                               "" if over else " شوي")
     if len(phrases) == 1:
-        return "To find these, I %s slightly." % phrases[0]
+        return "To find these, I %s%s." % (phrases[0],
+                                            "" if over else " slightly")
     if len(phrases) == 2:
         return "To find these, I %s and %s." % (phrases[0], phrases[1])
     tail = ", ".join(phrases[:-1]) + ", and " + phrases[-1]
@@ -532,31 +603,54 @@ def enrich(recommendations, turn):
     """Attach catalog details plus trust receipts.
 
     matched/relaxed are derived from the backend's real filters and
-    needs, never from the model's words.
+    needs, never from the model's words. One pill per dimension: a
+    tone, budget or feature shows either as matched or as relaxed,
+    never both. Relaxed features and budget overruns carry specifics
+    (which feature, how much over) so pills never contradict.
     """
     needs = turn.get("needs_all", []) + turn.get("needs_any", [])
     budgets = turn.get("budgets", [])
     tones = turn.get("tones", [])
     relaxed = list(turn.get("relaxed", []))
+    feat_relaxed = bool({"features", "any_features"} & set(relaxed))
     out = []
     for rec in recommendations:
         item = get_fabric(rec["code"])
         feats = set(item.get("features", []))
-        matched = [f for f in needs if f in feats]
-        if budgets and item["price_sar_per_m"] <= min(budgets):
+        matched = [f for f in needs if f in feats] \
+            if not feat_relaxed else []
+        relaxed_feats = [f for f in needs if f not in feats] \
+            if feat_relaxed else []
+        budget = min(budgets) if budgets else None
+        price = item["price_sar_per_m"]
+        over = 0
+        if budget is not None and "max_price" in relaxed \
+                and price > budget:
+            over = price - budget
+        elif budgets and price <= min(budgets):
             matched.append("under-budget")
-        if tones and item.get("tone") in tones:
+        if tones and item.get("tone") in tones \
+                and "tone" not in relaxed:
             matched.append(item["tone"] + "-tone")
+        relaxed_keys = [r for r in relaxed
+                        if r not in ("features", "any_features",
+                                    "max_price")]
         out.append({"code": rec["code"],
                     "name_en": item["name_en"],
                     "name_ar": item["name_ar"],
-                    "price_sar_per_m": item["price_sar_per_m"],
+                    "description_en": item.get("description_en", ""),
+                    "description_ar": item.get("description_ar", ""),
+                    "price_sar_per_m": price,
                     "image": item.get("image", ""),
                     "features": item.get("features", []),
                     "snag_risk": item.get("snag_risk", "unknown"),
                     "reason": rec.get("reason", ""),
                     "matched": matched,
-                    "relaxed": relaxed})
+                    "relaxed": relaxed_keys,
+                    "relaxed_features": relaxed_feats,
+                    "relaxed_budget": {"price": price, "over": over,
+                                       "budget": budget}
+                    if over > 0 else None})
     return out
 
 
@@ -593,7 +687,8 @@ def _execute_tool(name, args, turn, on_step=None):
     if name == "analyze_room":
         if on_step:
             on_step("room")
-        return analyze_room((args or {}).get("image_path", ""))
+        return analyze_room((args or {}).get("image_path", ""),
+                            turn.get("lang"))
     return {"error": "unknown tool " + str(name)}
 
 
@@ -608,8 +703,14 @@ def agent_turn(messages, chat_fn, turn, on_token=None, on_step=None):
     call = chat_fn or _call_chat
     for _ in range(MAX_TOOL_ROUNDS):
         if streaming:
-            text, calls, _ = _call_chat_stream(messages, TOOLS, on_token)
+            shown = FenceFilter()
+            text, calls, _ = _call_chat_stream(
+                messages, TOOLS,
+                lambda t: on_token(shown.feed(t)))
             if not calls:
+                tail = shown.flush()
+                if tail:
+                    on_token(tail)
                 return text
             messages.append({"role": "assistant", "content": text or None,
                              "tool_calls": calls})
@@ -817,13 +918,14 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
         instruction = "Reply in the same language the user wrote in."
     user_text += "\n[%s]" % instruction
     turn = accumulate_context(session, turn_for(message))
+    turn["lang"] = session.get("lang")
     confirm = ""
     if image_path:
         path = image_path if os.path.isabs(image_path) else \
             os.path.join(BASE_DIR, image_path)
         if not os.path.exists(path):
             raise FileNotFoundError("image not found: %s" % image_path)
-        room_analysis = analyze_room(image_path)
+        room_analysis = analyze_room(image_path, turn.get("lang"))
         user_text += "\n[Room photo analyzed: %s]" % json.dumps(
             room_analysis, ensure_ascii=False)
         needs_text = ", ".join(turn["needs_all"] + turn["needs_any"]) \
@@ -871,11 +973,15 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
         reply = strip_tip(reply)
     if confirm:
         reply = (reply + "\n\n" + confirm).strip()
+    enriched_early = enrich(recommendations, turn)
+    max_over = max([r["relaxed_budget"]["over"]
+                    for r in enriched_early
+                    if r["relaxed_budget"]] or [0])
     missing = missing_relaxation(reply, turn["relaxed"],
-                                   is_arabic(user_text))
+                                 is_arabic(user_text))
     if missing:
         reply = (reply + "\n\n" + disclosure_note(
-            missing, is_arabic(user_text))).strip()
+            missing, is_arabic(user_text), max_over)).strip()
     who = ("kids" if turn.get("has_kids")
            else "pets" if turn.get("pet_safe") else None)
     if recommendations and who:
@@ -887,7 +993,7 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     trim_history(history)
 
     result = {"reply": reply,
-              "recommendations": enrich(recommendations, turn),
+              "recommendations": enriched_early,
               "options": options,
               "detected_lang": session.get("lang")}
     if room_analysis is not None:

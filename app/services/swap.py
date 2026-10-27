@@ -251,8 +251,15 @@ def _corrective(scores, concept):
 
 
 def swap(room_path, fabric_code, target="sofa", api_key=None,
-         out_dir=None):
-    """Run the full swap. Returns result_url, mask_url, scores, attempts."""
+         out_dir=None, on_step=None):
+    """Run the full swap. Returns result_url, mask_url, scores, attempts.
+
+    on_step (optional) receives progress labels as each stage starts:
+    segment, edit, composite, verify, retry.
+    """
+    def step(label):
+        if on_step:
+            on_step(label)
     key = api_key or require_api_key()
     concept = TARGET_CONCEPTS.get((target or "sofa").lower(), "sofa")
     fabric = get_fabric(fabric_code)
@@ -268,6 +275,7 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
     with open(swatch_path, "rb") as f:
         swatch_bytes = f.read()
 
+    step("segment")
     records = segment(room_bytes, concept, key)
     if not records:
         raise SwapError("could not find the %s in this photo" % concept)
@@ -292,12 +300,16 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
         corrective = None
         if best is not None:
             corrective = _corrective(best["scores"], concept)
+            step("retry")
+        step("edit")
         edited = edit_room(room_bytes, swatch_bytes, fabric, concept,
                            key, corrective).resize((width, height),
                                                    Image.BILINEAR)
+        step("composite")
         mask = paste_mask(room, edited, union)
         result = room.copy()
         result.paste(edited, (0, 0), mask)
+        step("verify")
         scores = verify(swatch_bytes, result, fabric, concept, key)
         attempts = round_no + 1
         cand = {"result": result, "mask": mask, "scores": scores}
