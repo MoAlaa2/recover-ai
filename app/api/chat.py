@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 from app.core.config import BASE_DIR, UPLOAD_DIR
 from app.services import consultant
+from app.services.voice import AUDIO_EXT, VoiceError, transcribe
 
 router = APIRouter(prefix="/api")
 
@@ -60,6 +61,29 @@ def upload(file: UploadFile = File(...)):
     os.remove(raw)
     return {"image_path": os.path.join(
         "uploads", os.path.basename(dest))}
+
+
+@router.post("/voice")
+def voice(file: UploadFile = File(...)):
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in AUDIO_EXT:
+        raise HTTPException(400, "unsupported audio type")
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    raw = os.path.join(UPLOAD_DIR, "upload-%s%s" % (uuid.uuid4().hex, ext))
+    with open(raw, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+    try:
+        text = transcribe(raw)["text"].strip()
+    except VoiceError as exc:
+        raise HTTPException(400, str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(502, str(exc))
+    finally:
+        if os.path.exists(raw):
+            os.remove(raw)
+    if not text:
+        raise HTTPException(400, "no speech detected")
+    return {"text": text}
 
 
 @router.post("/chat")

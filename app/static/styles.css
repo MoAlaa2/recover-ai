@@ -343,6 +343,81 @@ body.ar { font-family: "IBM Plex Sans Arabic", var(--font-body); }
   .messages { max-height: 46vh; }
 }
 
+.composer .mic {
+  background: var(--card);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.composer .mic.recording {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+  animation: micpulse 1.4s ease-out infinite;
+}
+
+@keyframes micpulse {
+  0% { box-shadow: 0 0 0 0 rgba(180, 35, 24, 0.45); }
+  70% { box-shadow: 0 0 0 10px rgba(180, 35, 24, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(180, 35, 24, 0); }
+}
+
+.rec-ui {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+}
+
+.rec-ui[hidden] {
+  display: none;
+}
+
+.eq {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 16px;
+}
+
+.eq i {
+  display: block;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--danger);
+  animation: eqbounce 0.8s ease-in-out infinite;
+}
+
+.eq i:nth-child(2) { animation-delay: 0.15s; }
+.eq i:nth-child(3) { animation-delay: 0.3s; }
+.eq i:nth-child(4) { animation-delay: 0.45s; }
+.eq i:nth-child(5) { animation-delay: 0.6s; }
+
+@keyframes eqbounce {
+  0%, 100% { height: 5px; }
+  50% { height: 15px; }
+}
+
+.rec-timer {
+  font-size: 13px;
+  color: var(--muted);
+  min-width: 32px;
+  font-variant-numeric: tabular-nums;
+}
+
+.voice-badge {
+  display: inline-flex;
+  margin-inline-end: 7px;
+  vertical-align: -2px;
+  opacity: 0.7;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .msg, .typing span, .card .swatch img { animation: none; transition: none; }
+  .composer .mic.recording, .eq i { animation: none; }
 }

@@ -33,6 +33,11 @@
     <form id="composer" class="composer">
       <input id="composerInput" type="text" autocomplete="off"
              data-i18n-ph="placeholder" placeholder="Ask about fabrics…">
+      <div id="recUI" class="rec-ui" hidden>
+        <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+        <span id="recTimer" class="rec-timer">0:00</span>
+      </div>
+      <button id="micBtn" type="button" class="mic" aria-label="Voice input"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 2a3 3 0 013 3v6a3 3 0 01-6 0V5a3 3 0 013-3zm7 10a7 7 0 01-14 0H3a9 9 0 008 8.9V22h2v-1.1A9 9 0 0021 12h-2z"/></svg></button>
       <button type="submit" aria-label="Send">➤</button>
     </form>
   </section>

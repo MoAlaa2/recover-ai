@@ -17,6 +17,8 @@
       relaxSection: "Adjusted for you",
       sendFail: "Sorry, something went wrong. Please try again.",
       uploadFail: "Upload failed. Please try a JPG or PNG photo.",
+      voiceFail: "Sorry, I couldn't hear that. Please try again.",
+      micLabel: "Voice input",
       roomTitle: "Your room",
       roomType: "Room",
       style: "Style",
@@ -43,6 +45,8 @@
       relaxSection: "عدّلنا لك",
       sendFail: "عذراً، حدث خطأ. حاول مرة أخرى.",
       uploadFail: "فشل الرفع. جرب صورة JPG أو PNG.",
+      voiceFail: "عذراً، ما سمعتك زين. حاول مرة ثانية.",
+      micLabel: "إدخال صوتي",
       roomTitle: "غرفتك",
       roomType: "الغرفة",
       style: "الستايل",
@@ -131,6 +135,7 @@
       el.setAttribute("placeholder", t(el.getAttribute("data-i18n-ph")));
     });
     $("langToggle").textContent = state.lang === "ar" ? "EN" : "عربي";
+    $("micBtn").setAttribute("aria-label", t("micLabel"));
     renderChips();
   }
 
@@ -149,7 +154,9 @@
     if (!state.booted) chipsEl.hidden = false;
   }
 
-  function addMsg(text, who, photo) {
+  var MIC_BADGE = '<span class="voice-badge" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M12 2a3 3 0 013 3v6a3 3 0 01-6 0V5a3 3 0 013-3zm7 10a7 7 0 01-14 0H3a9 9 0 008 8.9V22h2v-1.1A9 9 0 0021 12h-2z"/></svg></span>';
+
+  function addMsg(text, who, photo, voice) {
     var div = document.createElement("div");
     div.className = "msg " + who;
     if (who === "them") {
@@ -159,7 +166,7 @@
       div.appendChild(av);
     }
     var body = document.createElement("div");
-    body.innerHTML = esc(text)
+    body.innerHTML = (voice ? MIC_BADGE : "") + esc(text)
       .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
       .replace(/\n/g, "<br>");
     if (photo) {
@@ -318,6 +325,87 @@
       });
   }
 
+  var recorder = null, recChunks = [], recStart = 0, recTick = null;
+
+  function fmtTime(ms) {
+    var s = Math.floor(ms / 1000);
+    return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2);
+  }
+
+  function setRecording(on) {
+    var btn = $("micBtn"), ui = $("recUI");
+    btn.classList.toggle("recording", on);
+    ui.hidden = !on;
+    if (on) {
+      recStart = Date.now();
+      $("recTimer").textContent = "0:00";
+      recTick = setInterval(function () {
+        $("recTimer").textContent = fmtTime(Date.now() - recStart);
+      }, 250);
+    } else {
+      clearInterval(recTick);
+      recTick = null;
+    }
+  }
+
+  function sendVoice(blob) {
+    var ext = (blob.type || "").indexOf("mp4") >= 0 ? ".m4a" : ".webm";
+    var fd = new FormData();
+    fd.append("file", blob, "recording" + ext);
+    typingOn();
+    fetch("/api/voice", { method: "POST", body: fd })
+      .then(function (r) {
+        if (!r.ok) throw new Error("voice");
+        return r.json();
+      })
+      .then(function (data) {
+        typingOff();
+        chipsEl.hidden = true;
+        state.booted = true;
+        addMsg(data.text, "me", null, true);
+        send(data.text);
+      })
+      .catch(function () {
+        typingOff();
+        addMsg(t("voiceFail"), "them");
+      });
+  }
+
+  function setupVoice() {
+    var btn = $("micBtn");
+    btn.setAttribute("aria-label", t("micLabel"));
+    btn.addEventListener("click", function () {
+      if (recorder) {
+        recorder.stop();
+        return;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia ||
+          typeof MediaRecorder === "undefined") {
+        addMsg(t("voiceFail"), "them");
+        return;
+      }
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        recChunks = [];
+        recorder = new MediaRecorder(stream);
+        recorder.ondataavailable = function (e) {
+          if (e.data && e.data.size) recChunks.push(e.data);
+        };
+        recorder.onstop = function () {
+          var tracks = stream.getTracks();
+          tracks.forEach(function (tr) { tr.stop(); });
+          setRecording(false);
+          var rec = recorder;
+          recorder = null;
+          if (recChunks.length) sendVoice(new Blob(recChunks, { type: rec.mimeType }));
+        };
+        recorder.start();
+        setRecording(true);
+      }).catch(function () {
+        addMsg(t("voiceFail"), "them");
+      });
+    });
+  }
+
   function boot() {
     messagesEl = $("messages");
     chipsEl = $("chips");
@@ -361,6 +449,8 @@
     dz.addEventListener("drop", function (e) {
       if (e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]);
     });
+
+    setupVoice();
 
     typingOn();
     postJSON("/api/chat", {
