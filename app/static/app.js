@@ -32,6 +32,19 @@
       viewAgain: "View again",
       rephoto: "Try on another photo",
       previewsTitle: "Your previews",
+      crumbHome: "Home",
+      crumbConsult: "Consultation",
+      newConsult: "New consultation",
+      onlineNow: "Online · replies in your language",
+      canvasEmpty: "Drop a photo of your sofa or chair",
+      uploadPhoto: "Upload",
+      trySample: "Or try a sample room:",
+      sampleLiving: "Living room",
+      sampleMajlis: "Majlis",
+      sampleArmchair: "Armchair",
+      holdBefore: "Hold for before",
+      previewing: "Previewing",
+      compareSide: "Compare side by side",
       previewsHint: "Tap one to view, two to compare",
       tailoring: "Tailoring your %s…",
       pieceWord: { sofa: "sofa", armchair: "armchair", curtains: "curtains", cushions: "cushions" },
@@ -100,6 +113,19 @@
       viewAgain: "شاهدها مرة ثانية",
       rephoto: "جرّب على صورة ثانية",
       previewsTitle: "معايناتك",
+      crumbHome: "الرئيسية",
+      crumbConsult: "استشارة",
+      newConsult: "استشارة جديدة",
+      onlineNow: "متصل · أرد عليك بلغتك",
+      canvasEmpty: "أسقط صورة كنبتك أو كرسيك",
+      uploadPhoto: "ارفع",
+      trySample: "أو جرّب غرفة جاهزة:",
+      sampleLiving: "غرفة معيشة",
+      sampleMajlis: "مجلس",
+      sampleArmchair: "كرسي",
+      holdBefore: "اضغط لرؤية قبل",
+      previewing: "تُعرض الآن",
+      compareSide: "قارن جنباً إلى جنب",
       previewsHint: "اضغط على وحدة للعرض، وثنتين للمقارنة",
       chips: ["تنجيد", "ستائر", "وسائد", "تشكيلة"],
       snag: { low: "خطر خدش منخفض", medium: "خطر خدش متوسط", high: "خطر خدش مرتفع", unknown: "غير معروف" },
@@ -154,6 +180,19 @@
       viewAgain: "फिर से देखें",
       rephoto: "दूसरी फोटो पर आज़माएँ",
       previewsTitle: "आपकी झलकियाँ",
+      crumbHome: "होम",
+      crumbConsult: "परामर्श",
+      newConsult: "नया परामर्श",
+      onlineNow: "ऑनलाइन · आपकी भाषा में जवाब",
+      canvasEmpty: "अपने सोफ़े या कुर्सी की फ़ोटो डालें",
+      uploadPhoto: "अपलोड",
+      trySample: "या नमूना कमरा आज़माएँ:",
+      sampleLiving: "लिविंग रूम",
+      sampleMajlis: "मजलिस",
+      sampleArmchair: "कुर्सी",
+      holdBefore: "पहले देखने के लिए दबाएँ",
+      previewing: "दिखाया जा रहा है",
+      compareSide: "साथ-साथ तुलना करें",
       previewsHint: "देखने के लिए एक, तुलना के लिए दो दबाएँ",
       features: {},
       matched: {},
@@ -206,6 +245,19 @@
       viewAgain: "Revoir",
       rephoto: "Essayer sur une autre photo",
       previewsTitle: "Vos aperçus",
+      crumbHome: "Accueil",
+      crumbConsult: "Consultation",
+      newConsult: "Nouvelle consultation",
+      onlineNow: "En ligne · répond dans votre langue",
+      canvasEmpty: "Déposez une photo de votre canapé ou fauteuil",
+      uploadPhoto: "Envoyer",
+      trySample: "Ou essayez une pièce type :",
+      sampleLiving: "Salon",
+      sampleMajlis: "Majlis",
+      sampleArmchair: "Fauteuil",
+      holdBefore: "Maintenez pour avant",
+      previewing: "Aperçu en cours",
+      compareSide: "Comparer côte à côte",
       previewsHint: "Touchez-en un pour voir, deux pour comparer",
       features: {},
       matched: {},
@@ -258,6 +310,19 @@
       viewAgain: "Ver de nuevo",
       rephoto: "Probar en otra foto",
       previewsTitle: "Tus vistas previas",
+      crumbHome: "Inicio",
+      crumbConsult: "Consulta",
+      newConsult: "Nueva consulta",
+      onlineNow: "En línea · responde en tu idioma",
+      canvasEmpty: "Suelta una foto de tu sofá o sillón",
+      uploadPhoto: "Subir",
+      trySample: "O prueba un salón de muestra:",
+      sampleLiving: "Salón",
+      sampleMajlis: "Majlis",
+      sampleArmchair: "Sillón",
+      holdBefore: "Mantén para ver el antes",
+      previewing: "Vista previa",
+      compareSide: "Comparar lado a lado",
       previewsHint: "Toca una para ver, dos para comparar",
       features: {},
       matched: {},
@@ -370,11 +435,14 @@
     prevList: [],
     compareSel: [],
     pendingSwapCode: null,
+    pendingSwap: null,
+    pendingSwapLabel: null,
+    canvasView: null,
     lastSwap: null
   };
 
   var $ = function (id) { return document.getElementById(id); };
-  var messagesEl, chipsEl, recsEl, roomCardEl, composerInput;
+  var messagesEl, chipsEl, recsEl, composerInput;
 
   var UI_LANGS = ["en", "ar", "hi", "fr", "es"];
   var RTL_LANGS = ["ar", "ur", "fa"];
@@ -499,12 +567,14 @@
     state.prevList = [];
     state.compareSel = [];
     state.pendingSwapCode = null;
+    state.pendingSwap = null;
+    state.pendingSwapLabel = null;
+    state.canvasView = null;
     state.lastSwap = null;
     messagesEl.innerHTML = "";
     recsEl.innerHTML = "";
-    roomCardEl.hidden = true;
-    $("roomDiv").hidden = true;
     renderStrip();
+    renderCanvas();
     bootGreeting();
   }
 
@@ -672,25 +742,105 @@
     return "snag " + (level === "low" ? "snag-low" : level === "medium" ? "snag-medium" : level === "high" ? "snag-high" : "snag-unknown");
   }
 
+  function canvasChip(icon, text) {
+    return '<span class="canvas-chip"><i data-lucide="' + icon +
+      '" aria-hidden="true"></i><span dir="auto">' + esc(text) +
+      "</span></span>";
+  }
+
   function renderRoomCard(room, detectedPiece) {
-    if (!room) { roomCardEl.hidden = true; $("roomDiv").hidden = true; return; }
-    var rows = "";
-    rows += "<div><b>" + esc(t("roomType")) + ":</b> " + esc(room.room_type || "—") + "</div>";
-    rows += "<div><b>" + esc(t("style")) + ":</b> " + esc(room.style || "—") + "</div>";
-    rows += "<div><b>" + esc(t("light")) + ":</b> " + esc(room.light_level || "—") + "</div>";
-    var piece = detectedPiece || (room.furniture || "").split(",")[0];
-    rows += "<div><b>" + esc(t("piece")) + ":</b> " + esc(piece || "—") + "</div>";
+    var box = $("canvasChips");
+    if (!box) return;
+    if (!room) { box.innerHTML = ""; return; }
+    var piece = detectedPiece || (room.furniture || "").split(",")[0] || "";
+    var html = "";
+    if (piece) html += canvasChip("sofa", piece);
+    if (room.light_level) html += canvasChip("sun", room.light_level);
+    if (room.style) html += canvasChip("palette", room.style);
     var pal = "";
     (room.wall_colors || []).forEach(function (c) {
       pal += '<span class="swatch-chip" title="' + esc(c.name + " " + c.hex) +
         '" style="background:' + esc(c.hex) + '"></span>';
     });
-    roomCardEl.innerHTML = "<h3>" + esc(t("roomTitle")) + "</h3>" + rows +
-      '<div><b>' + esc(t("palette")) + ":</b></div>" +
-      '<div class="palette">' + pal + "</div>";
-    roomCardEl.setAttribute("dir", "auto");
-    roomCardEl.hidden = false;
-    $("roomDiv").hidden = false;
+    if (pal) html += '<span class="canvas-chip pal">' + pal + "</span>";
+    box.innerHTML = html;
+    box.setAttribute("dir", "auto");
+    icons();
+  }
+
+  function canvasViewSrc() {
+    if (state.canvasView) return state.canvasView;
+    if (state.roomPhoto) return "/" + state.roomPhoto.replace(/^\/+/, "");
+    return "";
+  }
+
+  function renderCrumb() {
+    var el = $("crumbPiece");
+    if (!el) return;
+    el.textContent = state.detectedPiece ||
+      (state.lastRoom && state.lastRoom.room_type) || "";
+  }
+
+  function renderCanvas() {
+    var hasPhoto = !!state.roomPhoto;
+    $("canvasEmpty").hidden = hasPhoto;
+    $("canvasPhotoWrap").hidden = !hasPhoto;
+    if (hasPhoto) $("canvasImg").src = canvasViewSrc();
+    var hb = $("holdBefore");
+    if (hb) hb.hidden = !(state.canvasView && state.roomPhoto);
+    renderCanvasRow();
+    renderCrumb();
+  }
+
+  function canvasStepLabel(key) {
+    if (key === "retry") return t("stepRetry");
+    var n = SWAP_STEP[key];
+    if (n === 0) return t("stepDetect");
+    if (n === 1) return t("stepApply");
+    if (n === 2) return t("stepCheck");
+    return t("stepDetect");
+  }
+
+  function renderCanvasRow() {
+    var row = $("canvasRow");
+    if (!row) return;
+    var recs = (state.lastRecs || []).slice(0, 3);
+    if (!state.roomPhoto || !recs.length) {
+      row.hidden = true;
+      row.innerHTML = "";
+      return;
+    }
+    row.hidden = false;
+    row.innerHTML = recs.map(function (r) {
+      var name = state.lang === "ar" ? r.name_ar : r.name_en;
+      var running = state.pendingSwap === r.code;
+      var done = !!(state.swaps[r.code] && state.swaps[r.code].result_url);
+      var status = running ? (state.pendingSwapLabel || t("stepDetect")) :
+        done ? t("previewing") : t("seeIt");
+      var cls = "ccard" + (done ? " previewing" : "") +
+        (running ? " running" : "");
+      return '<button type="button" class="' + cls + '" data-code="' +
+        esc(r.code) + '">' +
+        '<img src="/' + esc(r.image) + '" alt="' + esc(name) + '">' +
+        '<span class="cc-t"><span class="cc-n" dir="auto">' + esc(name) +
+        '</span><span class="cc-m">' + esc(r.code) + " · " +
+        esc(formatPrice(r.price_sar_per_m)) + "</span>" +
+        '<span class="cc-s">' + esc(status) + "</span></span></button>";
+    }).join("");
+    icons();
+  }
+
+  function loadSample(id) {
+    if (["living", "majlis", "armchair"].indexOf(id) < 0) return;
+    fetch("/data/samples/" + id + ".jpg")
+      .then(function (r) {
+        if (!r.ok) throw new Error("sample");
+        return r.blob();
+      })
+      .then(function (blob) {
+        upload(new File([blob], id + ".jpg", { type: "image/jpeg" }));
+      })
+      .catch(function () { addMsg(t("uploadFail"), "them"); });
   }
 
   function renderRecs(recs) {
@@ -762,13 +912,14 @@
   function handleResult(res) {
     autoLang(res);
     if (res.detected_piece) state.detectedPiece = res.detected_piece;
-    state.lastRoom = res.room_analysis || null;
-    state.lastDetected = res.detected_piece || null;
     if (res.recommendations && res.recommendations.length) {
       state.lastRecs = res.recommendations;
     }
     state.lastOptions = res.options || [];
+    if (res.room_analysis) state.lastRoom = res.room_analysis;
+    if (res.detected_piece) state.lastDetected = res.detected_piece;
     renderRoomCard(state.lastRoom, state.lastDetected);
+    renderCanvas();
     addMsg(leadIn(res), "them");
     if (state.lastRecs && state.lastRecs.length) renderRecs(state.lastRecs);
     if (state.lastOptions && state.lastOptions.length) renderOptions(state.lastOptions);
@@ -841,6 +992,9 @@
     $("swapModal").hidden = false;
     document.body.classList.add("modal-open");
     setStep(0);
+    state.pendingSwap = code;
+    state.pendingSwapLabel = t("stepDetect");
+    renderCanvasRow();
     clearSwapTimers();
     swapTimers.push(setTimeout(function () {
       if (!$("swapModal").hidden) $("swapStill").hidden = false;
@@ -861,6 +1015,8 @@
         var buf = "";
         function onEvt(evt) {
           if (evt.type === "step") {
+            state.pendingSwapLabel = canvasStepLabel(evt.label);
+            renderCanvasRow();
             if (evt.label === "retry") {
               var row = $("swapRetryRow");
               row.hidden = false;
@@ -877,6 +1033,9 @@
             finalizeSwap(code, meta, evt.result || {});
           } else if (evt.type === "error") {
             try { reader.cancel(); } catch (e) {}
+            state.pendingSwap = null;
+            state.pendingSwapLabel = null;
+            renderCanvasRow();
             hideSwapModal();
             addMsg(t("swapFail"), "them");
           }
@@ -930,7 +1089,11 @@
     state.prevList.push(entry);
     state.swaps[code] = entry;
     state.lastSwap = entry;
+    state.pendingSwap = null;
+    state.pendingSwapLabel = null;
+    state.canvasView = "/" + (res.result_url || "").replace(/^\/+/, "");
     renderStrip();
+    renderCanvas();
     if (state.lastRecs && state.lastRecs.length) renderRecs(state.lastRecs);
     var showTry = match < 8 && (res.attempts || 1) < 2 && !state.swapRetried;
     $("swapTryAgain").hidden = !showTry;
@@ -1050,6 +1213,8 @@
       return;
     }
     wrap.hidden = false;
+    var cmp = $("compareBtn");
+    if (cmp) cmp.hidden = state.prevList.length < 2;
     state.prevList.forEach(function (p, idx) {
       var b = document.createElement("button");
       b.type = "button";
@@ -1228,13 +1393,14 @@
     autoLang(res);
     if (!res) return;
     if (res.detected_piece) state.detectedPiece = res.detected_piece;
-    state.lastRoom = res.room_analysis || null;
-    state.lastDetected = res.detected_piece || null;
     if (res.recommendations && res.recommendations.length) {
       state.lastRecs = res.recommendations;
     }
     state.lastOptions = res.options || [];
+    if (res.room_analysis) state.lastRoom = res.room_analysis;
+    if (res.detected_piece) state.lastDetected = res.detected_piece;
     renderRoomCard(state.lastRoom, state.lastDetected);
+    renderCanvas();
     if (state.lastRecs && state.lastRecs.length) {
       renderRecs(state.lastRecs);
     }
@@ -1255,6 +1421,8 @@
       .then(function (data) {
         note.remove();
         state.roomPhoto = data.image_path;
+        state.canvasView = null;
+        renderCanvas();
         typingOn();
         return postJSON("/api/chat", {
           session_id: state.sessionId,
@@ -1360,7 +1528,6 @@
     messagesEl = $("messages");
     chipsEl = $("chips");
     recsEl = $("recs");
-    roomCardEl = $("roomCard");
     composerInput = $("composerInput");
 
     applyI18n();
@@ -1393,6 +1560,55 @@
       if (fi.files[0]) upload(fi.files[0]);
       fi.value = "";
     });
+    $("photoBtn").addEventListener("click", function () { fi.click(); });
+    $("uploadBtn").addEventListener("click", function () { fi.click(); });
+    $("newConsult").addEventListener("click", function () {
+      setLang(state.lang, true);
+    });
+    document.addEventListener("click", function (e) {
+      var s = e.target && e.target.closest ?
+        e.target.closest("[data-sample]") : null;
+      if (s && s.dataset.sample) loadSample(s.dataset.sample);
+      var card = e.target && e.target.closest ?
+        e.target.closest("#canvasRow .ccard") : null;
+      if (card && card.dataset.code) openSwap(card.dataset.code);
+    });
+    $("compareBtn").addEventListener("click", function () {
+      var list = state.prevList || [];
+      if (list.length < 2) return;
+      var a = list[list.length - 2], b = list[list.length - 1];
+      if (state.compareSel.length >= 2) {
+        a = list[state.compareSel[0]];
+        b = list[state.compareSel[1]];
+      }
+      if (a && b) openSwapCompare(a, b);
+    });
+    (function holdBefore() {
+      var btn = $("holdBefore");
+      if (!btn) return;
+      var downAt = 0, pinned = false;
+      function showBefore(on) {
+        var img = $("canvasImg");
+        if (!img || !state.roomPhoto) return;
+        img.src = on ? "/" + state.roomPhoto.replace(/^\/+/, "")
+                     : canvasViewSrc();
+      }
+      btn.addEventListener("pointerdown", function () {
+        downAt = Date.now();
+        pinned = false;
+        showBefore(true);
+      });
+      ["pointerup", "pointerleave", "pointercancel"].forEach(function (ev) {
+        btn.addEventListener(ev, function () {
+          if (Date.now() - downAt < 300) {
+            pinned = !pinned;
+            showBefore(pinned);
+          } else if (!pinned) {
+            showBefore(false);
+          }
+        });
+      });
+    })();
     ["dragover", "dragenter"].forEach(function (ev) {
       dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.add("over"); });
     });
@@ -1451,6 +1667,9 @@
     });
 
     bootGreeting();
+    renderCanvas();
+    var sample = new URLSearchParams(location.search).get("sample");
+    if (sample) loadSample(sample);
   }
 
   function bootGreeting() {

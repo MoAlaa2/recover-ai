@@ -13,51 +13,81 @@
 <link rel="stylesheet" href="/switcher.css">
 </head>
 <body>
-<header class="topbar">
-  <div class="brand" dir="ltr">
+<header class="topbar consult-bar">
+  <a class="brand" dir="ltr" href="/" aria-label="ReCover home">
     <img class="brand-logo logo-light" src="/brand/logo.svg" alt="ReCover" width="220" height="48">
     <img class="brand-logo logo-dark" src="/brand/mark-reversed.svg" alt="ReCover" width="48" height="48">
     <span class="wordmark">ReCover</span>
-    <div class="brand-tag" data-i18n="tagline">Change the look, not the furniture.</div>
-  </div>
+  </a>
+  <nav class="crumb" aria-label="Breadcrumb">
+    <a href="/" data-i18n="crumbHome">Home</a>
+    <span aria-hidden="true">·</span>
+    <span data-i18n="crumbConsult">Consultation</span>
+    <span aria-hidden="true">·</span>
+    <b id="crumbPiece"></b>
+  </nav>
   <span id="switcherMount"></span>
+  <button id="newConsult" class="ghost-btn" type="button" data-i18n="newConsult">New consultation</button>
 </header>
 
-<main class="layout">
-  <section class="chat-pane" aria-label="Chat">
+<main class="consult">
+  <section class="canvas-pane" aria-label="Room canvas">
+    <div id="canvasWrap" class="canvas">
+      <div id="canvasEmpty" class="canvas-empty">
+        <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload a room photo">
+          <i data-lucide="image-plus" aria-hidden="true"></i>
+          <span data-i18n="canvasEmpty">Drop a photo of your sofa or chair</span>
+        </div>
+        <button id="uploadBtn" class="seeit" type="button"><i data-lucide="upload" aria-hidden="true"></i><span data-i18n="uploadPhoto">Upload</span></button>
+        <p class="sample-label" data-i18n="trySample">Or try a sample room:</p>
+        <div class="sample-row" id="sampleRow">
+          <button type="button" data-sample="living"><img src="/data/samples/living.jpg" alt="living" loading="lazy"><span data-i18n="sampleLiving">Living room</span></button>
+          <button type="button" data-sample="majlis"><img src="/data/samples/majlis.jpg" alt="majlis" loading="lazy"><span data-i18n="sampleMajlis">Majlis</span></button>
+          <button type="button" data-sample="armchair"><img src="/data/samples/armchair.jpg" alt="armchair" loading="lazy"><span data-i18n="sampleArmchair">Armchair</span></button>
+        </div>
+      </div>
+      <div id="canvasPhotoWrap" class="canvas-photo" hidden>
+        <img id="canvasImg" alt="">
+        <div id="canvasChips" class="canvas-chips"></div>
+        <button id="holdBefore" class="hold-before" type="button" hidden><span data-i18n="holdBefore">Hold for before</span></button>
+      </div>
+      <div id="canvasRow" class="canvas-row" hidden></div>
+    </div>
+    <div id="canvasBelow" class="canvas-below">
+      <div id="prevWrap" hidden>
+        <div class="panel-title" data-i18n="previewsTitle">Your previews</div>
+        <div id="prevStrip" class="prev-strip"></div>
+        <div class="prev-hint" data-i18n="previewsHint">Tap one to view, two to compare</div>
+        <div class="compare-row"><button id="compareBtn" class="ghost-btn" type="button" hidden><span data-i18n="compareSide">Compare side by side</span></button></div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="chat-pane" aria-label="Chat">
+    <div class="chat-head">
+      <img class="avatar" src="/brand/mark-plain.svg" alt="ReCover" width="30" height="30">
+      <div class="chat-head-meta"><b>ReCover</b><span class="online" data-i18n="onlineNow">Online · replies in your language</span></div>
+    </div>
     <div id="messages" class="messages" role="log" aria-live="polite"></div>
     <div id="chips" class="chips" hidden></div>
-    <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload a room photo">
-      <i data-lucide="image-plus" aria-hidden="true"></i>
-      <span data-i18n="dropHint">Drop a room photo here, or tap to choose one</span>
-      <input id="fileInput" type="file" accept="image/*" hidden>
+    <div id="recs" class="recs recs-compact">
+      <p class="empty" data-i18n="emptyRecs">Your recommended fabrics will appear here.</p>
     </div>
     <form id="composer" class="composer">
-      <input id="composerInput" type="text" autocomplete="off"
+      <button id="photoBtn" type="button" class="mic" aria-label="Upload photo"><i data-lucide="image-plus" aria-hidden="true"></i></button>
+      <input id="fileInput" type="file" accept="image/*" hidden>
+      <input id="composerInput" type="text" autocomplete="off" dir="auto"
              data-i18n-ph="placeholder" placeholder="Ask about fabrics…">
       <div id="recUI" class="rec-ui" hidden>
         <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
         <span id="recTimer" class="rec-timer">0:00</span>
       </div>
       <button id="micBtn" type="button" class="mic" aria-label="Voice input"><i data-lucide="mic" aria-hidden="true"></i></button>
-      <button type="submit" aria-label="Send"><i data-lucide="arrow-up" aria-hidden="true"></i></button>
+      <button type="submit" class="send" aria-label="Send"><i data-lucide="arrow-up" aria-hidden="true"></i></button>
     </form>
-  </section>
-
-  <aside class="side-pane" aria-label="Recommendations">
-    <div id="prevWrap" hidden>
-      <div class="panel-title" data-i18n="previewsTitle">Your previews</div>
-      <div id="prevStrip" class="prev-strip"></div>
-      <div class="prev-hint" data-i18n="previewsHint">Tap one to view, two to compare</div>
-    </div>
-    <div id="roomCard" class="room-card" hidden></div>
-    <hr class="sec-div" id="roomDiv" hidden>
-    <h2 class="panel-title" data-i18n="forYou">For you</h2>
-    <div id="recs" class="recs">
-      <p class="empty" data-i18n="emptyRecs">Your recommended fabrics will appear here.</p>
-    </div>
   </aside>
 </main>
+
 
 <div id="swapModal" class="modal" hidden>
   <div class="modal-card" role="dialog" aria-modal="true">
