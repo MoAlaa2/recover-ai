@@ -7,8 +7,8 @@
   // rendered with the Estimate label; do not present as measured fact.
   var CO2_PER_SOFA_KG = 70;
 
-  // TODO(step 3): set to the real hero swap fabric + verify score.
-  var HERO = { code: "FA-NL-02", score: 9 };
+  // Real hero swap: living sample + FA-NL-06, verify min 8/10.
+  var HERO = { code: "FA-NL-06", score: 8 };
 
   var RTL = ["ar", "ur", "fa"];
 
