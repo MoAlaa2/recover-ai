@@ -84,6 +84,129 @@
       features: {},
       matched: {},
       relaxed: {}
+    },
+    hi: {
+      tagline: "लुक बदलें, फर्नीचर नहीं।",
+      forYou: "आपके लिए",
+      emptyRecs: "आपके सुझाए कपड़े यहाँ दिखेंगे।",
+      dropHint: "कमरे की फोटो यहाँ डालें, या चुनने के लिए टैप करें",
+      placeholder: "कपड़ों के बारे में पूछें…",
+      analyzing: "आपका कमरा देख रहा हूँ…",
+      seeIt: "इसे अपनी जगह पर देखें",
+      comingSoon: "जल्द आ रहा है",
+      perMeter: "SAR/मी",
+      matchSection: "यह कपड़ा क्यों",
+      relaxSection: "आपके लिए बदला",
+      sendFail: "माफ़ करें, कुछ गड़बड़ हुई। फिर कोशिश करें।",
+      uploadFail: "अपलोड विफल। JPG या PNG फोटो भेजें।",
+      voiceFail: "माफ़ करें, सुन नहीं पाया। फिर कोशिश करें।",
+      micLabel: "आवाज़ से पूछें",
+      needPhoto: "पहले कमरे की फोटो भेजें, फिर “इसे अपनी जगह पर देखें” दबाएँ।",
+      tailoring: "%s सजा रहा हूँ…",
+      pieceWord: { sofa: "सोफ़ा", armchair: "कुर्सी", curtains: "पर्दे", cushions: "कुशन" },
+      stepDetect: "टुकड़ा पहचान रहा हूँ",
+      stepApply: "कपड़ा लगा रहा हूँ",
+      stepCheck: "मिलान जाँच रहा हूँ",
+      stillWorking: "अभी चल रहा है — मुश्किल कमरों में कुछ मिनट लगते हैं।",
+      matchBadge: "कपड़ा मिलान %d/10",
+      downloadLabel: "डाउनलोड",
+      closeLabel: "बंद करें",
+      swapFail: "झलक नहीं बनी। दूसरी फोटो से फिर कोशिश करें।",
+      roomTitle: "आपका कमरा",
+      roomType: "कमरा",
+      style: "स्टाइल",
+      light: "रोशनी",
+      piece: "टुकड़ा",
+      palette: "दीवार के रंग",
+      chips: ["अपहोल्स्ट्री", "पर्दे", "कुशन", "मिक्स"],
+      steps: { search: "80 कपड़े खोज रहा हूँ…", claw: "पंजों से सुरक्षा जाँच रहा हूँ…", details: "विवरण मिला रहा हूँ…", room: "आपके कमरे के रंग पढ़ रहा हूँ…" },
+      thinkingNote: "सोच रहा हूँ…",
+      snag: { low: "पंजा-सुरक्षित", medium: "मध्यम जोखिम", high: "ज्यादा जोखिम", unknown: "अज्ञात" },
+      features: {},
+      matched: {},
+      relaxed: {}
+    },
+    fr: {
+      tagline: "Changez le look, pas le mobilier.",
+      forYou: "Pour vous",
+      emptyRecs: "Vos tissus recommandés apparaîtront ici.",
+      dropHint: "Déposez une photo de la pièce, ou touchez pour choisir",
+      placeholder: "Posez vos questions tissus…",
+      analyzing: "J'analyse votre pièce…",
+      seeIt: "Voir chez moi",
+      comingSoon: "Bientôt",
+      perMeter: "SAR/m",
+      matchSection: "Pourquoi ce tissu",
+      relaxSection: "Ajusté pour vous",
+      sendFail: "Désolé, une erreur est survenue. Réessayez.",
+      uploadFail: "Échec de l'envoi. Envoyez une photo JPG ou PNG.",
+      voiceFail: "Désolé, je n'ai pas entendu. Réessayez.",
+      micLabel: "Entrée vocale",
+      needPhoto: "Envoyez d'abord une photo, puis touchez « Voir chez moi ».",
+      tailoring: "J'habille votre %s…",
+      pieceWord: { sofa: "canapé", armchair: "fauteuil", curtains: "rideaux", cushions: "coussins" },
+      stepDetect: "Je détecte la pièce",
+      stepApply: "J'applique le tissu",
+      stepCheck: "Je vérifie l'harmonie",
+      stillWorking: "Je travaille encore — les pièces complexes prennent quelques minutes.",
+      matchBadge: "Tissu assorti %d/10",
+      downloadLabel: "Télécharger",
+      closeLabel: "Fermer",
+      swapFail: "Aperçu impossible. Réessayez avec une autre photo.",
+      roomTitle: "Votre pièce",
+      roomType: "Pièce",
+      style: "Style",
+      light: "Lumière",
+      piece: "Pièce",
+      palette: "Palette des murs",
+      chips: ["Tapisserie", "Rideaux", "Coussins", "Mixte"],
+      steps: { search: "Je parcours 80 tissus…", claw: "Je vérifie la résistance aux griffes…", details: "Je compare les détails…", room: "Je lis les couleurs de votre pièce…" },
+      thinkingNote: "Je réfléchis…",
+      snag: { low: "Résistant aux griffes", medium: "Risque moyen", high: "Risque élevé", unknown: "N/A" },
+      features: {},
+      matched: {},
+      relaxed: {}
+    },
+    es: {
+      tagline: "Cambia el look, no el sofá.",
+      forYou: "Para ti",
+      emptyRecs: "Tus telas recomendadas aparecerán aquí.",
+      dropHint: "Suelta una foto de la habitación, o toca para elegir",
+      placeholder: "Pregunta por telas…",
+      analyzing: "Estoy analizando tu espacio…",
+      seeIt: "Verlo en mi espacio",
+      comingSoon: "Pronto",
+      perMeter: "SAR/m",
+      matchSection: "Por qué esta tela",
+      relaxSection: "Ajustado para ti",
+      sendFail: "Perdón, algo falló. Inténtalo de nuevo.",
+      uploadFail: "Subida fallida. Envía una foto JPG o PNG.",
+      voiceFail: "Perdón, no te escuché. Inténtalo de nuevo.",
+      micLabel: "Entrada de voz",
+      needPhoto: "Sube primero una foto y luego toca «Verlo en mi espacio».",
+      tailoring: "Vistiendo tu %s…",
+      pieceWord: { sofa: "sofá", armchair: "sillón", curtains: "cortinas", cushions: "cojines" },
+      stepDetect: "Detecto la pieza",
+      stepApply: "Aplico la tela",
+      stepCheck: "Compruebo la armonía",
+      stillWorking: "Sigo trabajando — las habitaciones complejas tardan unos minutos.",
+      matchBadge: "Tela compatible %d/10",
+      downloadLabel: "Descargar",
+      closeLabel: "Cerrar",
+      swapFail: "No se pudo generar la vista. Prueba con otra foto.",
+      roomTitle: "Tu espacio",
+      roomType: "Habitación",
+      style: "Estilo",
+      light: "Luz",
+      piece: "Pieza",
+      palette: "Paleta de paredes",
+      chips: ["Tapicería", "Cortinas", "Cojines", "Mixto"],
+      steps: { search: "Busco entre 80 telas…", claw: "Compruebo la resistencia a las garras…", details: "Comparo los detalles…", room: "Leo los colores de tu espacio…" },
+      thinkingNote: "Estoy pensando…",
+      snag: { low: "Resistente a garras", medium: "Riesgo medio", high: "Riesgo alto", unknown: "N/D" },
+      features: {},
+      matched: {},
+      relaxed: {}
     }
   };
 
@@ -146,8 +269,20 @@
     "usage": ["Fabric use", "استخدام القماش"]
   };
 
+  function initialLang() {
+    var q = new URLSearchParams(location.search).get("lang");
+    if (q && STRINGS[q]) return q;
+    var nav = (navigator.language || "en").toLowerCase();
+    if (nav.indexOf("ar") === 0) return "ar";
+    if (nav.indexOf("hi") === 0) return "hi";
+    if (nav.indexOf("fr") === 0) return "fr";
+    if (nav.indexOf("es") === 0) return "es";
+    return "en";
+  }
+
   var state = {
-    lang: (new URLSearchParams(location.search).get("lang") === "ar") ? "ar" : "en",
+    lang: initialLang(),
+    pinned: false,
     sessionId: "web-" + Math.random().toString(36).slice(2, 10),
     booted: false,
     roomPhoto: null,
@@ -157,7 +292,18 @@
   var $ = function (id) { return document.getElementById(id); };
   var messagesEl, chipsEl, recsEl, roomCardEl, composerInput;
 
-  function t(key) { return STRINGS[state.lang][key]; }
+  var UI_LANGS = ["en", "ar", "hi", "fr", "es"];
+  var MORE_LANGS = [["ur", "اردو"], ["fa", "فارسی"], ["de", "Deutsch"],
+                    ["tr", "Türkçe"], ["id", "Bahasa Indonesia"]];
+  var RTL_LANGS = ["ar", "ur", "fa"];
+  var GREET = { ar: "مرحبا", hi: "नमस्ते", fr: "Bonjour", es: "Hola",
+                en: "Hello" };
+
+  function t(key) {
+    var pack = STRINGS[state.lang] || {};
+    if (pack[key] !== undefined) return pack[key];
+    return STRINGS.en[key];
+  }
 
   function featLabel(key) {
     var pair = FEATURE_LABELS[key] || [key, key];
@@ -175,10 +321,12 @@
       .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
+  function isRTL() { return RTL_LANGS.indexOf(state.lang) >= 0; }
+
   function applyI18n() {
     document.documentElement.lang = state.lang;
-    document.documentElement.dir = state.lang === "ar" ? "rtl" : "ltr";
-    document.body.classList.toggle("ar", state.lang === "ar");
+    document.documentElement.dir = isRTL() ? "rtl" : "ltr";
+    document.body.classList.toggle("ar", isRTL());
     document.querySelectorAll("[data-i18n]").forEach(function (el) {
       el.textContent = t(el.getAttribute("data-i18n"));
     });
@@ -198,11 +346,95 @@
       b.textContent = label;
       b.addEventListener("click", function () {
         chipsEl.hidden = true;
+        state.booted = true;
         send(label);
       });
       chipsEl.appendChild(b);
     });
     if (!state.booted) chipsEl.hidden = false;
+  }
+
+  function renderOptions(list) {
+    chipsEl.innerHTML = "";
+    (list || []).forEach(function (label) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = label;
+      b.addEventListener("click", function () {
+        chipsEl.hidden = true;
+        state.booted = true;
+        send(label);
+      });
+      chipsEl.appendChild(b);
+    });
+    if ((list || []).length) chipsEl.hidden = false;
+  }
+
+  var LANG_ROW_LABELS = { en: "English", ar: "العربية", hi: "हिन्दी",
+                          fr: "Français", es: "Español" };
+
+  function showLangRow() {
+    var old = document.getElementById("langRow");
+    if (old) old.remove();
+    var row = document.createElement("div");
+    row.className = "langrow";
+    row.id = "langRow";
+    UI_LANGS.forEach(function (code) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = LANG_ROW_LABELS[code];
+      b.className = state.lang === code ? "on" : "";
+      b.setAttribute("aria-label", code);
+      b.addEventListener("click", function () { setLang(code, true); });
+      row.appendChild(b);
+    });
+    var plus = document.createElement("select");
+    plus.className = "langmore";
+    plus.setAttribute("aria-label", "more languages");
+    var def = document.createElement("option");
+    def.value = "";
+    def.textContent = "+";
+    plus.appendChild(def);
+    MORE_LANGS.forEach(function (pair) {
+      var o = document.createElement("option");
+      o.value = pair[0];
+      o.textContent = pair[1];
+      if (state.lang === pair[0]) o.selected = true;
+      plus.appendChild(o);
+    });
+    plus.addEventListener("change", function () {
+      if (plus.value) setLang(plus.value, true);
+      else plus.selectedIndex = 0;
+    });
+    row.appendChild(plus);
+    messagesEl.appendChild(row);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function setLang(code, greet) {
+    state.lang = STRINGS[code] ? code : "en";
+    state.pinned = true;
+    applyI18n();
+    renderChips();
+    if (!greet) return;
+    state.sessionId = "web-" + Math.random().toString(36).slice(2, 10);
+    state.booted = false;
+    state.roomPhoto = null;
+    state.detectedPiece = null;
+    messagesEl.innerHTML = "";
+    recsEl.innerHTML = "";
+    roomCardEl.hidden = true;
+    $("roomDiv").hidden = true;
+    bootGreeting();
+  }
+
+  function autoLang(res) {
+    if (state.pinned || !res) return;
+    var d = res.detected_lang;
+    if (d && UI_LANGS.indexOf(d) >= 0 && d !== state.lang) {
+      state.lang = d;
+      applyI18n();
+    }
   }
 
   var MIC_BADGE = '<span class="voice-badge" aria-hidden="true"><i data-lucide="mic"></i></span>';
@@ -224,6 +456,7 @@
       div.appendChild(avWrap.firstChild);
     }
     var body = document.createElement("div");
+    body.setAttribute("dir", "auto");
     body.innerHTML = (voice ? MIC_BADGE : "") + formatReply(text);
     if (photo) {
       var img = document.createElement("img");
@@ -394,10 +627,12 @@
   }
 
   function handleResult(res) {
+    autoLang(res);
     renderRoomCard(res.room_analysis, res.detected_piece);
     if (res.detected_piece) state.detectedPiece = res.detected_piece;
     if (res.reply) addMsg(res.reply, "them");
     if (res.recommendations && res.recommendations.length) renderRecs(res.recommendations);
+    if (res.options && res.options.length) renderOptions(res.options);
   }
 
   function swapTarget() {
@@ -518,6 +753,7 @@
         if (bubble) return;
         bubble = addMsg("", "them");
         bodyEl = bubble.lastElementChild;
+        bodyEl.setAttribute("dir", "auto");
         bodyEl.textContent = "";
       }
       fetch("/api/chat/stream", {
@@ -526,7 +762,8 @@
         body: JSON.stringify({
           session_id: state.sessionId,
           message: text || "",
-          image_path: imagePath || null
+          image_path: imagePath || null,
+          lang: state.pinned ? state.lang : null
         }),
         signal: ctrl.signal
       }).then(function (r) {
@@ -544,9 +781,10 @@
             bodyEl.textContent = raw;
             messagesEl.scrollTop = messagesEl.scrollHeight;
           } else if (evt.type === "done") {
-            if (bodyEl) bodyEl.innerHTML = formatReply(raw);
-            else if (evt.result && evt.result.reply) {
-              addMsg(evt.result.reply, "them");
+            var clean = evt.result && evt.result.reply;
+            if (bodyEl) bodyEl.innerHTML = formatReply(clean !== undefined ? clean : raw);
+            else if (clean) {
+              addMsg(clean, "them");
             }
             try { reader.cancel(); } catch (e) {}
             finish(null, evt.result);
@@ -579,7 +817,8 @@
         postJSON("/api/chat", {
           session_id: state.sessionId,
           message: text || "",
-          image_path: imagePath || null
+          image_path: imagePath || null,
+          lang: state.pinned ? state.lang : null
         }, 120000, 1).then(function (res) {
           res.fallback = true;
           finish(null, res);
@@ -588,9 +827,9 @@
     });
   }
 
-  function send(text, imagePath, photoPreview) {
+  function send(text, imagePath, photoPreview, silent) {
     if (!text && !imagePath) return;
-    addMsg(text || "", "me", photoPreview);
+    if (!silent) addMsg(text || "", "me", photoPreview);
     typingOn();
     var thinkingTimer = setTimeout(function () {
       var el = document.createElement("div");
@@ -620,10 +859,14 @@
   }
 
   function handleStreamResult(res) {
+    autoLang(res);
     renderRoomCard(res.room_analysis, res.detected_piece);
     if (res.detected_piece) state.detectedPiece = res.detected_piece;
     if (res.recommendations && res.recommendations.length) {
       renderRecs(res.recommendations);
+    }
+    if (res && res.options && res.options.length) {
+      renderOptions(res.options);
     }
   }
 
@@ -632,6 +875,8 @@
     fd.append("file", file);
     var preview = URL.createObjectURL(file);
     addMsg("", "me", preview);
+    chipsEl.hidden = true;
+    state.booted = true;
     var note = addMsg(t("analyzing"), "them");
     fetchReq("/api/upload", { form: fd, timeoutMs: 60000, retries: 1 })
       .then(function (data) {
@@ -641,7 +886,8 @@
         return postJSON("/api/chat", {
           session_id: state.sessionId,
           message: "",
-          image_path: data.image_path
+          image_path: data.image_path,
+          lang: state.pinned ? state.lang : null
         }, 120000, 1);
       })
       .then(function (res) {
@@ -689,7 +935,7 @@
         chipsEl.hidden = true;
         state.booted = true;
         addMsg(data.text, "me", null, true);
-        send(data.text);
+        send(data.text, null, null, true);
       })
       .catch(function () {
         typingOff();
@@ -794,14 +1040,20 @@
       if (e.key === "Escape" && !$("swapModal").hidden) closeSwap();
     });
 
+    bootGreeting();
+  }
+
+  function bootGreeting() {
     typingOn();
     postJSON("/api/chat", {
       session_id: state.sessionId,
-      message: state.lang === "ar" ? "مرحبا" : "Hello"
+      message: GREET[state.lang] || "Hello",
+      lang: state.lang
     }, 60000, 1)
       .then(function (res) {
         typingOff();
         handleResult(res);
+        showLangRow();
         chipsEl.hidden = false;
       })
       .catch(function () {

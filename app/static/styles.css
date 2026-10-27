@@ -198,6 +198,36 @@ img.avatar {
   50% { opacity: 1; }
 }
 
+.langrow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  align-self: flex-start;
+  max-width: 82%;
+  margin: 2px 0 0;
+}
+
+.langrow button,
+.langrow select.langmore {
+  border: 1px solid var(--rc-line);
+  background: var(--rc-paper);
+  color: var(--rc-ink-muted);
+  border-radius: var(--rc-r-pill);
+  padding: 4px 12px;
+  font-size: var(--rc-fs-xs);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.langrow button.on {
+  border-color: var(--rc-indigo);
+  color: var(--rc-indigo);
+  font-weight: 600;
+}
+
+.langrow select.langmore { max-width: 76px; }
+
 .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 0; }
 
 .chips button {

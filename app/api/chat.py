@@ -32,6 +32,7 @@ class ChatRequest(BaseModel):
     session_id: str = Field(min_length=1)
     message: str = ""
     image_path: Optional[str] = None
+    lang: Optional[str] = None
 
 
 def convert_to_jpg(src, dest):
@@ -129,7 +130,7 @@ def chat(req: ChatRequest):
             raise HTTPException(400, "image not found")
     try:
         return consultant.chat(req.session_id, req.message,
-                               req.image_path)
+                               req.image_path, lang=req.lang)
     except FileNotFoundError as exc:
         raise HTTPException(400, str(exc))
     except RuntimeError as exc:
@@ -159,7 +160,8 @@ def chat_stream(req: ChatRequest):
                 on_token=lambda t: events.put({"type": "token",
                                                 "text": t}),
                 on_step=lambda s: events.put({"type": "step",
-                                               "label": s}))
+                                               "label": s}),
+                lang=req.lang)
             events.put({"type": "done", "result": res})
         except FileNotFoundError as exc:
             events.put({"type": "error", "message": str(exc)})

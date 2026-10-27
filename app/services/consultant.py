@@ -53,7 +53,10 @@ English. Arabic means refined white Saudi dialect only (use: أبغى، أبي،
 
 OPENING (first message only): introduce yourself in exactly 2 short lines \
 (who you are, what you can do: recommend fabrics, analyze a room photo, \
-show your own furniture in a new fabric). Then ask exactly one question.
+show your own furniture in a new fabric). Then add this invitation on its \
+own line, in the user's language: English: "Talk to me in any language, \
+by text or voice." Arabic: "كلمني بأي لغة، كتابة أو صوت." Other \
+languages: translate the meaning naturally. Then ask exactly one question.
 
 DISCOVERY: first learn the use: upholstery, curtains, cushions, or a mix. \
 Then gather naturally, one question at a time, only what is still missing: \
@@ -84,6 +87,14 @@ plainly in your reply which constraint was relaxed (for example budget).
 TIP: include one short professional tip (martindale for heavy use, \
 fade-resistant for sunny rooms, washable for kids) only on turns where you \
 give recommendations, never otherwise.
+
+OPTIONS: when you ask a question that has a small set of typical answers, \
+end your reply with one fenced block on its own lines:
+```options
+["answer 1", "answer 2", "answer 3"]
+```
+2 to 4 short options in the user's language. Only when genuinely offering \
+choices; omit the block otherwise.
 
 ROOM PHOTOS: describe what you see with the word "looks", never "sounds". \
 In Arabic use تبدو / شكلها, never any hearing word.
@@ -375,6 +386,7 @@ def analyze_room(image_path):
 
 
 RECO_RE = re.compile(r"```recommendations\s*(\[.*?\])\s*```", re.DOTALL)
+OPTIONS_RE = re.compile(r"```options\s*(\[.*?\])\s*```", re.DOTALL)
 
 
 def extract_recommendations(text):
@@ -393,6 +405,24 @@ def extract_recommendations(text):
 
 def strip_block(text):
     return RECO_RE.sub("", text or "").strip()
+
+
+def extract_options(text):
+    """Parse the options block. Returns a list of strings or None."""
+    match = OPTIONS_RE.search(text or "")
+    if not match:
+        return None
+    try:
+        data = json.loads(match.group(1))
+    except ValueError:
+        return None
+    if not isinstance(data, list):
+        return None
+    return [str(o) for o in data[:4] if str(o).strip()]
+
+
+def strip_options(text):
+    return OPTIONS_RE.sub("", text or "").strip()
 
 
 TIP_RE = re.compile(r"(?mi)^\s*(tip|تلميح|نصيحة)\s*[:：-].*$")
@@ -742,12 +772,12 @@ def decline_reply(topic, arabic):
 
 
 def chat(session_id, message, image_path=None, chat_fn=None,
-         on_token=None, on_step=None):
+         on_token=None, on_step=None, lang=None):
     """One user turn. Returns {reply, recommendations, room_analysis?}."""
     t0 = time.time()
     try:
         return _chat(session_id, message, image_path, chat_fn,
-                     on_token=on_token, on_step=on_step)
+                     on_token=on_token, on_step=on_step, lang=lang)
     finally:
         _perf({"kind": "turn", "seconds": round(time.time() - t0, 2),
                "image": bool(image_path),
@@ -755,12 +785,14 @@ def chat(session_id, message, image_path=None, chat_fn=None,
 
 
 def _chat(session_id, message, image_path=None, chat_fn=None,
-          on_token=None, on_step=None):
+          on_token=None, on_step=None, lang=None):
     session = SESSIONS.setdefault(session_id, {"messages": [],
                                                "detected_piece": None,
                                                "topic": None})
     history = session["messages"]
     trim_history(history)
+    if lang in LANG_NAMES:
+        session["lang"] = lang
     if not image_path and not is_in_scope(message):
         arabic = is_arabic(message)
         reply = decline_reply(session.get("topic"), arabic)
@@ -774,9 +806,10 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
         history.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
     room_analysis = None
     user_text = message or ""
-    detected_lang = detect_user_lang(message)
-    if detected_lang:
-        session["lang"] = detected_lang
+    if lang not in LANG_NAMES:
+        detected_lang = detect_user_lang(message)
+        if detected_lang:
+            session["lang"] = detected_lang
     if session.get("lang"):
         instruction = "Reply only in %s." % LANG_NAMES.get(
             session["lang"], "English")
@@ -832,6 +865,8 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     recommendations = recs if (recs and not bad) else []
 
     reply = strip_block(final_text)
+    options = extract_options(reply) or []
+    reply = strip_options(reply)
     if not recommendations:
         reply = strip_tip(reply)
     if confirm:
@@ -852,7 +887,9 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     trim_history(history)
 
     result = {"reply": reply,
-              "recommendations": enrich(recommendations, turn)}
+              "recommendations": enrich(recommendations, turn),
+              "options": options,
+              "detected_lang": session.get("lang")}
     if room_analysis is not None:
         result["room_analysis"] = room_analysis
         if session.get("detected_piece"):

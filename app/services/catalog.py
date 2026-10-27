@@ -318,7 +318,9 @@ SPANISH_MARKERS = ("tela", "sofá", "recomiendo", "recomienda",
                    "para", "una")
 
 LANG_NAMES = {"ar": "Arabic", "hi": "Hindi", "fr": "French",
-              "es": "Spanish", "en": "English"}
+              "es": "Spanish", "en": "English", "ur": "Urdu",
+              "fa": "Persian", "de": "German", "tr": "Turkish",
+              "id": "Indonesian"}
 
 
 def _marker_hits(text, markers):

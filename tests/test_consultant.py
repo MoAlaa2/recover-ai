@@ -468,3 +468,35 @@ def test_relaxed_constraint_message():
     out = c.chat("test-relaxed", "cheap curtains", chat_fn=fake)
     assert "budget" in out["reply"].lower()
     assert len(out["recommendations"]) == 3
+
+
+def test_options_block_returned_and_stripped():
+    def fake(messages, tools=None):
+        return final_text(
+            "Do you prefer warm or cool tones?\n"
+            "```options\n[\"Warm\", \"Cool\", \"Neutral\"]\n```")
+
+    out = c.chat("test-options", "sofa fabric please", chat_fn=fake)
+    assert out["options"] == ["Warm", "Cool", "Neutral"]
+    assert "```options" not in out["reply"]
+    assert "Warm" not in out["reply"]
+
+
+def test_no_options_block_gives_empty_list():
+    out = c.chat("test-no-options", "hello",
+                 chat_fn=lambda messages, tools=None: final_text("Hi"))
+    assert out["options"] == []
+
+
+def test_lang_pin_sets_session_language():
+    out = c.chat("test-pin-hi", "Hello",
+                 chat_fn=lambda messages, tools=None: final_text("Hi"),
+                 lang="hi")
+    assert out["detected_lang"] == "hi"
+    assert c.SESSIONS["test-pin-hi"]["lang"] == "hi"
+
+
+def test_detected_lang_returned_without_pin():
+    out = c.chat("test-detect-ar", "أبغى قماش للكنبة",
+                 chat_fn=lambda messages, tools=None: final_text("تم"))
+    assert out["detected_lang"] == "ar"
