@@ -377,8 +377,6 @@
   var messagesEl, chipsEl, recsEl, roomCardEl, composerInput;
 
   var UI_LANGS = ["en", "ar", "hi", "fr", "es"];
-  var MORE_LANGS = [["ur", "اردو"], ["fa", "فارسی"], ["de", "Deutsch"],
-                    ["tr", "Türkçe"], ["id", "Bahasa Indonesia"]];
   var RTL_LANGS = ["ar", "ur", "fa"];
   var GREET = { ar: "مرحبا", hi: "नमस्ते", fr: "Bonjour", es: "Hola",
                 en: "Hello" };
@@ -445,7 +443,6 @@
     document.querySelectorAll("[data-i18n-ph]").forEach(function (el) {
       el.setAttribute("placeholder", t(el.getAttribute("data-i18n-ph")));
     });
-    $("langToggle").textContent = state.lang === "ar" ? "EN" : "عربي";
     $("micBtn").setAttribute("aria-label", t("micLabel"));
     renderChips();
   }
@@ -482,52 +479,12 @@
     if ((list || []).length) chipsEl.hidden = false;
   }
 
-  var LANG_ROW_LABELS = { en: "English", ar: "العربية", hi: "हिन्दी",
-                          fr: "Français", es: "Español" };
-
-  function showLangRow() {
-    var old = document.getElementById("langRow");
-    if (old) old.remove();
-    var row = document.createElement("div");
-    row.className = "langrow";
-    row.id = "langRow";
-    UI_LANGS.forEach(function (code) {
-      var b = document.createElement("button");
-      b.type = "button";
-      b.textContent = LANG_ROW_LABELS[code];
-      b.className = state.lang === code ? "on" : "";
-      b.setAttribute("aria-label", code);
-      b.addEventListener("click", function () { setLang(code, true); });
-      row.appendChild(b);
-    });
-    var plus = document.createElement("select");
-    plus.className = "langmore";
-    plus.setAttribute("aria-label", "more languages");
-    var def = document.createElement("option");
-    def.value = "";
-    def.textContent = "+";
-    plus.appendChild(def);
-    MORE_LANGS.forEach(function (pair) {
-      var o = document.createElement("option");
-      o.value = pair[0];
-      o.textContent = pair[1];
-      if (state.lang === pair[0]) o.selected = true;
-      plus.appendChild(o);
-    });
-    plus.addEventListener("change", function () {
-      if (plus.value) setLang(plus.value, true);
-      else plus.selectedIndex = 0;
-    });
-    row.appendChild(plus);
-    messagesEl.appendChild(row);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
-
   function setLang(code, greet) {
     state.lang = STRINGS[code] ? code : "en";
     state.pinned = true;
     applyI18n();
     renderChips();
+    if (window.RCSwitcher) window.RCSwitcher.refresh();
     if (!greet) return;
     state.sessionId = newSessionId();
     saveSessionId(state.sessionId);
@@ -680,7 +637,7 @@
         ctrl = new AbortController();
         timer = setTimeout(function () { ctrl.abort(); }, timeoutMs);
       }
-      var init = { method: "POST" };
+      var init = { method: (opts && opts.method) || "POST" };
       if (ctrl) init.signal = ctrl.signal;
       if (opts && opts.json !== undefined) {
         init.headers = { "Content-Type": "application/json" };
@@ -1409,9 +1366,12 @@
     applyI18n();
     icons();
 
-    $("langToggle").addEventListener("click", function () {
-      setLang(state.lang === "ar" ? "en" : "ar", true);
-    });
+    if (window.RCSwitcher && $("switcherMount")) {
+      window.RCSwitcher.mount($("switcherMount"), {
+        getLang: function () { return state.lang; },
+        onPick: function (code) { setLang(code, true); }
+      });
+    }
 
     $("composer").addEventListener("submit", function (e) {
       e.preventDefault();
@@ -1505,7 +1465,6 @@
         if (sid !== state.sessionId) return;
         typingOff();
         handleResult(res);
-        showLangRow();
         chipsEl.hidden = false;
         fetchPreviews();
       })
@@ -1518,7 +1477,8 @@
 
   function fetchPreviews() {
     fetchReq("/api/session/" + encodeURIComponent(state.sessionId) +
-             "/previews", { timeoutMs: 15000, retries: 1 })
+             "/previews",
+             { method: "GET", timeoutMs: 15000, retries: 1 })
       .then(function (data) {
         state.prevList = (data && data.previews) || [];
         state.swaps = {};
