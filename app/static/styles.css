@@ -417,7 +417,212 @@ body.ar { font-family: "IBM Plex Sans Arabic", var(--font-body); }
   opacity: 0.7;
 }
 
+.card .seeit {
+  width: 100%;
+  height: 40px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.dropzone.flash {
+  border-color: var(--accent);
+  background: #fff;
+  animation: dzflash 0.8s ease-in-out 2;
+}
+
+@keyframes dzflash {
+  50% { box-shadow: 0 0 0 5px rgba(14, 107, 98, 0.25); }
+}
+
+body.modal-open { overflow: hidden; }
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 25, 18, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 50;
+}
+
+.modal[hidden] { display: none; }
+
+.modal-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  max-width: 860px;
+  width: 100%;
+  max-height: 92vh;
+  overflow: auto;
+  padding: 22px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.3);
+}
+
+.swap-loading { text-align: center; padding: 26px 10px; }
+
+.swap-loading h3 { font-family: "Playfair Display", serif; margin: 14px 0 4px; }
+
+.spinner {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 4px solid var(--line);
+  border-top-color: var(--accent);
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: 14px auto 0;
+  display: inline-block;
+  text-align: start;
+  color: var(--muted);
+}
+
+.steps li { padding: 4px 0 4px 26px; position: relative; }
+
+.steps li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 9px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--card);
+}
+
+.steps li.active { color: var(--ink); font-weight: 600; }
+
+.steps li.active::before {
+  border-color: var(--accent);
+  background: var(--accent);
+  animation: steppulse 1.2s ease-out infinite;
+}
+
+@keyframes steppulse {
+  0% { box-shadow: 0 0 0 0 rgba(14, 107, 98, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(14, 107, 98, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(14, 107, 98, 0); }
+}
+
+.steps li.done { color: var(--accent); }
+
+.steps li.done::before {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.still { color: var(--muted); font-size: 13.5px; margin-top: 12px; }
+
+.ba {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  user-select: none;
+  touch-action: none;
+}
+
+.ba img { display: block; width: 100%; height: auto; }
+
+.ba-before {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  clip-path: inset(0 50% 0 0);
+}
+
+.ba-before img { width: 100%; height: 100%; object-fit: cover; }
+
+.ba-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  background: #fff;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.ba-handle::after {
+  content: "◂ ▸";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  color: var(--ink);
+  font-size: 12px;
+  border-radius: 999px;
+  padding: 5px 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+}
+
+.ba-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: ew-resize;
+  margin: 0;
+}
+
+.ba-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.match-badge {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  font-size: 13.5px;
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+
+.ba-meta .dl {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+
+.ba-meta button {
+  margin-inline-start: auto;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--ink);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .msg, .typing span, .card .swatch img { animation: none; transition: none; }
   .composer .mic.recording, .eq i { animation: none; }
+  .spinner, .steps li.active::before, .dropzone.flash { animation: none; }
 }

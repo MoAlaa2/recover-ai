@@ -51,6 +51,34 @@
   </aside>
 </main>
 
+<div id="swapModal" class="modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <div id="swapLoading" class="swap-loading">
+      <div class="spinner" aria-hidden="true"></div>
+      <h3 id="swapTitle"></h3>
+      <ol id="swapSteps" class="steps">
+        <li data-i18n="stepDetect">Detecting piece</li>
+        <li data-i18n="stepApply">Applying fabric</li>
+        <li data-i18n="stepCheck">Checking match</li>
+      </ol>
+      <p id="swapStill" class="still" data-i18n="stillWorking" hidden>Still working — complex rooms take a few minutes.</p>
+    </div>
+    <div id="swapResult" class="swap-result" hidden>
+      <div class="ba">
+        <img id="baAfterImg" class="ba-after" alt="After">
+        <div id="baBefore" class="ba-before"><img id="baBeforeImg" alt="Before"></div>
+        <div id="baHandle" class="ba-handle" aria-hidden="true"></div>
+        <input id="baRange" class="ba-range" type="range" min="0" max="100" value="50" aria-label="Before and after">
+      </div>
+      <div class="ba-meta">
+        <span id="matchBadge" class="match-badge"></span>
+        <a id="swapDownload" class="dl" download="recover-swap.jpg" data-i18n="downloadLabel">Download</a>
+        <button id="swapClose" type="button" data-i18n="closeLabel">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="/app.js"></script>
 </body>
 </html>
