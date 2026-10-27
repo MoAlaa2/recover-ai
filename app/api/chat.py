@@ -11,7 +11,13 @@ from pydantic import BaseModel, Field
 
 from app.core.config import BASE_DIR, UPLOAD_DIR
 from app.services import consultant
+from app.services.swap import SwapError, swap
 from app.services.voice import AUDIO_EXT, VoiceError, transcribe
+
+PIECE_TARGET = {"sofa": "sofa", "armchair": "armchair", "chair": "armchair",
+                "curtains": "curtains", "cushions": "cushions"}
+TOPIC_TARGET = {"upholstery": "sofa", "curtains": "curtains",
+                "cushions": "cushions"}
 
 router = APIRouter(prefix="/api")
 
@@ -84,6 +90,30 @@ def voice(file: UploadFile = File(...)):
     if not text:
         raise HTTPException(400, "no speech detected")
     return {"text": text}
+
+
+class SwapRequest(BaseModel):
+    session_id: str = ""
+    image_path: str
+    fabric_code: str
+    target: str = ""
+
+
+@router.post("/swap")
+def swap_fabric(req: SwapRequest):
+    target = (req.target or "").lower()
+    if target not in ("sofa", "armchair", "curtains", "cushions"):
+        session = consultant.SESSIONS.get(req.session_id, {})
+        piece = session.get("detected_piece")
+        topic = session.get("topic")
+        target = (PIECE_TARGET.get(piece or "")
+                  or TOPIC_TARGET.get(topic or "") or "sofa")
+    try:
+        return swap(req.image_path, req.fabric_code, target)
+    except SwapError as exc:
+        raise HTTPException(400, str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(502, str(exc))
 
 
 @router.post("/chat")
