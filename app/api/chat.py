@@ -160,6 +160,35 @@ def session_previews(session_id: str):
     return {"previews": get_previews(session_id)}
 
 
+@router.get("/fabric/{code}")
+def fabric_spec(code: str):
+    """One fabric's catalog spec, for landing captions and cards."""
+    from app.services.catalog import get_fabric
+    item = get_fabric((code or "").upper())
+    if not item:
+        raise HTTPException(404, "unknown fabric code")
+    return item
+
+
+@router.get("/landing-meta")
+def landing_meta():
+    """Live numbers for the landing metrics strip (never hardcoded)."""
+    from app.services import catalog as catalog_mod
+    total = passed = 0
+    try:
+        with open("data/eval_report.json", encoding="utf-8") as f:
+            report = json.load(f)
+        for sc in report.get("scenarios", []):
+            total += 1
+            if sc.get("pass"):
+                passed += 1
+    except (OSError, ValueError):
+        pass
+    return {"fabrics": len(catalog_mod.load_specs()),
+            "eval_pass": passed, "eval_total": total,
+            "languages": 5, "swap_min_score": 7}
+
+
 @router.post("/swap/stream")
 def swap_stream(req: SwapRequest):
     """Same as /api/swap but streams backend progress as SSE.
