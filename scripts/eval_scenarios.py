@@ -2,8 +2,11 @@
 
 Runs each scenario in data/scenarios.json as a live multi-turn
 conversation and checks the returned recommendations against
-data/fabric_specs.json fields (never the model's words). Writes
-data/eval_report.json and prints a pass/fail table.
+data/fabric_specs.json fields (never the model's words). Prints a
+pass/fail table. A failing scenario is retried once, then recorded
+as an error without crashing the run. Only a full run with zero
+errors writes data/eval_report.json; scoped (--only) or incomplete
+runs write data/eval_report_partial.json instead.
 """
 import json
 import os
@@ -172,6 +175,36 @@ def run_turns(sid, messages):
     return turns
 
 
+def scenario_entry(sc):
+    """Run one scenario. Returns its report entry (may raise)."""
+    if "variants" in sc:
+        detail = []
+        ok_all = True
+        for n, var in enumerate(sc["variants"]):
+            turns = run_turns("eval-%s-%d" % (sc["id"], n),
+                              [var["message"]])
+            for chk in var["checks"]:
+                ok, info = check(chk, turns, None)
+                detail.append("%s:%s %s (%s)" % (
+                    var["lang"], chk["type"],
+                    "PASS" if ok else "FAIL", info))
+                ok_all = ok_all and ok
+        return {"id": sc["id"], "pass": ok_all, "detail": detail}
+    turns = run_turns("eval-" + sc["id"],
+                      [t["message"] for t in sc["turns"]])
+    detail = []
+    ok_all = True
+    for chk in sc["checks"]:
+        ok, info = check(chk, turns, None)
+        detail.append("%s %s (%s)" % (
+            chk["type"], "PASS" if ok else "FAIL", info))
+        ok_all = ok_all and ok
+    return {"id": sc["id"], "pass": ok_all, "detail": detail}
+
+
+PARTIAL_PATH = os.path.join(BASE_DIR, "data", "eval_report_partial.json")
+
+
 def main(argv=None):
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
@@ -185,37 +218,32 @@ def main(argv=None):
         scenarios = [s for s in scenarios if s["id"] in wanted]
     load_specs()
     report = {"scenarios": []}
+    errors = 0
     for sc in scenarios:
-        if "variants" in sc:
-            detail = []
-            ok_all = True
-            for n, var in enumerate(sc["variants"]):
-                turns = run_turns("eval-%s-%d" % (sc["id"], n),
-                                  [var["message"]])
-                for chk in var["checks"]:
-                    ok, info = check(chk, turns, None)
-                    detail.append("%s:%s %s (%s)" % (
-                        var["lang"], chk["type"],
-                        "PASS" if ok else "FAIL", info))
-                    ok_all = ok_all and ok
-            report["scenarios"].append({"id": sc["id"], "pass": ok_all,
-                                       "detail": detail})
-        else:
-            turns = run_turns("eval-" + sc["id"],
-                              [t["message"] for t in sc["turns"]])
-            detail = []
-            ok_all = True
-            for chk in sc["checks"]:
-                ok, info = check(chk, turns, None)
-                detail.append("%s %s (%s)" % (
-                    chk["type"], "PASS" if ok else "FAIL", info))
-                ok_all = ok_all and ok
-            report["scenarios"].append({"id": sc["id"], "pass": ok_all,
-                                       "detail": detail})
-        print("%-20s %s" % (sc["id"], "PASS" if ok_all else "FAIL"),
+        try:
+            entry = scenario_entry(sc)
+        except Exception:  # noqa: BLE001 - retry once, then record
+            try:
+                entry = scenario_entry(sc)
+            except Exception as exc:  # noqa: BLE001 - never crash run
+                entry = {"id": sc["id"], "pass": False, "status": "error",
+                         "detail": ["error: %s" % exc]}
+                errors += 1
+        report["scenarios"].append(entry)
+        print("%-20s %s" % (entry["id"],
+                            "ERROR" if entry.get("status") == "error"
+                            else "PASS" if entry["pass"] else "FAIL"),
               flush=True)
-    with open(REPORT_PATH, "w", encoding="utf-8") as f:
-        json.dump(report, f, ensure_ascii=False, indent=2)
+    if args.only or errors:
+        # Scoped or incomplete runs never touch the full report.
+        with open(PARTIAL_PATH, "w", encoding="utf-8") as f:
+            json.dump(report, f, ensure_ascii=False, indent=2)
+        if errors and not args.only:
+            print("wrote %s (%d errored); %s untouched"
+                  % (PARTIAL_PATH, errors, REPORT_PATH))
+    else:
+        with open(REPORT_PATH, "w", encoding="utf-8") as f:
+            json.dump(report, f, ensure_ascii=False, indent=2)
     passed = sum(1 for s in report["scenarios"] if s["pass"])
     print("passed %d/%d" % (passed, len(report["scenarios"])))
     for s in report["scenarios"]:
