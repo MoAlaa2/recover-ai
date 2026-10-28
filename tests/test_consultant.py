@@ -750,3 +750,45 @@ def test_confused_message_gets_rephrase_nudge():
     out = c.chat("test-confused", "??", chat_fn=fake)
     assert "confused" in seen["prompt"]
     assert "cushions or sofa" in out["reply"]
+
+
+def test_explicit_request_fallback_no_recs_block():
+    log_path = "/tmp/test-grounding-log.json"
+    if os.path.exists(log_path):
+        os.remove(log_path)
+    old_log, c.GROUNDING_LOG = c.GROUNDING_LOG, log_path
+    try:
+        calls = {"n": 0}
+
+        def fake(messages, tools=None):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return tool_call("search_catalog",
+                                {"usage": "upholstery"})
+            return final_text("Which style do you prefer — modern or "
+                              "classic?")
+
+        out = c.chat("test-explicit-fallback",
+                     "please recommend something for my sofa",
+                     chat_fn=fake)
+        assert calls["n"] == 2
+        codes = [r["code"] for r in out["recommendations"]]
+        assert len(codes) == 3
+        assert all(get_fabric(code) for code in codes)
+        assert "closest matches" in out["reply"]
+        log = json.load(open(log_path, encoding="utf-8"))
+        assert log[-1]["path"] == "fallback"
+        assert log[-1]["final_codes"] == codes
+    finally:
+        c.GROUNDING_LOG = old_log
+
+
+def test_no_fallback_on_question_turn():
+    def fake(messages, tools=None):
+        return final_text("Which style do you prefer — modern or "
+                          "classic?")
+
+    out = c.chat("test-question-turn",
+                 "what colors do you have for sofas?", chat_fn=fake)
+    assert out["recommendations"] == []
+    assert "closest matches" not in out["reply"]

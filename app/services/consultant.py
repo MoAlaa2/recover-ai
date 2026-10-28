@@ -784,6 +784,7 @@ def execute_tool(name, args, turn, on_step=None):
 
 def _execute_tool(name, args, turn, on_step=None):
     if name == "search_catalog":
+        turn["searched"] = True
         if on_step:
             on_step("search")
             snag = [f for f in _as_list((args or {}).get("snag_levels"))]
@@ -868,6 +869,18 @@ def agent_turn(messages, chat_fn, turn, on_token=None, on_step=None):
     return LOOP_FALLBACK, True
 
 
+WANTS_RECS_RE = re.compile(
+    r"recommend|recommendation|show me options|show options|"
+    r"رشح|رشّح|اقترح|وريني|اعرض|الخيارات|"
+    r"सुझाव|recommand|recomiend",
+    re.IGNORECASE)
+
+
+def wants_recommendations(message):
+    """True when the user explicitly asks to see recommendations."""
+    return bool(WANTS_RECS_RE.search(message or ""))
+
+
 def valid_recommendations(data, seen):
     """Check exactly 3 grounded codes. Returns (recs, bad_code).
 
@@ -942,7 +955,7 @@ def turn_for(message):
         protected.append("pet-friendly")
     if has_kids(message):
         protected.extend(["washable", "antibacterial"])
-    return {"seen": [], "relaxed": [],
+    return {"seen": [], "relaxed": [], "searched": False,
             "needs_any": pet_needs, "needs_all": core_needs,
             "protected": protected,
             "pet_safe": has_pets(message),
@@ -1102,7 +1115,9 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
 
     recommendations = recs if (recs and not bad) else []
     used_fallback = False
-    if not recommendations and (attempted or exhausted) and seen_codes:
+    explicit = wants_recommendations(message) and turn.get("searched")
+    if not recommendations and (attempted or exhausted or explicit) \
+            and seen_codes:
         arabic = (turn.get("lang") or "en") == "ar"
         top = seen_codes[:3]
         reason = ("أقرب خيار لاحتياجك من هذا البحث." if arabic else
