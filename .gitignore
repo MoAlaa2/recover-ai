@@ -223,4 +223,5 @@ __marimo__/
 uploads/
 results/
 data/grounding_log.json
+data/eval_report_partial.json
 docs/HANDOFF.md
