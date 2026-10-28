@@ -1,121 +1,130 @@
-# ReCover — AI Fabric and Upholstery Consultant
+# ReCover — see your own furniture in a new fabric
 
 > **"Change the look, not the furniture."**
 
-ReCover is an AI consultant that recommends suitable fabrics and upholstery
-for furniture pieces, with practical explanations for each choice.
+ReCover is an AI upholstery consultant: photograph your sofa, describe
+your home (kids, cats, sun, budget) in any language, and see your own
+furniture reupholstered on screen — then reupholster instead of replacing.
 
-## Models
+## The problem
 
-- **muse-spark-1.3** — analysis, conversation, verification, tagging
-- **muse-image-1.0** — swatch image generation
-- **SAM 3.1** — upholstery region segmentation (planned)
+Most sofas are thrown out for their fabric, not their frame:
 
-## Fabric catalog
+- **12.1M** tons of furniture thrown away in the US in one year
+  (US EPA, 2018); **~80%** of it ends up in landfill (US EPA, 2018).
+- **10M+** tonnes of furniture discarded each year in the EU
+  (EEB, 2017).
+- Roughly **70 kg of CO₂e avoided per reupholstered sofa**
+  (estimate — illustrative, not measured).
 
-80 fabrics in `data/fabric_specs.json`, 5 collections x 16 (8 plain +
-8 patterned): Velvet Luxe (FA-VL), Natural Living (FA-NL), Light & Air
-sheers (FA-LA), Shade & Calm opaque curtains (FA-SC), Accent cushions
-(FA-AC, incl. 2 Saudi Sadu patterns). Each fabric carries EN/AR names and
-descriptions, material specs, features, pricing, and an image prompt.
+Reupholstering gives a good frame another ten years and keeps bulk
+waste down. ReCover removes the two reasons people replace instead:
+not knowing which fabric survives their home, and not being able to
+picture the result.
 
-Pipeline (all keys from `.env` only):
+## What it does
 
-- `scripts/generate_images.py` — renders `data/catalog/[code].jpg`
-  (`--test`, `--only`, `--force`).
-- `scripts/verify_catalog.py` — scores every swatch against its spec
-  with vision (`--only`), writes `data/verify_report.json`.
-- `scripts/fix_catalog.py` — rewrites weak prompts, regenerates,
-  re-verifies (keeps the best of 2 tries), logs to `data/fix_log.json`.
-- `scripts/tag_snag_risk.py` — vision-tags `snag_risk`
-  (low/medium/high) for pet safety.
-- `scripts/contact_sheet.py` — builds `data/contact_sheet.html`, a
-  review grid with scores and snag chips.
+- **Consultant flow** — a real multi-turn agent (never a fixed
+  questionnaire) that learns the piece, room, style, users and budget
+  one question at a time, in the customer's language.
+- **Room analysis** — upload a photo (or pick a sample room) and get
+  room type, style, light level, detected piece and a wall-color
+  palette.
+- **Grounded recommendations** — exactly 3 fabrics per turn, every code
+  validated against this turn's catalog search; receipts show what
+  matched (`✓ Pet-friendly`) and what was relaxed (`⚠ 155 SAR/m —
+  5 over budget`), with real numbers, never vague claims. If the model
+  fumbles the codes, it retries against the exact valid list; if that
+  fails, a deterministic top-3 fallback kicks in — a recommendation
+  turn never comes back empty.
+- **Voice in any language** — hold-to-talk transcription; the text
+  flows through the same chat path, so language detection is unchanged.
+- **Live language switching (5 live)** — English, العربية, हिन्दी,
+  Français, Español across chat, voice and UI, with RTL for Arabic.
+- **Part-accurate swap** — SAM 3.1 segments the piece, Muse Image
+  reupholsters only that region, the result is composited back with a
+  feathered edge (rest of the room pixel-identical), and Spark verifies
+  color/pattern/scale, retrying once below 7/10. Live per-step progress.
+- **Previews + compare** — every swap is stored per session (refresh
+  safe), with a before/after slider, match badge and side-by-side
+  compare.
+- **Sample rooms** — living room, Saudi majlis and armchair photos to
+  try instantly (`/consult?sample=living`).
 
-## Consultant (backend only, no UI yet)
+## Meta models used
 
-`app/services/consultant.py` is a real multi-turn agent on
-muse-spark-1.3 with native tool calling: `search_catalog`,
-`get_fabric`, `analyze_room`. The model never sees the full catalog.
+| Model | Role | File |
+|---|---|---|
+| `muse-spark-1.3` | Consultant agent, room vision, swap verify, catalog verify/tagging | `app/services/consultant.py`, `scripts/verify_catalog.py`, `scripts/tag_snag_risk.py` |
+| `muse-image-1.0` | Catalog swatches, sample rooms, fabric edit in swaps | `scripts/generate_images.py`, `scripts/generate_samples.py`, `app/services/swap.py` |
+| `sam-3.1` | Piece segmentation for swaps (own lossless codec) | `app/services/sam_codec.py`, `app/services/swap.py` |
+| `muse-voice-transcribe-1.0` | Voice input transcription | `app/services/voice.py` |
 
-- Session memory per `session_id` (in-memory); needs accumulate
-  across turns.
-- Expert rules merged into every search: needs mapping (pets, kids,
-  hotel, allergies), pet-safe filtering (no boucle/honeycomb, tight
-  weaves first), vision-based snag gate for pets (low only, medium as
-  fallback), functional-fit ranking, in-budget preference, honest
-  relaxed-constraint disclosure, light-color warnings for kids/pets,
-  piece confirmation from room photos.
-- Scope guard: home topics are answered; math, coding, news, personal
-  advice and the like get one polite decline line, no model call.
-- Replies in the user's language (Saudi dialect Arabic supported);
-  language is detected in code and pinned per session.
+## Architecture
 
-API (`app/`, FastAPI):
+```mermaid
+flowchart LR
+    Browser["Browser<br/>(landing + consult UI)"] --> API["FastAPI<br/>app/main.py, app/api/chat.py"]
+    API --> Consultant["services/consultant.py<br/>agent + tools + receipts"]
+    API --> Catalog["services/catalog.py<br/>80-fabric specs + search"]
+    API --> Swap["services/swap.py<br/>segment → edit → composite → verify"]
+    API --> Voice["services/voice.py<br/>transcribe"]
+    Consultant --> MetaAPI["Meta Model API<br/>Spark · Image · SAM 3.1 · Voice"]
+    Swap --> MetaAPI
+    Voice --> MetaAPI
+```
 
-- `POST /api/chat {session_id, message, image_path?}` →
-  `{reply, recommendations[], room_analysis?}`
-- `POST /api/upload` — image upload, converts webp/heic to JPG.
+Two pages, no build step: `/` serves `app/static/landing.html`,
+`/consult` serves the consultant app (`app/static/index.html`).
+Streaming chat and swap progress run over SSE.
 
-## Eval suite
+## Quality
 
-`scripts/eval_scenarios.py` + `data/scenarios.json`: 15 scripted
-multi-turn scenarios checked against catalog fields (fire resistance,
-Martindale, blackout, snag risk, Sadu presence, 5-language replies,
-off-topic handling, ...). Writes `data/eval_report.json`.
+- **Unit tests** — 80 tests (`tests/`), covering grounding fallback,
+  receipts honesty, streaming fences, swap composite/codec and voice.
+- **Scenario eval** — `scripts/eval_scenarios.py` + `data/scenarios.json`
+  (16 scripted multi-turn scenarios incl. Arabic/Hindi/French/Spanish
+  replies and off-topic guarding). Last full run: **16/16**.
+- **Self-correcting catalog loop** — every swatch is vision-scored
+  against its spec; weak prompts are rewritten and regenerated
+  automatically (`scripts/fix_catalog.py`, log in `data/fix_log.json`).
 
-## Run everything
+## Demo Catalog
+
+The 80 fabrics and their images were generated with Muse Image
+(`muse-image-1.0`) from structured specs for this hackathon, then
+verified and tagged with Muse Spark (material/color/pattern match,
+snag risk for pet owners). In production, suppliers upload real fabric
+photos and Muse Spark auto-builds the catalog — the pipeline already
+supports that path.
+
+## Run locally
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-
-# API + terminal chat
-uvicorn app.main:app --port 8000
-python scripts/chat_cli.py
-
-# Catalog pipeline
-python scripts/generate_images.py --test
-python scripts/verify_catalog.py
-python scripts/fix_catalog.py
-python scripts/tag_snag_risk.py
-python scripts/contact_sheet.py
-
-# Tests and eval
-pytest tests/ -q
-python scripts/eval_scenarios.py [--only <scenario>]
+pip install -r requirements.txt   # includes ffmpeg for voice notes
 ```
 
-## Project structure
+Create `.env` in the repo root (never commit it) with your key:
 
-```text
-recover-ai/
-├── app/                # FastAPI app
-│   ├── api/            # chat + upload routes
-│   ├── core/           # settings (key from .env only)
-│   ├── services/       # catalog store + consultant agent
-│   └── schemas/        # (reserved for Pydantic models)
-├── data/               # specs, catalog images, reports, sheet
-├── scripts/            # catalog + eval tooling
-├── tests/              # pytest suite
-├── uploads/            # uploaded images (gitignored)
-├── results/            # generated results (gitignored)
-├── requirements.txt
-└── README.md
+```bash
+MODEL_API_KEY=<your key>
 ```
 
-## Fixed rules
+Then:
 
-- All code is new and does not depend on any legacy files.
-- The key is read from `.env` only and must never appear in code.
-- Python + FastAPI.
-- Never change anything working without asking the project owner.
-- Commit after every working step.
+```bash
+.venv/bin/python -m uvicorn app.main:app --port 8000
+# open http://localhost:8000/ (landing) and /consult (app)
+.venv/bin/python -m pytest tests/ -q
+.venv/bin/python scripts/eval_scenarios.py
+```
 
-## Language rule
+## Built during the hackathon (Oct 26 – Nov 4, 2026)
 
-- All code, comments, commit messages, docs, and README are in English.
-- The app itself is bilingual for end users: the consultant replies in the
-  customer's language (English, Arabic in refined Saudi dialect, or any other
-  language they write in).
-- The UI defaults to English with an Arabic toggle (RTL).
+ReCover was built end-to-end during the hackathon window: catalog +
+self-correcting verification, consultant agent with expert
+(pets/kids/fire/blackout) and scope rules, deterministic reply
+language, voice input, part-accurate fabric swap, streaming chat,
+Arabic/RTL UX, landing page with live metrics, and the eval suite —
+each part committed as it started working.

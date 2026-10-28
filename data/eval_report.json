@@ -54,9 +54,9 @@
     },
     {
       "id": "allergy-sofa",
-      "pass": false,
+      "pass": true,
       "detail": [
-        "recs_min_count FAIL (0 recs)",
+        "recs_min_count PASS (3 recs)",
         "hypo_or_disclosed PASS (relaxation disclosed)"
       ]
     },
