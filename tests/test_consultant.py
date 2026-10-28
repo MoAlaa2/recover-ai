@@ -1,5 +1,6 @@
 """Consultant behavior tests (model calls are faked)."""
 import json
+import os
 
 from app.services import consultant as c
 from app.services.catalog import (contains_egyptian, get_fabric, is_arabic,
@@ -638,6 +639,104 @@ def test_empty_reply_falls_back_localized():
     assert c.empty_fallback(False, True, "ar") == (
         "هذه أفضل اختياراتي لك:")
     assert c.empty_fallback(False, False, "xx").startswith("Could you")
+
+
+def test_grounding_retry_lists_exact_codes():
+    import re
+    log_path = "/tmp/test-grounding-log.json"
+    if os.path.exists(log_path):
+        os.remove(log_path)
+    old_log, c.GROUNDING_LOG = c.GROUNDING_LOG, log_path
+    try:
+        calls = {"n": 0}
+        nudge = {}
+
+        def fake(messages, tools=None):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return tool_call("search_catalog", {"usage": "upholstery"})
+            if calls["n"] == 2:
+                return final_text(block(["FA-XX-01", "FA-XX-02",
+                                         "FA-XX-03"]))
+            last_user = [m for m in messages
+                         if m.get("role") == "user"][-1]["content"]
+            m = re.search(r"nothing else: ([A-Z0-9\-, ]+)\.", last_user)
+            assert m, "retry must name the exact valid list"
+            nudge["list"] = [x.strip() for x in m.group(1).split(",")]
+            return final_text(block(nudge["list"][:3]))
+
+        out = c.chat("test-ground-retry", "sofa fabric please",
+                     chat_fn=fake)
+        assert calls["n"] == 3
+        codes = [r["code"] for r in out["recommendations"]]
+        assert codes == nudge["list"][:3]
+        assert all(code in nudge["list"] for code in codes)
+        log = json.load(open(log_path, encoding="utf-8"))
+        assert log[-1]["path"] == "retry_ok"
+        assert log[-1]["final_codes"] == codes
+    finally:
+        c.GROUNDING_LOG = old_log
+
+
+def test_grounding_fallback_top3():
+    log_path = "/tmp/test-grounding-log.json"
+    if os.path.exists(log_path):
+        os.remove(log_path)
+    old_log, c.GROUNDING_LOG = c.GROUNDING_LOG, log_path
+    try:
+        calls = {"n": 0}
+
+        def fake(messages, tools=None):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return tool_call("search_catalog", {"usage": "upholstery"})
+            if calls["n"] == 2:
+                return final_text(block(["FA-XX-01", "FA-XX-02",
+                                         "FA-XX-03"]))
+            return final_text(block(["FA-YY-01", "FA-YY-02", "FA-YY-03"]))
+
+        out = c.chat("test-ground-fallback", "sofa fabric please",
+                     chat_fn=fake)
+        assert calls["n"] == 3
+        codes = [r["code"] for r in out["recommendations"]]
+        assert len(codes) == 3
+        assert all(get_fabric(code) for code in codes)
+        assert "closest matches" in out["reply"]
+        assert "```" not in out["reply"]
+        enriched = out["recommendations"]
+        assert all("price_sar_per_m" in r for r in enriched)
+        log = json.load(open(log_path, encoding="utf-8"))
+        assert log[-1]["path"] == "fallback"
+        assert log[-1]["final_codes"] == codes
+    finally:
+        c.GROUNDING_LOG = old_log
+
+
+def test_grounding_fallback_on_exhaustion():
+    log_path = "/tmp/test-grounding-log.json"
+    if os.path.exists(log_path):
+        os.remove(log_path)
+    old_log, c.GROUNDING_LOG = c.GROUNDING_LOG, log_path
+    try:
+        calls = {"n": 0}
+
+        def fake(messages, tools=None):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return tool_call("search_catalog", {"usage": "upholstery"})
+            return tool_call("get_fabric", {"code": "FA-NL-07"},
+                             call_id="t%d" % calls["n"])
+
+        out = c.chat("test-ground-exhaust", "recommend now", chat_fn=fake)
+        assert calls["n"] == 4
+        codes = [r["code"] for r in out["recommendations"]]
+        assert len(codes) == 3
+        assert all(get_fabric(code) for code in codes)
+        assert "closest matches" in out["reply"]
+        log = json.load(open(log_path, encoding="utf-8"))
+        assert log[-1]["path"] == "fallback"
+    finally:
+        c.GROUNDING_LOG = old_log
 
 
 def test_confused_message_gets_rephrase_nudge():

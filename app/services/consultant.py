@@ -517,6 +517,25 @@ def empty_fallback(has_options, has_recs, lang):
     return pack.get(lang) or pack["en"]
 
 
+GROUNDING_LOG = os.path.join(BASE_DIR, "data", "grounding_log.json")
+
+
+def log_grounding(session_id, bad, path, codes):
+    """Append one grounding failure record: what failed, how resolved."""
+    entry = {"ts": time.time(), "session_id": session_id or "",
+             "bad": bad or "", "path": path, "final_codes": codes or []}
+    try:
+        log = []
+        if os.path.exists(GROUNDING_LOG):
+            with open(GROUNDING_LOG, encoding="utf-8") as f:
+                log = json.load(f)
+        log.append(entry)
+        with open(GROUNDING_LOG, "w", encoding="utf-8") as f:
+            json.dump(log, f, ensure_ascii=False, indent=1)
+    except (OSError, ValueError):
+        pass
+
+
 def split_final(final_text, turn):
     """Split final model text into (reply, options, recommendations).
 
@@ -792,8 +811,15 @@ def _execute_tool(name, args, turn, on_step=None):
     return {"error": "unknown tool " + str(name)}
 
 
+LOOP_FALLBACK = "Let me show you what I found so far."
+
+
 def agent_turn(messages, chat_fn, turn, on_token=None, on_step=None):
-    """Run the tool loop. Returns the model's final text.
+    """Run the tool loop. Returns (final text, exhausted).
+
+    exhausted is True when the model kept calling tools through
+    MAX_TOOL_ROUNDS without ever writing a final answer. Callers use it
+    to trigger the deterministic recommendations fallback.
 
     When on_token is given (and chat_fn is None), the live API is used
     in streaming mode and content deltas are pushed to on_token as
@@ -811,7 +837,7 @@ def agent_turn(messages, chat_fn, turn, on_token=None, on_step=None):
                 tail = shown.flush()
                 if tail:
                     on_token(tail)
-                return text
+                return text, False
             messages.append({"role": "assistant", "content": text or None,
                              "tool_calls": calls})
         else:
@@ -822,7 +848,7 @@ def agent_turn(messages, chat_fn, turn, on_token=None, on_step=None):
             if not calls:
                 if on_token and text:
                     on_token(text)
-                return text
+                return text, False
             messages.append({"role": "assistant",
                              "content": msg.get("content"),
                              "tool_calls": calls})
@@ -839,7 +865,7 @@ def agent_turn(messages, chat_fn, turn, on_token=None, on_step=None):
             messages.append({"role": "tool", "tool_call_id": tc["id"],
                              "content": json.dumps(output,
                                                    ensure_ascii=False)})
-    return "Let me show you what I found so far."
+    return LOOP_FALLBACK, True
 
 
 def valid_recommendations(data, seen):
@@ -1044,31 +1070,53 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     history.append({"role": "user", "content": user_text})
     if on_step and image_path:
         on_step("room")
-    final_text = agent_turn(list(history), chat_fn, turn,
-                            on_token=on_token, on_step=on_step)
+    final_text, exhausted = agent_turn(list(history), chat_fn, turn,
+                                         on_token=on_token,
+                                         on_step=on_step)
     extracted = extract_recommendations(final_text)
     recs, bad = (None, None)
     if extracted is not None:
         recs, bad = valid_recommendations(extracted, turn["seen"])
+    attempted = extracted is not None
+    ground_bad = bad if isinstance(bad, str) else ""
 
+    seen_codes = [c for c in turn["seen"] if get_fabric(c)]
     if bad:
-        seen_codes = [c for c in turn["seen"] if get_fabric(c)]
         history.append({"role": "assistant", "content": final_text})
         history.append({"role": "user", "content":
-                        "Code %s is not allowed: use only codes from your "
-                        "tool results%s, same reply text, ending with the "
+                        "Code %s is not allowed. You must pick exactly 3 "
+                        "codes from this exact list and nothing else: %s. "
+                        "Same reply text, ending with the "
                         "```recommendations block."
-                        % (bad, " (for example %s)" % ", ".join(
-                            seen_codes[:5]) if seen_codes else "")})
-        final_text = agent_turn(list(history), chat_fn, turn,
-                                    on_token=on_token, on_step=on_step)
+                        % (bad, ", ".join(seen_codes) or "none")})
+        final_text, retry_exhausted = agent_turn(
+            list(history), chat_fn, turn,
+            on_token=on_token, on_step=on_step)
+        exhausted = exhausted or retry_exhausted
         extracted = extract_recommendations(final_text)
         if extracted is not None:
+            attempted = True
             recs, bad = valid_recommendations(extracted, turn["seen"])
         else:
             recs, bad = None, None
 
     recommendations = recs if (recs and not bad) else []
+    used_fallback = False
+    if not recommendations and (attempted or exhausted) and seen_codes:
+        arabic = (turn.get("lang") or "en") == "ar"
+        top = seen_codes[:3]
+        reason = ("أقرب خيار لاحتياجك من هذا البحث." if arabic else
+                  "Closest match for your needs from this search.")
+        recommendations = [{"code": code, "reason": reason}
+                           for code in top]
+        used_fallback = True
+        log_grounding(session_id,
+                      ground_bad or (bad if isinstance(bad, str) else ""),
+                      "fallback", top)
+    elif ground_bad or (exhausted and not recommendations):
+        log_grounding(session_id, ground_bad,
+                      "retry_ok" if recommendations else "unresolved",
+                      [r["code"] for r in recommendations])
 
     reply = strip_block(final_text)
     options = extract_options(reply) or []
@@ -1079,7 +1127,7 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
         nudge = ("[System: your last reply had no visible text. Say it "
                  "again with at least one full sentence of visible prose "
                  "before any fenced block.]")
-        retry_text = agent_turn(
+        retry_text, _ = agent_turn(
             list(history) + [{"role": "user", "content": nudge}],
             chat_fn, turn, on_token=on_token, on_step=on_step)
         retry_reply, retry_options, retry_recs = split_final(
@@ -1114,6 +1162,12 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
                                 who)
         if note and note not in reply:
             reply = (reply + "\n\n" + note).strip()
+    if used_fallback:
+        arabic = (turn.get("lang") or "en") == "ar"
+        line = ("هذه أقرب الخيارات اللي لقيتها لك:" if arabic else
+                "These are the closest matches I found for you:")
+        if "closest match" not in reply.lower() and "أقرب" not in reply:
+            reply = (reply + "\n\n" + line).strip()
     history.append({"role": "assistant", "content": final_text})
     trim_history(history)
 
