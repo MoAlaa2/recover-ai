@@ -22,6 +22,7 @@
       micLabel: "Voice input",
       steps: { search: "Searching 80 fabrics…", claw: "Checking claw safety…", details: "Comparing details…", room: "Reading your room's colors…" },
       needPhoto: "Please upload a room photo first, then tap “See it in my space” again.",
+      uploadRetry: "Upload didn't go through — check your connection and try again.",
       roomView: "View",
       roomSub: "Your room",
       takePhoto: "Take or upload a photo",
@@ -90,6 +91,7 @@
       micLabel: "إدخال صوتي",
       steps: { search: "أدوّر في ٨٠ قماش…", claw: "أتأكد إنها آمنة من الخدش…", details: "أقارن التفاصيل…", room: "أقرأ ألوان مساحتك…" },
       needPhoto: "ارفع صورة غرفتك أول، بعدين اضغط “شاهدها في مساحتك”.",
+      uploadRetry: "ما تم الرفع — تأكد من الاتصال وحاول مرة ثانية.",
       roomView: "عرض",
       roomSub: "غرفتك",
       takePhoto: "صوّر أو ارفع صورة",
@@ -156,6 +158,7 @@
       voiceFail: "माफ़ करें, सुन नहीं पाया। फिर कोशिश करें।",
       micLabel: "आवाज़ से पूछें",
       needPhoto: "पहले कमरे की फोटो भेजें, फिर “इसे अपनी जगह पर देखें” दबाएँ।",
+      uploadRetry: "अपलोड नहीं हुआ — कनेक्शन देखकर फिर कोशिश करें।",
       roomView: "देखें",
       roomSub: "आपका कमरा",
       takePhoto: "फोटो लें या अपलोड करें",
@@ -224,6 +227,7 @@
       voiceFail: "Désolé, je n'ai pas entendu. Réessayez.",
       micLabel: "Entrée vocale",
       needPhoto: "Envoyez d'abord une photo, puis touchez « Voir chez moi ».",
+      uploadRetry: "Envoi interrompu — vérifiez la connexion et réessayez.",
       roomView: "Voir",
       roomSub: "Votre pièce",
       takePhoto: "Prendre ou envoyer une photo",
@@ -292,6 +296,7 @@
       voiceFail: "Perdón, no te escuché. Inténtalo de nuevo.",
       micLabel: "Entrada de voz",
       needPhoto: "Sube primero una foto y luego toca «Verlo en mi espacio».",
+      uploadRetry: "No se pudo subir — revisa tu conexión e inténtalo de nuevo.",
       roomView: "Ver",
       roomSub: "Tu espacio",
       takePhoto: "Toma o sube una foto",
@@ -763,6 +768,7 @@
         if (!r.ok) {
           var err = new Error("HTTP " + r.status);
           err.http = true;
+          err.status = r.status;
           throw err;
         }
         return r.json();
@@ -1531,6 +1537,32 @@
         return Promise.resolve(file);
       }
     }
+    function canvasToJpeg(canvas) {
+      function viaDataURL() {
+        try {
+          var parts = canvas.toDataURL("image/jpeg", 0.85).split(",");
+          var bin = atob(parts[1]);
+          var arr = new Uint8Array(bin.length);
+          for (var i = 0; i < bin.length; i++) {
+            arr[i] = bin.charCodeAt(i);
+          }
+          return new Blob([arr], { type: "image/jpeg" });
+        } catch (e) {
+          return null;
+        }
+      }
+      return new Promise(function (resolve) {
+        if (canvas.toBlob) {
+          try {
+            canvas.toBlob(function (blob) {
+              resolve(blob || viaDataURL() || file);
+            }, "image/jpeg", 0.85);
+            return;
+          } catch (e) {}
+        }
+        resolve(viaDataURL() || file);
+      });
+    }
     return decoded.then(function (bmp) {
       var w = bmp.width, h = bmp.height;
       if (!w || !h) return file;
@@ -1541,15 +1573,7 @@
       canvas.getContext("2d").drawImage(bmp, 0, 0, canvas.width,
                                         canvas.height);
       if (bmp.close) bmp.close();
-      return new Promise(function (resolve) {
-        if (canvas.toBlob) {
-          canvas.toBlob(function (blob) {
-            resolve(blob || file);
-          }, "image/jpeg", 0.85);
-        } else {
-          resolve(file);
-        }
-      });
+      return canvasToJpeg(canvas);
     }).catch(function () {
       return file;
     });
@@ -1562,6 +1586,7 @@
     chipsEl.hidden = true;
     state.booted = true;
     var note = addMsg(t("analyzing"), "them");
+    var savedPath = null;
     preparePhoto(file).then(function (ready) {
       fd.append("file", ready,
                 ready === file ? (file.name || "photo.jpg") : "photo.jpg");
@@ -1569,20 +1594,22 @@
                                       retries: 1 });
     })
       .then(function (data) {
+        // Room state only commits once the follow-up chat confirms the
+        // photo: a chat failure must never leave a broken canvas behind.
+        savedPath = data.image_path;
         note.remove();
-        state.roomPhoto = data.image_path;
-        state.canvasView = null;
-        renderCanvas();
         typingOn();
         return postJSON("/api/chat", {
           session_id: state.sessionId,
           message: "",
-          image_path: data.image_path,
+          image_path: savedPath,
           lang: state.pinned ? state.lang : null
         }, 120000, 1);
       })
       .then(function (res) {
         typingOff();
+        state.roomPhoto = savedPath;
+        state.canvasView = null;
         handleResult(res);
         if (state.expectFirst === "sample") {
           state.expectFirst = null;
@@ -1594,11 +1621,19 @@
           openSwap(code);
         }
       })
-      .catch(function () {
+      .catch(function (err) {
         typingOff();
         note.remove();
         state.expectFirst = null;
-        addMsg(t("uploadFail"), "them");
+        state.roomPhoto = null;
+        state.canvasView = null;
+        renderCanvas();
+        if (typeof console !== "undefined" && console.error) {
+          console.error("upload failed",
+                        err && (err.status || err.message));
+        }
+        addMsg(t(err && err.status === 400 ? "uploadFail" : "uploadRetry"),
+               "them");
       });
   }
 
@@ -1827,6 +1862,10 @@
     });
     $("roomView").addEventListener("click", openSheet);
     $("roomThumbBtn").addEventListener("click", openSheet);
+    $("roomThumb").addEventListener("error", function () {
+      var bar = $("roomBar");
+      if (bar) bar.hidden = true;
+    });
     $("sheetClose").addEventListener("click", closeSheet);
     (function sheetSwipe() {
       var pane = document.querySelector(".canvas-pane");

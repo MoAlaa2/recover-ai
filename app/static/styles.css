@@ -1170,7 +1170,12 @@ body.modal-open { overflow: hidden; }
 .sheet-close { display: none; }
 
 @media (max-width: 719px) {
-  .consult { display: block; height: 100dvh; }
+  .consult {
+    display: block;
+    height: 100vh;
+    height: 100svh;
+    height: 100dvh;
+  }
   .canvas-pane { display: none; }
   body.sheet-open { overflow: hidden; }
   body.sheet-open .canvas-pane {
@@ -1243,7 +1248,13 @@ body.modal-open { overflow: hidden; }
     text-overflow: ellipsis;
   }
   .room-meta span { font-size: var(--rc-fs-xs); color: var(--rc-ink-muted); }
-  .chat-pane { height: 100dvh; min-height: 0; border: none; }
+  .chat-pane {
+    height: 100vh;
+    height: 100svh;
+    height: 100dvh;
+    min-height: 0;
+    border: none;
+  }
   .chat-pane .messages { max-height: none; }
   .chat-pane .recs {
     flex-direction: row;
@@ -1261,8 +1272,9 @@ body.modal-open { overflow: hidden; }
   .composer {
     position: sticky;
     bottom: 0;
+    z-index: 6;
     background: var(--rc-paper);
-    padding: 8px 12px calc(env(safe-area-inset-bottom, 0px) + var(--kb, 0px) + 8px);
+    padding: 8px 12px calc(12px + env(safe-area-inset-bottom, 0px) + var(--kb, 0px));
     margin-top: 0;
   }
 }

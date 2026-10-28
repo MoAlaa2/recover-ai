@@ -1,13 +1,12 @@
 """Mobile overflow guard: no sideways scrolling on phones.
 
-Runs the real static pages in headless Chrome (iPhone UA) at 360/390/430px
-and asserts documentElement.scrollWidth == clientWidth for: landing,
-consult empty, switcher open, and consult with photo + rec cards.
-Photo/rec states are injected into the DOM (no model calls) because this
-test guards layout, not the chat flow.
+Runs the real static pages in headless WebKit (iPhone 15 Pro) at
+360/390/430px and asserts documentElement.scrollWidth == clientWidth
+for: landing, consult empty, switcher open, and consult with photo +
+rec cards. Photo/rec states are injected into the DOM (no model calls)
+because this test guards layout, not the chat flow.
 """
 import os
-import shutil
 import socket
 import subprocess
 import sys
@@ -17,11 +16,7 @@ import urllib.request
 import pytest
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 WIDTHS = (360, 390, 430)
-UA = ("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
-      "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 "
-      "Mobile/15E148 Safari/604.1")
 
 INJECT_PHOTO = """() => {
   document.getElementById('canvasEmpty').hidden = true;
@@ -89,18 +84,18 @@ def measure(pg, url, setup=None):
 
 @pytest.mark.parametrize("width", WIDTHS)
 def test_no_horizontal_overflow(server, width):
-    if not shutil.which("node") or not os.path.exists(CHROME):
-        pytest.skip("system Chrome not available")
     pw = pytest.importorskip("playwright.sync_api")
     states = [("/", None), ("/consult", None),
               ("/consult", "switcher"), ("/consult", "photo"),
               ("/consult", "recs")]
     with pw.sync_playwright() as p:
-        browser = p.chromium.launch(executable_path=CHROME,
-                                    args=["--no-sandbox"])
-        ctx = browser.new_context(
-            viewport={"width": width, "height": 844}, user_agent=UA,
-            is_mobile=True, has_touch=True)
+        try:
+            browser = p.webkit.launch()
+            device = dict(p.devices["iPhone 15 Pro"])
+        except Exception:  # noqa: BLE001 - WebKit not installed here
+            pytest.skip("WebKit not available")
+        device["viewport"] = {"width": width, "height": 844}
+        ctx = browser.new_context(**device)
         pg = ctx.new_page()
         try:
             for path, setup in states:

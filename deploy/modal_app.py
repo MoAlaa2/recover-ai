@@ -32,6 +32,50 @@ image = (
 vol = modal.Volume.from_name("recover-data", create_if_missing=True)
 
 
+class VolumeCommitMiddleware:
+    """Commit the persistent Volume after runtime file writes.
+
+    Modal only guarantees cross-container visibility of volume writes
+    after an explicit commit. Uploads, masks and swap results must be
+    readable by the very next request, which may land on a different
+    container, so commit right after the write paths respond.
+    """
+
+    PATHS = ("/api/upload", "/api/swap", "/api/session/")
+
+    def __init__(self, inner, volume):
+        self.inner = inner
+        self.volume = volume
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") != "http":
+            await self.inner(scope, receive, send)
+            return
+        path = scope.get("path", "")
+        method = scope.get("method", "")
+        # GET /api/session/{id}/targets writes mask files to the volume.
+        watched = (method in ("POST", "PUT", "DELETE")
+                   and any(path == p or path.startswith(p)
+                           for p in self.PATHS))
+        watched = watched or (method == "GET"
+                              and path.startswith("/api/session/"))
+        if not watched:
+            await self.inner(scope, receive, send)
+            return
+        committed = []
+
+        async def send_and_commit(message):
+            await send(message)
+            if (watched and message["type"] == "http.response.body"
+                    and not message.get("more_body")
+                    and not committed):
+                committed.append(True)
+                import asyncio
+                await asyncio.to_thread(self.volume.commit)
+
+        await self.inner(scope, receive, send_and_commit)
+
+
 class DemoLockMiddleware:
     """HTTP Basic Auth on every route when DEMO_LOCK=1.
 
@@ -116,4 +160,4 @@ def web():
     import sys
     sys.path.insert(0, "/root/recover")
     from app.main import app as fastapi_app
-    return DemoLockMiddleware(fastapi_app)
+    return DemoLockMiddleware(VolumeCommitMiddleware(fastapi_app, vol))

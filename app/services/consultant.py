@@ -58,7 +58,8 @@ own line, in the user's language: English: "Talk to me in any language, \
 by text or voice." Arabic: "كلمني بأي لغة، كتابة أو صوت." Other \
 languages: translate the meaning naturally. Then ask exactly one question.
 
-DISCOVERY: first learn the use: upholstery, curtains, cushions, or a mix. \
+DISCOVERY: first learn the use: upholstery, curtains, cushions, or a mix \
+(list each use exactly once, never repeating a word). \
 Then gather naturally, one question at a time, only what is still missing: \
 room colors or a room photo, mood (warm/cool/neutral), style, who uses the \
 space (kids, pets, hotel, office), opacity for curtains, budget per meter.
@@ -559,6 +560,23 @@ def strip_tip(text):
     """Remove tip lines. Used on turns without recommendations."""
     cleaned = TIP_RE.sub("", text or "")
     return re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+
+
+# Adjacent duplicate list items ("curtains, curtains", "ستائر، ستائر"):
+# the model sometimes stutters on the opening enumeration. Collapsing is
+# only safe on the greeting turn, where such repetition is never emphasis.
+DUPE_RE = re.compile(
+    r"([^-\W\d_'\u2019]+(?: [^-\W\d_'\u2019]+){0,2})([,\u060c])\s*"
+    r"\1(?=[\s,.?!\u060c;:]|$)",
+    re.IGNORECASE)
+
+
+def collapse_adjacent_dupes(text):
+    """Collapse adjacent duplicate list items, keeping the first."""
+    prev = None
+    while prev != text:
+        prev, text = text, DUPE_RE.sub(r"\1", text)
+    return text
 
 
 RELAX_LABELS = {
@@ -1183,6 +1201,8 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
                 "These are the closest matches I found for you:")
         if "closest match" not in reply.lower() and "أقرب" not in reply:
             reply = (reply + "\n\n" + line).strip()
+    if not any(m.get("role") == "assistant" for m in history):
+        reply = collapse_adjacent_dupes(reply)
     history.append({"role": "assistant", "content": final_text})
     trim_history(history)
 

@@ -17,10 +17,6 @@ import urllib.request
 import pytest
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-UA = ("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
-      "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 "
-      "Mobile/15E148 Safari/604.1")
 
 GREET = {"reply": "Hello! Show me your room and I will find fabrics.",
          "recommendations": [], "options": [], "room_analysis": None,
@@ -77,19 +73,31 @@ def server():
 
 @pytest.fixture()
 def page(server):
-    if not os.path.exists(CHROME):
-        pytest.skip("system Chrome not available")
     pw = pytest.importorskip("playwright.sync_api")
     errors = []
     with pw.sync_playwright() as p:
-        browser = p.chromium.launch(executable_path=CHROME,
-                                    args=["--no-sandbox"])
-        ctx = browser.new_context(viewport={"width": 390, "height": 844},
-                                  user_agent=UA, is_mobile=True,
-                                  has_touch=True)
+        try:
+            browser = p.webkit.launch()
+            device = dict(p.devices["iPhone 15 Pro"])
+        except Exception:  # noqa: BLE001 - WebKit not installed here
+            pytest.skip("WebKit not available")
+        device["viewport"] = {"width": 390, "height": 844}
+        ctx = browser.new_context(**device)
         pg = ctx.new_page()
-        pg.on("console", lambda m: errors.append(m.text)
-              if m.type == "error" else None)
+        # Browser-generated network noise ("Failed to load resource") and
+        # the intentional "upload failed <status>" diagnostic (asserted
+        # via UI in the negative test) are not app faults; real JS
+        # faults still fail teardown below.
+        def on_console(m):
+            if m.type != "error":
+                return
+            text = m.text or ""
+            if text.startswith("Failed to load resource"):
+                return
+            if text.startswith("upload failed"):
+                return
+            errors.append(text)
+        pg.on("console", on_console)
         pg.on("pageerror", lambda e: errors.append(str(e)))
 
         def chat_mock(route):
@@ -141,6 +149,22 @@ def test_sample_photo_beats_greeting(server, page):
     first = seen[0]
     assert first.get("image_path"), \
         "first turn must carry the photo, got: %s" % first
+
+
+def test_failed_chat_leaves_no_broken_room(server, page):
+    page.route("**/api/chat", lambda r: r.fulfill(status=400))
+    page.goto(server + "/consult", wait_until="networkidle")
+    page.wait_for_selector("#welcomeMsg", timeout=15000)
+    page.set_input_files("#fileInput",
+                         os.path.join(BASE_DIR, "data/samples/living.jpg"))
+    page.wait_for_function(
+        """() => [...document.querySelectorAll('#messages .msg.them')]
+           .some(e => (e.textContent || '').includes('Upload failed'))""",
+        timeout=30000)
+    assert page.get_attribute("#roomBar", "hidden") is not None
+    assert page.get_attribute("#roomThumb", "src") in (None, "")
+    texts = bubbles(page)
+    assert texts and "Upload failed" in texts[-1]
 
 
 def test_room_bar_sheet_and_stream_bubble(server, page):

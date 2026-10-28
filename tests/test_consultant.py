@@ -792,3 +792,28 @@ def test_no_fallback_on_question_turn():
                  "what colors do you have for sofas?", chat_fn=fake)
     assert out["recommendations"] == []
     assert "closest matches" not in out["reply"]
+
+
+def test_greeting_has_no_repeated_adjacent_item():
+    assert c.collapse_adjacent_dupes(
+        "Upholstery, curtains, curtains, cushions, or a mix?") == \
+        "Upholstery, curtains, cushions, or a mix?"
+    assert c.collapse_adjacent_dupes(
+        "تنجيد، ستائر، ستائر، وسائد، أو مشكل؟") == \
+        "تنجيد، ستائر، وسائد، أو مشكل؟"
+    assert c.collapse_adjacent_dupes("Sofa, sofa, sofa!") == "Sofa!"
+    # Untouched: no dupes, later turns, emphasis without comma.
+    assert c.collapse_adjacent_dupes(
+        "Upholstery, curtains, cushions, or a mix?") == \
+        "Upholstery, curtains, cushions, or a mix?"
+    assert "curtains, curtains" not in c.SYSTEM_PROMPT
+
+
+def test_greeting_collapses_model_stutter():
+    def fake(messages, tools=None):
+        return final_text("Hello! Upholstery, curtains, curtains, "
+                          "cushions, or a mix — which is it?")
+
+    out = c.chat("test-greet-dupe", "Hello", chat_fn=fake)
+    assert "curtains, curtains" not in out["reply"]
+    assert "curtains, cushions" in out["reply"]
