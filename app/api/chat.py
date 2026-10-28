@@ -37,12 +37,30 @@ class ChatRequest(BaseModel):
     lang: Optional[str] = None
 
 
+def _open_photo(src):
+    """Open any accepted upload, EXIF-transposed, flattened to RGB."""
+    from PIL import Image, ImageOps
+    try:
+        import pillow_heif  # noqa: F401 - registers HEIF opener
+        pillow_heif.register_heif_opener()
+    except ImportError:
+        pass
+    im = Image.open(src)
+    im = ImageOps.exif_transpose(im)
+    if im.mode in ("RGBA", "LA") or (im.mode == "P"
+                                     and "transparency" in im.info):
+        bg = Image.new("RGB", im.size, (255, 255, 255))
+        bg.paste(im.convert("RGB"), mask=im.convert("RGBA").split()[3])
+        im = bg
+    else:
+        im = im.convert("RGB")
+    return im
+
+
 def convert_to_jpg(src, dest):
     """Convert an uploaded image to JPEG. Returns True on success."""
     try:
-        from PIL import Image
-        im = Image.open(src).convert("RGB")
-        im.save(dest, "JPEG", quality=90)
+        _open_photo(src).save(dest, "JPEG", quality=90)
         return True
     except Exception:  # noqa: BLE001 - fall back to sips
         pass
@@ -65,8 +83,6 @@ def upload(file: UploadFile = File(...)):
     raw = os.path.join(UPLOAD_DIR, name)
     with open(raw, "wb") as f:
         shutil.copyfileobj(file.file, f)
-    if ext in (".jpg", ".jpeg"):
-        return {"image_path": os.path.join("uploads", name)}
     dest = os.path.join(UPLOAD_DIR, uuid.uuid4().hex + ".jpg")
     if not convert_to_jpg(raw, dest):
         os.remove(raw)

@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+<link rel="preload" as="image" href="/data/samples/living.jpg">
+<link rel="preload" as="image" href="/data/samples/majlis.jpg">
+<link rel="preload" as="image" href="/data/samples/armchair.jpg">
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Figtree:wght@400;500;600&family=El+Messiri:wght@500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/brand/brand.css">
 <link rel="stylesheet" href="/styles.css">
@@ -32,6 +35,7 @@
 
 <main class="consult">
   <section class="canvas-pane" aria-label="Room canvas">
+    <button id="sheetClose" class="sheet-close" type="button" aria-label="Close">×</button>
     <div id="canvasWrap" class="canvas">
       <div id="canvasEmpty" class="canvas-empty">
         <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload a room photo">
@@ -67,6 +71,11 @@
     <div class="chat-head">
       <img class="avatar" src="/brand/mark-plain.svg" alt="ReCover" width="30" height="30">
       <div class="chat-head-meta"><b>ReCover</b><span class="online" data-i18n="onlineNow">Online · replies in your language</span></div>
+    </div>
+    <div id="roomBar" class="room-bar" hidden>
+      <button id="roomThumbBtn" type="button" class="room-thumb" aria-label="View"><img id="roomThumb" alt=""></button>
+      <div class="room-meta"><b id="roomFabric" dir="auto"></b><span id="roomSub" data-i18n="roomSub">Your room</span></div>
+      <button id="roomView" class="ghost-btn" type="button" data-i18n="roomView">View</button>
     </div>
     <div id="messages" class="messages" role="log" aria-live="polite"></div>
     <div id="chips" class="chips" hidden></div>

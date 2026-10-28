@@ -519,6 +519,12 @@ img.avatar {
   .consult-bar #newConsult { display: none; }
 }
 
+@media (max-width: 719px) {
+  .topbar { padding: 12px 16px; }
+  .consult-bar { gap: 10px; }
+  .consult-bar .brand-logo { max-width: 40vw; }
+}
+
 .panel-title {
   font-family: var(--rc-display);
   font-size: var(--rc-fs-xl);
@@ -1158,4 +1164,105 @@ body.modal-open { overflow: hidden; }
   .msg, .typing span, .card .swatch img, .agent-step { animation: none; transition: none; }
   .composer .mic.recording, .eq i { animation: none; }
   .spinner, .steps li.active::before, .dropzone.flash { animation: none; }
+}
+
+/* Mobile chat-first consult (<720px). Desktop layout above is untouched. */
+.sheet-close { display: none; }
+
+@media (max-width: 719px) {
+  .consult { display: block; height: 100dvh; }
+  .canvas-pane { display: none; }
+  body.sheet-open { overflow: hidden; }
+  body.sheet-open .canvas-pane {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: var(--rc-chalk);
+    overflow-y: auto;
+    padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px
+      calc(env(safe-area-inset-bottom, 0px) + 16px);
+    animation: sheetup 0.25s ease-out;
+  }
+  @keyframes sheetup {
+    from { transform: translateY(48px); opacity: 0.4; }
+    to { transform: none; opacity: 1; }
+  }
+  .sheet-close {
+    display: block;
+    position: sticky;
+    top: 0;
+    align-self: flex-end;
+    z-index: 2;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--rc-line);
+    background: var(--rc-paper);
+    color: var(--rc-ink);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .room-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 64px;
+    padding: 8px 12px;
+    background: var(--rc-paper);
+    border-bottom: 1px solid var(--rc-line);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  .room-bar[hidden] { display: none; }
+  .room-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--rc-r-sm);
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid var(--rc-line);
+    background: var(--rc-chalk);
+    flex: none;
+    cursor: pointer;
+  }
+  .room-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .room-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .room-meta b {
+    font-size: var(--rc-fs-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .room-meta span { font-size: var(--rc-fs-xs); color: var(--rc-ink-muted); }
+  .chat-pane { height: 100dvh; min-height: 0; border: none; }
+  .chat-pane .messages { max-height: none; }
+  .chat-pane .recs {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .chat-pane .recs .card { min-width: 200px; max-width: 220px; flex: none; }
+  .chat-pane .recs .card .desc,
+  .chat-pane .recs .card .receipts,
+  .chat-pane .recs .card .featrow,
+  .chat-pane .recs .card .why,
+  .chat-pane .recs .empty { display: none; }
+  .welcome-samples, .msg .sample-row { margin-bottom: 10px; }
+  #welcomeMsg .seeit { margin-top: 2px; }
+  .composer {
+    position: sticky;
+    bottom: 0;
+    background: var(--rc-paper);
+    padding: 8px 12px calc(env(safe-area-inset-bottom, 0px) + var(--kb, 0px) + 8px);
+    margin-top: 0;
+  }
 }

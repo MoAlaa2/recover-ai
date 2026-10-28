@@ -20,6 +20,7 @@
   outline-offset: 2px;
 }
 .rcsw-btn svg { width: 20px; height: 20px; }
+.rcsw-short { display: none; font-weight: 700; font-size: 0.875rem; }
 .rcsw-badge {
   font-size: var(--rc-fs-xs);
   font-weight: 600;
@@ -150,6 +151,9 @@
 }
 
 @media (max-width: 719px) {
+  .rcsw-btn { padding: 8px 12px; gap: 6px; }
+  .rcsw-cur, .rcsw-badge, .rcsw-chev { display: none; }
+  .rcsw-short { display: inline; }
   .rcsw-pop {
     left: 0 !important;
     right: 0 !important;

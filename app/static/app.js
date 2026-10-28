@@ -22,6 +22,9 @@
       micLabel: "Voice input",
       steps: { search: "Searching 80 fabrics…", claw: "Checking claw safety…", details: "Comparing details…", room: "Reading your room's colors…" },
       needPhoto: "Please upload a room photo first, then tap “See it in my space” again.",
+      roomView: "View",
+      roomSub: "Your room",
+      takePhoto: "Take or upload a photo",
       pieceYou: { sofa: "sofa", armchair: "armchair", curtains: "curtains", cushions: "cushions" },
       stepRetry: "Retrying with corrections",
       tryAgain: "Try again",
@@ -87,6 +90,9 @@
       micLabel: "إدخال صوتي",
       steps: { search: "أدوّر في ٨٠ قماش…", claw: "أتأكد إنها آمنة من الخدش…", details: "أقارن التفاصيل…", room: "أقرأ ألوان مساحتك…" },
       needPhoto: "ارفع صورة غرفتك أول، بعدين اضغط “شاهدها في مساحتك”.",
+      roomView: "عرض",
+      roomSub: "غرفتك",
+      takePhoto: "صوّر أو ارفع صورة",
       tailoring: "نفصّل %s بقماشك…",
       pieceWord: { sofa: "الكنبة", armchair: "الكرسي", curtains: "الستائر", cushions: "الوسائد" },
       stepDetect: "نحدد القطعة",
@@ -150,6 +156,9 @@
       voiceFail: "माफ़ करें, सुन नहीं पाया। फिर कोशिश करें।",
       micLabel: "आवाज़ से पूछें",
       needPhoto: "पहले कमरे की फोटो भेजें, फिर “इसे अपनी जगह पर देखें” दबाएँ।",
+      roomView: "देखें",
+      roomSub: "आपका कमरा",
+      takePhoto: "फोटो लें या अपलोड करें",
       tailoring: "%s सजा रहा हूँ…",
       pieceWord: { sofa: "सोफ़ा", armchair: "कुर्सी", curtains: "पर्दे", cushions: "कुशन" },
       stepDetect: "टुकड़ा पहचान रहा हूँ",
@@ -215,6 +224,9 @@
       voiceFail: "Désolé, je n'ai pas entendu. Réessayez.",
       micLabel: "Entrée vocale",
       needPhoto: "Envoyez d'abord une photo, puis touchez « Voir chez moi ».",
+      roomView: "Voir",
+      roomSub: "Votre pièce",
+      takePhoto: "Prendre ou envoyer une photo",
       tailoring: "J'habille votre %s…",
       pieceWord: { sofa: "canapé", armchair: "fauteuil", curtains: "rideaux", cushions: "coussins" },
       stepDetect: "Je détecte la pièce",
@@ -280,6 +292,9 @@
       voiceFail: "Perdón, no te escuché. Inténtalo de nuevo.",
       micLabel: "Entrada de voz",
       needPhoto: "Sube primero una foto y luego toca «Verlo en mi espacio».",
+      roomView: "Ver",
+      roomSub: "Tu espacio",
+      takePhoto: "Toma o sube una foto",
       tailoring: "Vistiendo tu %s…",
       pieceWord: { sofa: "sofá", armchair: "sillón", curtains: "cortinas", cushions: "cojines" },
       stepDetect: "Detecto la pieza",
@@ -669,12 +684,40 @@
     var dots = document.getElementById("pDots");
     if (dots) dots.remove();
     var body = document.getElementById("pText");
+    var fellBack = false;
     var text = (reply && reply.trim()) ? reply :
       (body && body.textContent && body.textContent.trim() ?
-        body.textContent : t("emptyLeadGeneric"));
+        body.textContent : null);
+    if (!text) {
+      text = t("emptyLeadGeneric");
+      fellBack = true;
+    }
     if (body) body.innerHTML = formatReply(text);
+    if (fellBack) pending.setAttribute("data-fell-back", "1");
     pending.removeAttribute("id");
     return pending;
+  }
+
+  function ensureBubbleText(res) {
+    var bubbles = messagesEl.querySelectorAll(".msg.them");
+    if (!bubbles.length) {
+      addMsg(leadIn(res), "them");
+      return;
+    }
+    var last = bubbles[bubbles.length - 1];
+    var empty = !(last.textContent || "").trim();
+    if (!empty && !last.hasAttribute("data-fell-back")) return;
+    last.removeAttribute("data-fell-back");
+    var html = formatReply(leadIn(res));
+    var p = last.querySelector("#pText") || last.querySelector(".ptext");
+    if (p) {
+      p.innerHTML = html;
+    } else {
+      var d = document.createElement("div");
+      d.setAttribute("dir", "auto");
+      d.innerHTML = html;
+      last.appendChild(d);
+    }
   }
 
   function dropPending() {
@@ -790,6 +833,66 @@
     if (hb) hb.hidden = !(state.canvasView && state.roomPhoto);
     renderCanvasRow();
     renderCrumb();
+    renderRoomBar();
+  }
+
+  function isNarrow() {
+    return window.matchMedia &&
+      window.matchMedia("(max-width: 719px)").matches;
+  }
+
+  function renderRoomBar() {
+    var bar = $("roomBar");
+    if (!bar) return;
+    if (!state.roomPhoto || !isNarrow()) {
+      bar.hidden = true;
+      return;
+    }
+    bar.hidden = false;
+    var thumb = state.canvasView ||
+      "/" + state.roomPhoto.replace(/^\/+/, "");
+    if ($("roomThumb").getAttribute("src") !== thumb) {
+      $("roomThumb").src = thumb;
+    }
+    var fabric = "";
+    if (state.lastSwap && state.lastSwap.meta) {
+      var m = state.lastSwap.meta;
+      fabric = state.lang === "ar" ? (m.name_ar || m.code)
+                                   : (m.name_en || m.code);
+    } else if (state.lastRecs && state.lastRecs.length) {
+      var r = state.lastRecs[0];
+      fabric = state.lang === "ar" ? r.name_ar : r.name_en;
+    }
+    $("roomFabric").textContent = fabric || t("roomSub");
+  }
+
+  function openSheet() {
+    if (!state.roomPhoto || !isNarrow()) return;
+    document.body.classList.add("sheet-open");
+    renderCanvas();
+    var sc = $("sheetClose");
+    if (sc) sc.setAttribute("aria-label", t("closeLabel"));
+  }
+
+  function closeSheet() {
+    document.body.classList.remove("sheet-open");
+  }
+
+  function renderWelcome() {
+    if (!isNarrow() || state.roomPhoto) return;
+    if ($("welcomeMsg")) return;
+    var div = document.createElement("div");
+    div.className = "msg them";
+    div.id = "welcomeMsg";
+    div.innerHTML = AVATAR + '<div dir="auto"><div class="sample-row">' +
+      '<button type="button" data-sample="living"><img src="/data/samples/living.jpg" alt="living"><span>' + esc(t("sampleLiving")) + "</span></button>" +
+      '<button type="button" data-sample="majlis"><img src="/data/samples/majlis.jpg" alt="majlis"><span>' + esc(t("sampleMajlis")) + "</span></button>" +
+      '<button type="button" data-sample="armchair"><img src="/data/samples/armchair.jpg" alt="armchair"><span>' + esc(t("sampleArmchair")) + "</span></button>" +
+      "</div>" +
+      '<button type="button" class="seeit" data-upload="1"><i data-lucide="camera" aria-hidden="true"></i><span>' + esc(t("takePhoto")) + "</span></button></div>";
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    icons();
   }
 
   function canvasStepLabel(key) {
@@ -1094,6 +1197,7 @@
     state.canvasView = "/" + (res.result_url || "").replace(/^\/+/, "");
     renderStrip();
     renderCanvas();
+    postSwapMessage(entry);
     if (state.lastRecs && state.lastRecs.length) renderRecs(state.lastRecs);
     var showTry = match < 8 && (res.attempts || 1) < 2 && !state.swapRetried;
     $("swapTryAgain").hidden = !showTry;
@@ -1407,17 +1511,63 @@
     if (state.lastOptions && state.lastOptions.length) {
       renderOptions(state.lastOptions);
     }
+    ensureBubbleText(res);
+  }
+
+  function preparePhoto(file) {
+    if (typeof createImageBitmap === "undefined") {
+      return Promise.resolve(file);
+    }
+    var decoded = null;
+    try {
+      decoded = createImageBitmap(file, { imageOrientation: "from-image" });
+    } catch (e) {
+      decoded = null;
+    }
+    if (!decoded || !decoded.then) {
+      try {
+        decoded = createImageBitmap(file);
+      } catch (e) {
+        return Promise.resolve(file);
+      }
+    }
+    return decoded.then(function (bmp) {
+      var w = bmp.width, h = bmp.height;
+      if (!w || !h) return file;
+      var scale = Math.min(1, 2048 / Math.max(w, h));
+      var canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(w * scale));
+      canvas.height = Math.max(1, Math.round(h * scale));
+      canvas.getContext("2d").drawImage(bmp, 0, 0, canvas.width,
+                                        canvas.height);
+      if (bmp.close) bmp.close();
+      return new Promise(function (resolve) {
+        if (canvas.toBlob) {
+          canvas.toBlob(function (blob) {
+            resolve(blob || file);
+          }, "image/jpeg", 0.85);
+        } else {
+          resolve(file);
+        }
+      });
+    }).catch(function () {
+      return file;
+    });
   }
 
   function upload(file) {
     var fd = new FormData();
-    fd.append("file", file);
-    var preview = URL.createObjectURL(file);
-    addMsg("", "me", preview);
+    var usePreview = URL.createObjectURL(file);
+    addMsg("", "me", usePreview);
     chipsEl.hidden = true;
     state.booted = true;
     var note = addMsg(t("analyzing"), "them");
-    fetchReq("/api/upload", { form: fd, timeoutMs: 60000, retries: 1 })
+    preparePhoto(file).then(function (ready) {
+      fd.append("file", ready,
+                ready === file ? (file.name || "photo.jpg") : "photo.jpg");
+      return fetchReq("/api/upload", { form: fd, timeoutMs: 60000,
+                                      retries: 1 });
+    })
       .then(function (data) {
         note.remove();
         state.roomPhoto = data.image_path;
@@ -1434,6 +1584,10 @@
       .then(function (res) {
         typingOff();
         handleResult(res);
+        if (state.expectFirst === "sample") {
+          state.expectFirst = null;
+          chipsEl.hidden = false;
+        }
         if (state.pendingSwapCode) {
           var code = state.pendingSwapCode;
           state.pendingSwapCode = null;
@@ -1443,6 +1597,7 @@
       .catch(function () {
         typingOff();
         note.remove();
+        state.expectFirst = null;
         addMsg(t("uploadFail"), "them");
       });
   }
@@ -1569,6 +1724,9 @@
       var s = e.target && e.target.closest ?
         e.target.closest("[data-sample]") : null;
       if (s && s.dataset.sample) loadSample(s.dataset.sample);
+      var up = e.target && e.target.closest ?
+        e.target.closest("[data-upload]") : null;
+      if (up) fi.click();
       var card = e.target && e.target.closest ?
         e.target.closest("#canvasRow .ccard") : null;
       if (card && card.dataset.code) openSwap(card.dataset.code);
@@ -1664,12 +1822,46 @@
     });
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && !$("swapModal").hidden) closeSwap();
+      else if (e.key === "Escape" &&
+        document.body.classList.contains("sheet-open")) closeSheet();
     });
+    $("roomView").addEventListener("click", openSheet);
+    $("roomThumbBtn").addEventListener("click", openSheet);
+    $("sheetClose").addEventListener("click", closeSheet);
+    (function sheetSwipe() {
+      var pane = document.querySelector(".canvas-pane");
+      if (!pane) return;
+      var y0 = null;
+      pane.addEventListener("touchstart", function (e) {
+        y0 = e.touches[0].clientY;
+      }, { passive: true });
+      pane.addEventListener("touchend", function (e) {
+        if (y0 === null) return;
+        var dy = e.changedTouches[0].clientY - y0;
+        y0 = null;
+        if (dy > 90 && e.changedTouches[0].clientY < 220) closeSheet();
+      });
+    })();
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", function () {
+        var kb = window.innerHeight - window.visualViewport.height -
+          window.visualViewport.offsetTop;
+        document.documentElement.style.setProperty(
+          "--kb", Math.max(0, Math.round(kb)) + "px");
+      });
+    }
 
-    bootGreeting();
     renderCanvas();
     var sample = new URLSearchParams(location.search).get("sample");
-    if (sample) loadSample(sample);
+    var hasSample = ["living", "majlis", "armchair"].indexOf(sample) >= 0;
+    if (hasSample) {
+      // The sample photo IS the first turn: it chats with the image, so
+      // analyze runs before the first reply. No imageless greeting.
+      state.expectFirst = "sample";
+      loadSample(sample);
+    } else {
+      bootGreeting();
+    }
   }
 
   function bootGreeting() {
@@ -1685,12 +1877,14 @@
         typingOff();
         handleResult(res);
         chipsEl.hidden = false;
+        renderWelcome();
         fetchPreviews();
       })
       .catch(function () {
         if (sid !== state.sessionId) return;
         typingOff();
         addMsg(t("sendFail"), "them");
+        renderWelcome();
       });
   }
 

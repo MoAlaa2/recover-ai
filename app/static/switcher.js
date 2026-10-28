@@ -29,6 +29,7 @@ window.RCSwitcher = (function () {
       '<button type="button" class="rcsw-btn" aria-haspopup="dialog">' +
       '<i data-lucide="globe" aria-hidden="true"></i>' +
       '<span class="rcsw-cur"></span>' +
+      '<span class="rcsw-short" aria-hidden="true"></span>' +
       '<span class="rcsw-badge"></span>' +
       '<span class="rcsw-chev"><i data-lucide="chevron-down" aria-hidden="true"></i></span>' +
       "</button>" +
@@ -101,6 +102,8 @@ window.RCSwitcher = (function () {
     });
     cur = cur || window.RC_LOCALES[0];
     st.el.querySelector(".rcsw-cur").textContent = cur.native;
+    st.el.querySelector(".rcsw-short").textContent =
+      (cur.code || "en").toUpperCase();
     st.el.querySelector(".rcsw-badge").textContent =
       t(lang, "swBadge").replace("%d", window.RC_LOCALES.length);
     st.el.querySelector(".rcsw-title").textContent = t(lang, "swTitle");
