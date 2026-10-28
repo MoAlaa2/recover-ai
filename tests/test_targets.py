@@ -1,0 +1,94 @@
+"""Multi-object target detection (model calls are faked)."""
+import json
+
+from PIL import Image
+from fastapi.testclient import TestClient
+
+from app.services import targets as t
+
+
+def vision(items):
+    def fake(messages):
+        return {"choices": [{"message": {"content": json.dumps(
+            {"items": items})}}]}
+    return fake
+
+
+def test_list_types_keeps_known_types(monkeypatch):
+    monkeypatch.setattr(t, "_call_vision",
+                        vision(["sofa", "bed", "curtains"]))
+    assert t.list_types("data/samples/living.jpg") == ["sofa", "curtains"]
+
+
+def test_list_types_empty_on_garbage(monkeypatch):
+    monkeypatch.setattr(t, "_call_vision", lambda m: {
+        "choices": [{"message": {"content": "no json here"}}]})
+    assert t.list_types("data/samples/living.jpg") == []
+
+
+def test_masks_subtract_cushions_from_sofa(monkeypatch, tmp_path):
+    room = tmp_path / "room.jpg"
+    Image.new("RGB", (40, 30), (200, 180, 160)).save(str(room))
+    monkeypatch.setattr(t, "require_api_key", lambda: "k")
+    monkeypatch.setattr(t, "UPLOAD_DIR", str(tmp_path))
+    monkeypatch.setattr(t, "list_types", lambda path: ["sofa", "cushions"])
+
+    def fake_segment(room_bytes, concept, key):
+        return [{"concept": concept}]
+
+    def fake_sam(records, size):
+        if records[0]["concept"] == "cushions":
+            mask = Image.new("L", size, 0)
+            for x in range(10, 20):
+                for y in range(10, 20):
+                    mask.putpixel((x, y), 255)
+            return mask
+        return Image.new("L", size, 255)
+
+    monkeypatch.setattr(t, "segment", fake_segment)
+    monkeypatch.setattr(t, "sam_mask", fake_sam)
+    out = t.detect_targets(str(room))
+    by_id = {item["id"]: item for item in out}
+    assert set(by_id) == {"sofa", "cushions"}
+    assert by_id["sofa"]["box"] == [0, 0, 40, 30]
+    assert by_id["cushions"]["box"] == [10, 10, 20, 20]
+    assert by_id["sofa"]["label_ar"] == "الكنبة"
+    sofa_mask = Image.open(
+        str(tmp_path / "masks" / by_id["sofa"]["mask_url"].split(
+            "masks/")[1]))
+    # Cushion area was subtracted from the sofa mask.
+    assert sofa_mask.getpixel((15, 15)) == 0
+    assert sofa_mask.getpixel((0, 0)) == 255
+
+
+def test_targets_endpoint_caches_per_session(monkeypatch):
+    from app.main import app
+    from app.services import consultant
+    seen = {"n": 0}
+
+    def fake_detect(image_path):
+        seen["n"] += 1
+        return [{"id": "sofa", "type": "sofa", "label_en": "Sofa",
+                 "label_ar": "الكنبة",
+                 "mask_url": "uploads/masks/m.png", "box": [0, 0, 8, 8]}]
+
+    monkeypatch.setattr("app.api.chat.targets_mod.detect_targets",
+                        fake_detect)
+    client = TestClient(app)
+    first = client.get("/api/session/t-sess-1/targets",
+                       params={"image_path": "data/samples/living.jpg"})
+    assert first.status_code == 200
+    assert [x["id"] for x in first.json()["targets"]] == ["sofa"]
+    second = client.get("/api/session/t-sess-1/targets",
+                        params={"image_path": "data/samples/living.jpg"})
+    assert second.status_code == 200
+    assert seen["n"] == 1
+    consultant.SESSIONS.pop("t-sess-1", None)
+
+
+def test_targets_endpoint_missing_image():
+    from app.main import app
+    client = TestClient(app)
+    resp = client.get("/api/session/t-sess-2/targets",
+                      params={"image_path": "uploads/nope.jpg"})
+    assert resp.status_code == 400

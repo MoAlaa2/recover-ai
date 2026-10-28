@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from app.core.config import BASE_DIR, UPLOAD_DIR
 from app.services import consultant
+from app.services import targets as targets_mod
 from app.services.swap import SwapError, swap
 from app.services.voice import AUDIO_EXT, VoiceError, transcribe
 
@@ -158,6 +159,32 @@ def get_previews(session_id):
 @router.get("/session/{session_id}/previews")
 def session_previews(session_id: str):
     return {"previews": get_previews(session_id)}
+
+
+@router.get("/session/{session_id}/targets")
+def session_targets(session_id: str, image_path: str = ""):
+    """Changeable items (sofa/cushions/curtains) in a room photo.
+
+    Caches per session so the canvas can re-render without resegmenting.
+    """
+    session = consultant.SESSIONS.setdefault(session_id, {"messages": []})
+    cached = session.get("targets")
+    if cached and (not image_path
+                   or cached.get("image_path") == image_path):
+        return cached
+    if not image_path:
+        raise HTTPException(400, "image_path is required")
+    path = image_path if os.path.isabs(image_path) else \
+        os.path.join(BASE_DIR, image_path)
+    if not os.path.exists(path):
+        raise HTTPException(400, "image not found")
+    try:
+        items = targets_mod.detect_targets(image_path)
+    except RuntimeError as exc:
+        raise HTTPException(502, str(exc))
+    entry = {"image_path": image_path, "targets": items}
+    session["targets"] = entry
+    return entry
 
 
 @router.get("/fabric/{code}")
