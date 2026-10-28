@@ -32,45 +32,63 @@ image = (
 vol = modal.Volume.from_name("recover-data", create_if_missing=True)
 
 
-class VolumeCommitMiddleware:
-    """Commit the persistent Volume after runtime file writes.
+class VolumeSyncMiddleware:
+    """Keep runtime files visible across requests on the demo.
 
-    Modal only guarantees cross-container visibility of volume writes
-    after an explicit commit. Uploads, masks and swap results must be
-    readable by the very next request, which may land on a different
-    container, so commit right after the write paths respond.
+    The demo is pinned to a single container (min/max_containers=1),
+    so in-memory sessions and previews never split. Volume files
+    (uploads, masks, swap results) still need explicit sync: commit
+    after the write paths respond, reload before the read paths run,
+    so a redeploy handover or a second writer can never serve a 404.
     """
 
-    PATHS = ("/api/upload", "/api/swap", "/api/session/")
+    WRITE_PREFIXES = ("/api/upload", "/api/swap", "/api/session/")
 
     def __init__(self, inner, volume):
         self.inner = inner
         self.volume = volume
 
+    @staticmethod
+    def reads_volume(path, method):
+        """True when this request reads files other requests wrote."""
+        if method == "GET":
+            # Previews and session state are in-memory; only uploads
+            # and freshly written target masks touch the volume.
+            return path.startswith("/uploads/") or (
+                path.startswith("/api/session/")
+                and path.endswith("/targets"))
+        return method == "POST" and (
+            path == "/api/chat" or path.startswith("/api/swap"))
+
+    def writes_volume(self, path, method):
+        if method in ("POST", "PUT", "DELETE") and any(
+                path == p or path.startswith(p)
+                for p in self.WRITE_PREFIXES):
+            return True
+        # GET /api/session/{id}/targets also persists mask files.
+        return (method == "GET" and path.startswith("/api/session/")
+                and path.endswith("/targets"))
+
     async def __call__(self, scope, receive, send):
+        import asyncio
         if scope.get("type") != "http":
             await self.inner(scope, receive, send)
             return
         path = scope.get("path", "")
         method = scope.get("method", "")
-        # GET /api/session/{id}/targets writes mask files to the volume.
-        watched = (method in ("POST", "PUT", "DELETE")
-                   and any(path == p or path.startswith(p)
-                           for p in self.PATHS))
-        watched = watched or (method == "GET"
-                              and path.startswith("/api/session/"))
-        if not watched:
+        if self.reads_volume(path, method):
+            await asyncio.to_thread(self.volume.reload)
+        if not self.writes_volume(path, method):
             await self.inner(scope, receive, send)
             return
         committed = []
 
         async def send_and_commit(message):
             await send(message)
-            if (watched and message["type"] == "http.response.body"
+            if (message["type"] == "http.response.body"
                     and not message.get("more_body")
                     and not committed):
                 committed.append(True)
-                import asyncio
                 await asyncio.to_thread(self.volume.commit)
 
         await self.inner(scope, receive, send_and_commit)
@@ -153,11 +171,13 @@ class DemoLockMiddleware:
     volumes={"/root/recover/uploads": vol},
     env={"DEMO_LOCK": "1"},
     min_containers=1,
+    max_containers=1,
     timeout=900,
 )
+@modal.concurrent(max_inputs=50)
 @modal.asgi_app()
 def web():
     import sys
     sys.path.insert(0, "/root/recover")
     from app.main import app as fastapi_app
-    return DemoLockMiddleware(VolumeCommitMiddleware(fastapi_app, vol))
+    return DemoLockMiddleware(VolumeSyncMiddleware(fastapi_app, vol))
