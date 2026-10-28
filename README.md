@@ -120,6 +120,27 @@ Then:
 .venv/bin/python scripts/eval_scenarios.py
 ```
 
+## Deploy (locked demo)
+
+The demo runs locked on Modal — never public:
+
+- `deploy/modal_app.py` serves the same FastAPI app via
+  `@modal.asgi_app`.
+- Image: `requirements.txt` + `ffmpeg`; catalog, samples, specs and
+  UI are baked in.
+- Runtime writes (uploads, swap results) go to a persistent
+  `modal.Volume`; chat sessions stay on the warm container
+  (`min_containers=1`, swap timeout 900s).
+- Access lock (additive middleware — local dev and tests are
+  unaffected): every route requires HTTP Basic Auth when `DEMO_LOCK=1`
+  (constant-time credential compare), plus
+  `X-Robots-Tag: noindex, nofollow` on all responses.
+
+```bash
+modal secret create recover-secrets MODEL_API_KEY=... DEMO_USER=... DEMO_PASS=...
+modal deploy deploy/modal_app.py
+```
+
 ## Built during the hackathon (Oct 26 – Nov 4, 2026)
 
 ReCover was built end-to-end during the hackathon window: catalog +
