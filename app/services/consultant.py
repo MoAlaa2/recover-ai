@@ -115,8 +115,11 @@ only needs the user actually stated in this conversation — never invent \
 unstated ones (no pets, kids, antibacterial or other features unless the \
 user mentioned them).
 
-RELAXED CONSTRAINTS: if a tool result says constraints were relaxed, state \
-plainly in your reply which constraint was relaxed (for example budget).
+RELAXED CONSTRAINTS: if a tool result says constraints were relaxed and \
+you are NOT showing recommendations on this turn, state plainly in your \
+reply which constraint was relaxed (for example budget). On \
+recommendation turns the card already carries the one-line receipt, so \
+do not restate it in prose.
 
 TIP: include one short professional tip (martindale for heavy use, \
 fade-resistant for sunny rooms, washable for kids) only on turns where you \
