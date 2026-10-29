@@ -45,10 +45,14 @@ class VolumeSyncMiddleware:
     WRITE_PREFIXES = ("/api/upload", "/api/swap", "/api/session/",
                       "/webhook/whatsapp")
 
-    def __init__(self, inner, volume, upload_dir=None):
+    def __init__(self, inner, volume, upload_dir=None, sync_tries=12,
+                 sync_sleep=1.0):
         self.inner = inner
         self.volume = volume
         self.upload_dir = upload_dir
+        self.sync_tries = sync_tries
+        self.sync_sleep = sync_sleep
+        self._sync_lock = None
 
     def _disk_path(self, path):
         """Map a file-serving GET path to its on-disk file, or None."""
@@ -73,20 +77,27 @@ class VolumeSyncMiddleware:
                 if self.upload_dir else None
         return None
 
-    async def _ensure_visible(self, disk_path, tries=8):
+    async def _ensure_visible(self, disk_path):
         """Wait until a just-written file is servable.
 
         Volume commit/flush is eventually consistent: a burst of GETs
         the millisecond after an upload 404s (measured 9/10 on one
-        probe). The happy path costs one stat call; only a missing
-        file reloads and waits, 0.5s at a time.
+        probe, and 2/10 still missed with a 4s budget). The happy
+        path costs one stat call; only a missing file reloads and
+        waits. Concurrent waiters serialize on a lock so a burst
+        issues one reload chain, not N overlapping ones.
         """
         import asyncio
-        for _ in range(tries):
-            if disk_path and os.path.exists(disk_path):
-                return
-            await asyncio.to_thread(self.volume.reload)
-            await asyncio.sleep(0.5)
+        if disk_path and os.path.exists(disk_path):
+            return
+        if self._sync_lock is None:
+            self._sync_lock = asyncio.Lock()
+        async with self._sync_lock:
+            for _ in range(self.sync_tries):
+                if disk_path and os.path.exists(disk_path):
+                    return
+                await asyncio.to_thread(self.volume.reload)
+                await asyncio.sleep(self.sync_sleep)
 
     @staticmethod
     def reads_volume(path, method):

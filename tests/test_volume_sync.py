@@ -15,7 +15,8 @@ class FakeVolume:
         self.calls.append("commit")
 
 
-def run(path, method, chunks=(b"ok",), upload_dir=None):
+def run(path, method, chunks=(b"ok",), upload_dir=None,
+        sync_kwargs=None):
     vol = FakeVolume()
     messages = []
 
@@ -35,7 +36,8 @@ def run(path, method, chunks=(b"ok",), upload_dir=None):
     scope = {"type": "http", "path": path, "method": method,
              "headers": []}
     asyncio.run(VolumeSyncMiddleware(
-        inner, vol, upload_dir=upload_dir)(scope, receive, send))
+        inner, vol, upload_dir=upload_dir,
+        **(sync_kwargs or {}))(scope, receive, send))
     return vol.calls, messages
 
 
@@ -113,8 +115,9 @@ def test_upload_get_present_no_extra_wait(tmp_path):
 
 def test_upload_get_missing_waits_then_passes_through():
     calls, out = run("/uploads/nope.jpg", "GET",
-                     upload_dir="/nonexistent-xyz-recover")
-    assert calls == ["reload"] + ["reload"] * 8
+                     upload_dir="/nonexistent-xyz-recover",
+                     sync_kwargs={"sync_tries": 3, "sync_sleep": 0.01})
+    assert calls == ["reload"] + ["reload"] * 3
     assert out[-1]["body"] == b"ok"
 
 
