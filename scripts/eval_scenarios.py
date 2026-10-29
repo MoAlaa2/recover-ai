@@ -76,6 +76,10 @@ def check(check, turns, specs):
     if ctype == "recs_min_count":
         ok = len(codes) >= check["value"]
         return ok, "%d recs" % len(codes)
+    if ctype == "recs_max_count":
+        ok = len(codes) <= check.get("value", 0)
+        return ok, "%d recs (max %s)" % (len(codes),
+                                         check.get("value", 0))
     if ctype == "all_have_feature":
         bad = [i["code"] for i in items
                if check["feature"] not in i["features"]]

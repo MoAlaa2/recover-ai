@@ -1359,7 +1359,24 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
             os.path.join(BASE_DIR, image_path)
         if not os.path.exists(path):
             raise FileNotFoundError("image not found: %s" % image_path)
-        room_analysis = analyze_room(image_path, turn.get("lang"))
+        try:
+            room_analysis = analyze_room(image_path, turn.get("lang"))
+        except Exception:  # noqa: BLE001 - unreadable photo, not a crash
+            arabic = is_arabic(message)
+            if arabic:
+                reply = ("ما قدرت أقرأ الصورة — ارسل صورة JPG أو PNG، "
+                         "أو اختر غرفة جاهزة.")
+            else:
+                reply = ("I couldn't read that photo — please send a "
+                         "JPG or PNG photo, or pick a sample room.")
+            history.append({"role": "user", "content": user_text})
+            history.append({"role": "assistant", "content": reply})
+            return {"reply": reply, "recommendations": [],
+                    "options": [], "preview": None,
+                    "targets": {"available": [],
+                                "chosen": [],
+                                "assignments": {}},
+                    "detected_lang": session.get("lang")}
         user_text += "\n[Room photo analyzed: %s]" % json.dumps(
             room_analysis, ensure_ascii=False)
         needs_text = ", ".join(turn["needs_all"] + turn["needs_any"]) \

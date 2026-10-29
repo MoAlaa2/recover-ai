@@ -596,5 +596,55 @@
         "type": "no_egyptian"
       }
     ]
+  },
+  {
+    "id": "curtains-only-photo",
+    "turns": [
+      {
+        "message": "",
+        "image": "data/samples/curtains.jpg"
+      },
+      {
+        "message": "curtains please"
+      },
+      {
+        "message": "Light and airy, budget 120 per meter. Recommend 3 fabrics now."
+      }
+    ],
+    "checks": [
+      {
+        "type": "reply_nonempty",
+        "turn": 0
+      },
+      {
+        "type": "targets_chosen",
+        "values": [
+          "curtains"
+        ]
+      },
+      {
+        "type": "recs_min_count",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "undecodable-photo",
+    "turns": [
+      {
+        "message": "",
+        "image": "data/samples/undecodable.jpg"
+      }
+    ],
+    "checks": [
+      {
+        "type": "reply_nonempty",
+        "turn": 0
+      },
+      {
+        "type": "recs_max_count",
+        "value": 0
+      }
+    ]
   }
 ]

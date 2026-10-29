@@ -1,4 +1,6 @@
 """Meterage, uplift, rounding, curtains and quote tests."""
+import os
+
 from fastapi.testclient import TestClient
 
 from app.services import meterage as m
@@ -143,6 +145,15 @@ def test_estimate_cost_auto_counts_pillows(tmp_path):
                            "seen": []})
     assert bare["pillows"] == 0
     assert bare["meters"] == 7.0
+
+
+def test_unreadable_photo_friendly_reply(tmp_path):
+    from app.services import consultant as c
+    garbage = tmp_path / "garbage.jpg"
+    garbage.write_bytes(os.urandom(512))
+    out = c.chat("t-unread", "hello", image_path=str(garbage))
+    assert out["recommendations"] == []
+    assert "JPG" in out["reply"] or "jpg" in out["reply"].lower()
 
 
 def test_estimate_cost_tool_no_fabric():

@@ -57,6 +57,15 @@ def test_targets_chosen():
     assert ok
 
 
+def test_recs_max_count():
+    ok, _ = ev.check({"type": "recs_max_count", "value": 0},
+                     turns("x", []), None)
+    assert ok
+    ok, _ = ev.check({"type": "recs_max_count", "value": 2},
+                     turns("x", ["A", "B", "C"]), None)
+    assert not ok
+
+
 def test_declined_and_coordinated():
     ok, _ = ev.check({"type": "declined"},
                      turns("That's outside my expertise, sorry.", []), None)
