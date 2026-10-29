@@ -388,15 +388,17 @@ def _union_of(records, size):
 
 
 def swap_multi(room_path, assignments, api_key=None, out_dir=None,
-               on_step=None):
+               on_step=None, budget=60, _now=None):
     """Swap several items in one photo, largest item first.
 
     assignments is a list of {"target": ..., "code": ...}. Every item
     is edited from the ORIGINAL photo in a worker thread (segment,
-    edit, verify — one corrective retry), each network call bounded
-    to 60s. Verified items composite onto the original in one pass,
-    largest first, each strictly inside its own mask. Failures become
-    skips (reported, never fatal unless everything fails).
+    edit, verify — one corrective retry) inside its own wall budget
+    (default 60s per item; an item that cannot finish in budget
+    becomes a skip, never a hang). Verified items composite onto the
+    original in one pass, largest first, each strictly inside its
+    own mask. Failures become skips (reported, never fatal unless
+    everything fails).
 
     Results are cached on disk per (image, target, code): a repeat run
     pastes the cached item through its own mask without model calls.
@@ -418,7 +420,8 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
         fabric = get_fabric(code)
         if not fabric:
             raise SwapError("unknown fabric code: %s" % code)
-        jobs.append({"target": target, "code": code, "fabric": fabric})
+        jobs.append({"target": target, "code": code, "fabric": fabric,
+                       "budget": budget, "_now": _now})
     path = room_path if os.path.isabs(room_path) else os.path.join(
         BASE_DIR, room_path)
     with open(path, "rb") as f:
@@ -460,14 +463,25 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
         # Vision calls get a capped copy; the edit and the composite
         # always use the full-resolution original.
         seg_bytes = _small_copy(room_bytes, 1600)
+        clock = job.get("_now") or time.monotonic
+        item_budget = float(job.get("budget", 60))
+        t_end = clock() + item_budget
         best = None
         attempts = 0
         last_err = "unknown error"
+
+        def call_timeout():
+            return max(5.0, min(60.0, t_end - clock()))
+
         for _ in range(2):
+            if t_end - clock() < 10:
+                last_err = ("item timed out after %ds" %
+                            int(item_budget))
+                break
             try:
                 step("segment")
                 records = segment(seg_bytes, concept, key,
-                                  timeout=60)
+                                  timeout=call_timeout())
                 if not records:
                     raise SwapError("could not find the %s in this "
                                     "photo" % concept)
@@ -488,7 +502,7 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                     step("retry")
                 edited = edit_room(room_bytes, swatch_bytes, fabric,
                                    concept, key, corrective,
-                                   timeout=60)
+                                   timeout=call_timeout())
                 step("composite")
                 base_img = Image.open(
                     io.BytesIO(room_bytes)).convert("RGB")
@@ -500,7 +514,8 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                     small_cand.thumbnail((1024, 1024),
                                          Image.LANCZOS)
                 scores = verify(swatch_bytes, small_cand, fabric,
-                                concept, key, timeout=60)
+                                concept, key,
+                                timeout=call_timeout())
                 attempts += 1
                 if best is None or (
                         min(scores.values()),

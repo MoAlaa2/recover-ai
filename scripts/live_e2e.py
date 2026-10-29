@@ -382,8 +382,10 @@ def run_target_phase(device, user, pw, browser, lang):
         "#messages .chat-swap .swap-thumb",
         "e => e.map(x => x.getAttribute('src'))")[-1]
     sid = pg.evaluate("() => window.localStorage.getItem('recover_sid')")
-    masks = json.loads(_get("/api/session/" + sid + "/targets")
-                       .decode())["targets"]
+    from urllib.parse import quote as _quote
+    masks = json.loads(_get(
+        "/api/session/" + sid + "/targets?image_path=" + _quote(
+            before_url.lstrip("/"), safe="")).decode())["targets"]
     by_id = {m["id"]: m for m in masks}
     before_b = _get(before_url)
     after_b = _get(after_url)

@@ -903,6 +903,85 @@ RECEIPT_EXTRA_NAMES = {
 RECEIPT_MATCH_WORD = ("Matches", "يطابق")
 RECEIPT_EASED_WORD = ("Eased", "خففنا")
 
+# Words proving the USER stated a style/color/pattern need. Relaxed
+# search dimensions reach the card receipt only when the session's own
+# user messages contain one of these; model-inferred filters (e.g. a
+# style the model added on its own) stay off the receipt.
+STYLE_WORDS = (
+    "art-deco", "art deco", "bohemian", "classic", "coastal", "luxury",
+    "mediterranean", "minimalist", "modern", "scandinavian",
+    "traditional", "مودرن", "كلاسيك",
+)
+COLOR_WORDS = (
+    "antique", "aqua", "beige", "black", "blue", "blush", "bronze",
+    "brown", "burgundy", "burnt", "camel", "caramel", "chambray",
+    "champagne", "charcoal", "clay", "cocoa", "coral", "cream",
+    "crisp", "deep", "desert", "dusty", "emerald", "fig", "forest",
+    "gold", "green", "grey", "gray", "indigo", "ink", "ivory", "khaki",
+    "light", "mustard", "natural", "navy", "oatmeal", "ocean", "off",
+    "olive", "orange", "pale", "palm", "peacock", "pearl", "pink",
+    "plum", "pure", "purple", "red", "rose", "rust", "saffron", "sage",
+    "sand", "sea", "silver", "sky", "slate", "soft", "stone", "taupe",
+    "teal", "terracotta", "veins", "warm", "white", "yellow",
+    "color", "colour", "colors", "colours", "tone", "tones", "hue",
+    "shade", "لون", "ألوان", "الوان", "درجة", "بيج", "أزرق", "ازرق",
+    "أخضر", "اخضر", "رمادي", "أبيض", "ابيض", "أسود", "اسود", "بني",
+    "أحمر", "احمر", "كريمي", "عاجي", "رملي", "كحلي", "زيتوني",
+    "وردي", "ذهبي", "فضي", "دافئ", "دافئة", "بارد", "باردة",
+)
+PATTERN_WORDS = (
+    "pattern", "patterned", "plain", "motif", "print", "striped",
+    "نقشة", "نقش", "سادة", "مشجر", "مقلم",
+)
+
+
+def _session_user_text(turn):
+    """Lowercased user messages this session (the stated needs)."""
+    try:
+        msgs = (turn.get("session") or {}).get("messages") or []
+    except AttributeError:
+        return ""
+    return " ".join(m.get("content", "") for m in msgs
+                     if m.get("role") == "user").lower()
+
+
+def _stated_relaxed_keys(relaxed_keys, turn):
+    """Keep only relaxed dims the user actually stated.
+
+    Model-inferred filters (a style, opacity or usage the model added
+    on its own) never reach the one-line receipt.
+    """
+    said = _session_user_text(turn)
+    if not said:
+        return list(relaxed_keys)
+    kept = []
+    for key in relaxed_keys:
+        if key in ("tone", "colors"):
+            if any(w in said for w in COLOR_WORDS):
+                kept.append(key)
+        elif key == "styles":
+            if any(w in said for w in STYLE_WORDS):
+                kept.append(key)
+        elif key == "plain_or_patterned":
+            if any(w in said for w in PATTERN_WORDS):
+                kept.append(key)
+        elif key == "snag_levels":
+            if turn.get("pet_safe"):
+                kept.append(key)
+        elif key == "min_martindale":
+            if turn.get("min_martindale"):
+                kept.append(key)
+        elif key == "opacity":
+            needs = turn.get("needs_all", []) + turn.get("needs_any",
+                                                          [])
+            if "blackout" in needs:
+                kept.append(key)
+        elif key in ("usage", "suitable_for"):
+            continue
+        else:
+            kept.append(key)
+    return kept
+
 
 def _receipt_label(key, arabic):
     pair = RECEIPT_EXTRA_NAMES.get(key) or FEATURE_NAMES.get(key)
@@ -925,10 +1004,14 @@ def receipt_summary(matched, relaxed_keys, relaxed_feats, budget_over,
         if label not in match_labels:
             match_labels.append(label)
     ease_labels = []
-    for key in (relaxed_keys or []) + (relaxed_feats or []):
+    # Stated need-features first, then relaxed dimensions; one short
+    # line max, so the eased list is capped.
+    for key in (relaxed_feats or []) + (relaxed_keys or []):
         label = _receipt_label(key, arabic)
         if label not in ease_labels and label not in match_labels:
             ease_labels.append(label)
+    ease_labels = ease_labels[:3]
+    match_labels = match_labels[:3]
     if budget_over:
         label = "%s (+%s SAR)" % (
             _receipt_label("max_price", arabic),
@@ -983,6 +1066,7 @@ def enrich(recommendations, turn):
         relaxed_keys = [r for r in relaxed
                         if r not in ("features", "any_features",
                                     "max_price")]
+        relaxed_keys = _stated_relaxed_keys(relaxed_keys, turn)
         out.append({"code": rec["code"],
                     "name_en": item["name_en"],
                     "name_ar": item["name_ar"],

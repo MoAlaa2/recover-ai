@@ -1048,6 +1048,62 @@ def test_receipt_empty_without_stated_needs():
     assert "antibacterial" not in recs[0]["receipt"]
 
 
+def _live_turn():
+    # Mirrors the live fallback: "Warm beige, kids, budget 150..."
+    # relaxed colors/tone/styles plus the kid-mapped features.
+    msg = ("Warm beige, kids, budget 150 per meter. "
+           "Recommend 3 fabrics now.")
+    return {"needs_all": ["antibacterial", "easy-clean",
+                          "stain-resistant"],
+            "needs_any": [], "budgets": [150], "tones": ["warm"],
+            "relaxed": ["colors", "tone", "styles", "features"],
+            "protected": ["washable", "antibacterial"],
+            "pet_safe": False, "has_kids": True,
+            "chosen_targets": ["cushions"], "lang": "en",
+            "session": {"messages": [{"role": "user", "content": msg}]}}
+
+
+def test_receipt_drops_unstated_style_live_case():
+    turn = _live_turn()
+    recs = c.enrich([{"code": "FA-AC-01", "reason": "r"},
+                     {"code": "FA-AC-03", "reason": "r"}], turn)
+    for rec in recs:
+        line = rec["receipt"]
+        assert "\n" not in line
+        assert "style" not in line.lower()
+        assert "snag" not in line.lower() and "claw" not in line.lower()
+    # Kid-mapped features are stated needs (user said "kids").
+    assert "easy-clean" in recs[0]["receipt"]
+
+
+def test_receipt_eased_capped_at_three():
+    turn = _live_turn()
+    turn["relaxed"] = ["colors", "tone", "styles", "features",
+                       "plain_or_patterned", "min_martindale"]
+    turn["session"] = {"messages": [
+        {"role": "user",
+         "content": "Warm beige modern patterned kids fabric"}]}
+    rec = c.enrich([{"code": "FA-AC-01", "reason": "r"}], turn)[0]
+    eased = rec["receipt"].split("Eased:")[1]
+    assert eased.count("·") <= 2
+
+
+def test_receipt_keeps_stated_style():
+    turn = _live_turn()
+    turn["relaxed"] = ["styles"]
+    turn["session"] = {"messages": [
+        {"role": "user", "content": "I love modern Scandinavian style"}]}
+    rec = c.enrich([{"code": "FA-AC-01", "reason": "r"}], turn)[0]
+    assert "style" in rec["receipt"].lower()
+
+
+def test_receipt_drops_snag_without_pets():
+    turn = _live_turn()
+    turn["relaxed"] = ["snag_levels"]
+    rec = c.enrich([{"code": "FA-AC-01", "reason": "r"}], turn)[0]
+    assert "claw" not in rec["receipt"].lower()
+
+
 def test_preview_fabric_defaults_to_chosen_target():
     code = _cushion_code()
     turn = {"image": "uploads/x.jpg", "seen": [code],

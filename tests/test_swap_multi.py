@@ -237,6 +237,66 @@ def test_multi_unexpected_error_becomes_skip(tmp_path, monkeypatch):
     assert res["skipped"][0]["target"] == "cushions"
 
 
+def test_multi_item_budget_expiry_skips(tmp_path, monkeypatch):
+    room = make_room(tmp_path)
+    calls = []
+    ticks = iter([0.0, 1000.0, 1000.0, 1000.0])
+
+    def fake_now():
+        try:
+            return next(ticks)
+        except StopIteration:
+            return 1000.0
+
+    def fake_segment(room_bytes, concept, key=None, timeout=120):
+        calls.append((concept, timeout))
+        return [{"box": (0, 0, 90, 90), "frame_size": (100, 100)}]
+
+    monkeypatch.setattr(s, "segment", fake_segment)
+    monkeypatch.setattr(s, "sam_mask",
+                        lambda records, size: Image.new("L", size, 255))
+    monkeypatch.setattr(s, "edit_room",
+                        lambda *a, **k: solid((9, 9, 9)))
+    monkeypatch.setattr(s, "verify",
+                        lambda *a, **k: {"color": 8, "pattern": 8,
+                                         "scale": 8, "isolation": 8})
+    with pytest.raises(s.SwapError) as exc:
+        s.swap_multi(room, [{"target": "sofa", "code": "FA-AC-01"}],
+                     api_key="k", out_dir=str(tmp_path / "o4"),
+                     budget=60, _now=fake_now)
+    assert calls == []
+    assert "timed out after 60s" in str(exc.value)
+
+
+def test_multi_call_timeouts_bounded(tmp_path, monkeypatch):
+    room = make_room(tmp_path)
+    seen = []
+
+    def fake_segment(room_bytes, concept, key=None, timeout=120):
+        seen.append(timeout)
+        return [{"box": (0, 0, 90, 90), "frame_size": (100, 100)}]
+
+    def fake_edit(room_bytes, swatch_bytes, fabric, concept, key=None,
+                  corrective=None, timeout=300):
+        seen.append(timeout)
+        return solid((9, 9, 9))
+
+    def fake_verify(swatch_bytes, result, fabric, concept, key=None,
+                    timeout=120):
+        seen.append(timeout)
+        return {"color": 8, "pattern": 8, "scale": 8, "isolation": 8}
+
+    monkeypatch.setattr(s, "segment", fake_segment)
+    monkeypatch.setattr(s, "sam_mask",
+                        lambda records, size: Image.new("L", size, 255))
+    monkeypatch.setattr(s, "edit_room", fake_edit)
+    monkeypatch.setattr(s, "verify", fake_verify)
+    res = s.swap_multi(room, [{"target": "sofa", "code": "FA-AC-01"}],
+                       api_key="k", out_dir=str(tmp_path / "o5"))
+    assert len(res["results"]) == 1
+    assert seen and all(t <= 60 for t in seen)
+
+
 def test_multi_all_fail_still_raises(tmp_path, monkeypatch):
     room = make_room(tmp_path)
     monkeypatch.setattr(s, "segment", lambda *a, **k: [])

@@ -88,12 +88,17 @@ class VolumeSyncMiddleware:
         committed = []
 
         async def send_and_commit(message):
-            await send(message)
+            # Commit BEFORE the client sees the final bytes: the app
+            # answers with file URLs (uploads, masks, swap results)
+            # that the browser fetches immediately, so the files must
+            # be visible before the response lands. Committing after
+            # send raced the browser's GET and served 404s.
             if (message["type"] == "http.response.body"
                     and not message.get("more_body")
                     and not committed):
                 committed.append(True)
                 await asyncio.to_thread(self.volume.commit)
+            await send(message)
 
         await self.inner(scope, receive, send_and_commit)
 
