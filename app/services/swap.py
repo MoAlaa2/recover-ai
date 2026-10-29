@@ -70,6 +70,20 @@ def _b64_image(image):
     return base64.b64encode(buf.getvalue()).decode("ascii")
 
 
+def _small_copy(image_bytes, max_side=1600):
+    """Downscaled JPEG copy for vision calls (segment/verify).
+
+    Masks are always rebuilt at full room resolution, so this only
+    shrinks the transmitted payload, never the composite.
+    """
+    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    if max(img.size) > max_side:
+        img.thumbnail((max_side, max_side), Image.LANCZOS)
+    buf = io.BytesIO()
+    img.save(buf, "JPEG", quality=75)
+    return buf.getvalue()
+
+
 def _output_text(body):
     texts = []
 
@@ -443,13 +457,16 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
             swatch_bytes = f.read()
         img_path, mask_path, meta_path = _cache_paths(
             out_dir, rtag, target, code)
+        # Vision calls get a capped copy; the edit and the composite
+        # always use the full-resolution original.
+        seg_bytes = _small_copy(room_bytes, 1600)
         best = None
         attempts = 0
         last_err = "unknown error"
         for _ in range(2):
             try:
                 step("segment")
-                records = segment(room_bytes, concept, key,
+                records = segment(seg_bytes, concept, key,
                                   timeout=60)
                 if not records:
                     raise SwapError("could not find the %s in this "
@@ -477,8 +494,13 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                     io.BytesIO(room_bytes)).convert("RGB")
                 cand = paste_strict(base_img, edited, mask)
                 step("verify")
-                scores = verify(swatch_bytes, cand, fabric, concept,
-                                key, timeout=60)
+                small_cand = cand
+                if max(small_cand.size) > 1024:
+                    small_cand = cand.copy()
+                    small_cand.thumbnail((1024, 1024),
+                                         Image.LANCZOS)
+                scores = verify(swatch_bytes, small_cand, fabric,
+                                concept, key, timeout=60)
                 attempts += 1
                 if best is None or (
                         min(scores.values()),

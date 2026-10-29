@@ -93,9 +93,21 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
     """One photo session. Returns timings dict."""
     timings = {}
     errors = []
-    pg.on("console", lambda m: errors.append(m.text[:200])
-          if m.type == "error" else None)
+    def _console(m):
+        if m.type != "error":
+            return
+        try:
+            loc = m.location or {}
+            url = loc.get("url", "") if isinstance(loc, dict) \
+                else getattr(loc, "url", "")
+        except Exception:
+            url = ""
+        errors.append(("%s <%s>" % (m.text, url))[:260])
+    pg.on("console", _console)
     pg.on("pageerror", lambda e: errors.append(str(e)[:200]))
+    pg.on("response", lambda r: errors.append(
+        ("HTTP %s <%s>" % (r.status, r.url))[:260])
+        if r.status >= 400 else None)
     dump = lambda stage: dump_state(pg, lang + "-" + tag, stage)  # noqa: E731
 
     def shot(name):
@@ -268,9 +280,21 @@ def run_target_phase(device, user, pw, browser, lang):
                                      "password": pw})
     pg = ctx.new_page()
     errors = []
-    pg.on("console", lambda m: errors.append(m.text[:200])
-          if m.type == "error" else None)
+    def _console(m):
+        if m.type != "error":
+            return
+        try:
+            loc = m.location or {}
+            url = loc.get("url", "") if isinstance(loc, dict) \
+                else getattr(loc, "url", "")
+        except Exception:
+            url = ""
+        errors.append(("%s <%s>" % (m.text, url))[:260])
+    pg.on("console", _console)
     pg.on("pageerror", lambda e: errors.append(str(e)[:200]))
+    pg.on("response", lambda r: errors.append(
+        ("HTTP %s <%s>" % (r.status, r.url))[:260])
+        if r.status >= 400 else None)
     tag = "target"
     pg.goto(DEPLOYED + "/consult", wait_until="networkidle",
             timeout=90000)

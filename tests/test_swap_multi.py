@@ -177,6 +177,39 @@ def test_paste_strict_resizes_mismatched_edit():
     assert out.getpixel((5, 5)) == (200, 100, 50)
 
 
+def test_small_copy_caps_dimensions():
+    big = Image.new("RGB", (2400, 1800), (1, 2, 3))
+    buf = io.BytesIO()
+    big.save(buf, "JPEG", quality=90)
+    small = s._small_copy(buf.getvalue(), 1600)
+    got = Image.open(io.BytesIO(small))
+    assert max(got.size) <= 1600
+    tiny = s._small_copy(buf.getvalue(), 5000)
+    assert Image.open(io.BytesIO(tiny)).size == (2400, 1800)
+
+
+def test_multi_segments_capped_copy(tmp_path, monkeypatch):
+    room = make_room(tmp_path)
+    seen = {}
+
+    def fake_segment(room_bytes, concept, key=None, timeout=120):
+        seen[concept] = Image.open(
+            io.BytesIO(room_bytes)).size
+        return [{"box": (0, 0, 90, 90), "frame_size": (100, 100)}]
+
+    monkeypatch.setattr(s, "segment", fake_segment)
+    monkeypatch.setattr(s, "sam_mask",
+                        lambda records, size: Image.new("L", size, 255))
+    monkeypatch.setattr(s, "edit_room",
+                        lambda *a, **k: solid((9, 9, 9)))
+    monkeypatch.setattr(s, "verify",
+                        lambda *a, **k: {"color": 8, "pattern": 8,
+                                         "scale": 8, "isolation": 8})
+    s.swap_multi(room, [{"target": "sofa", "code": "FA-AC-01"}],
+                 api_key="k", out_dir=str(tmp_path / "o3"))
+    assert max(seen["sofa"]) <= 1600
+
+
 def test_multi_unexpected_error_becomes_skip(tmp_path, monkeypatch):
     room = make_room(tmp_path)
 
