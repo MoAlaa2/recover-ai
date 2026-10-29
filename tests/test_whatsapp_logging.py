@@ -174,6 +174,82 @@ def test_process_message_replies_from_arrival_number(
     assert "1432888193234143" in logged
 
 
+def test_media_url_never_contains_phone_id(env, monkeypatch):
+    monkeypatch.setenv("WA_PHONE_NUMBER_ID", "1449726954880802")
+    assert "1449726954880802" not in wa.media_object_url("MID123")
+    assert wa.media_object_url("MID123") == \
+        "https://graph.facebook.com/v21.0/MID123"
+
+
+def test_download_uses_phoneless_url_with_auth(env, monkeypatch):
+    seen = {}
+
+    class FakeResp:
+        def __init__(self, url, payload=None, content=b""):
+            self.url = url
+            self.payload = payload
+            self.content = content
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return self.payload or {}
+
+    class FakeClient:
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def get(self, url, headers=None):
+            seen.setdefault("urls", []).append(url)
+            seen["auth"] = (headers or {}).get("Authorization", "")
+            if url.endswith("/MID9"):
+                return FakeResp(url, {"url": "https://cdn.example/f9"})
+            return FakeResp(url, content=b"bytes")
+
+    monkeypatch.setattr(wa.httpx, "Client", FakeClient)
+    assert wa.download_media_bytes("MID9") == b"bytes"
+    assert seen["urls"][0] == "https://graph.facebook.com/v21.0/MID9"
+    assert "1449726954880802" not in " ".join(seen["urls"])
+    assert seen["auth"].startswith("Bearer ")
+
+
+def test_image_fetch_failure_sends_friendly_line(env, outbox, waid,
+                                                monkeypatch, capsys):
+    def boom(mid):
+        raise RuntimeError("boom-graph-detail")
+
+    monkeypatch.setattr(wa, "fetch_media", boom)
+    wa.handle_image(waid, "mid-x", "")
+    assert len(outbox) == 1
+    body = outbox[0]["text"]["body"]
+    assert "send it again" in body
+    assert "boom-graph-detail" not in body
+    logged = capsys.readouterr().out
+    assert "media_fetch_error" in logged
+    assert "boom-graph-detail" in logged
+
+
+def test_audio_fetch_failure_sends_friendly_line(env, outbox, waid,
+                                                monkeypatch, capsys):
+    def boom(mid):
+        raise RuntimeError("boom-audio-detail")
+
+    monkeypatch.setattr(wa, "fetch_media", boom)
+    wa.handle_audio(waid, "mid-a")
+    assert len(outbox) == 1
+    body = outbox[0]["text"]["body"]
+    assert "voice note" in body and "send it again" in body
+    assert "boom-audio-detail" not in body
+    assert "media_fetch_error" in capsys.readouterr().out
+
+
 def test_temp_files_unique_per_message(env, waid, monkeypatch, tmp_path):
     import re
     monkeypatch.setattr(wa, "UPLOAD_DIR", str(tmp_path))

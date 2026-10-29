@@ -171,6 +171,21 @@ def apology_text(wa_id):
     return "Sorry, something went wrong — please try again."
 
 
+def media_failed_text(wa_id, kind):
+    """Short friendly retry line, localized. Never carries raw errors."""
+    session = consultant_mod.SESSIONS.get(wa_session_id(wa_id), {})
+    arabic = (session.get("lang") or "en") == "ar"
+    if kind == "audio":
+        if arabic:
+            return ("عذرا، ما قدرت أفتح رسالتك الصوتية — "
+                    "ممكن ترسلها مرة ثانية؟")
+        return ("Sorry, I couldn't open that voice note — "
+                "could you send it again?")
+    if arabic:
+        return "عذرا، ما قدرت أفتح الصورة — ممكن ترسلها مرة ثانية؟"
+    return "Sorry, I couldn't open that photo — could you send it again?"
+
+
 def send_apology(wa_id):
     """Last-resort short text reply. Logs instead of raising."""
     try:
@@ -338,12 +353,19 @@ def send_typing(wa_id):
         pass
 
 
+def media_object_url(media_id):
+    """Graph media node URL. The media id is global: the sender phone
+    number id must NOT appear in this path (it 400s)."""
+    return "https://graph.facebook.com/%s/%s" % (GRAPH_VERSION,
+                                                 media_id)
+
+
 def download_media_bytes(media_id):
     """Graph media object -> raw bytes. Raises on failure."""
     env = wa_env()
     headers = {"Authorization": "Bearer " + env["token"]}
     with httpx.Client(timeout=60) as client:
-        meta = client.get(graph_url("/" + media_id),
+        meta = client.get(media_object_url(media_id),
                           headers=headers)
         meta.raise_for_status()
         url = meta.json().get("url", "")
@@ -669,10 +691,12 @@ def handle_image(wa_id, media_id, caption=""):
     restore_session(wa_id)
     try:
         raw = fetch_media(media_id)
-    except Exception as exc:  # noqa: BLE001 - tell user to retry
-        send_payload(text_payload(wa_id, "Could not fetch that photo "
-                                        "(%s). Please send a JPG or PNG."
-                                        % exc))
+    except Exception as exc:  # noqa: BLE001 - friendly line, log details
+        log_wa("media_fetch_error", wa_id, kind="image",
+               error="%s: %s" % (type(exc).__name__, exc),
+               traceback=traceback.format_exc()[-4000:])
+        send_payload(text_payload(wa_id, media_failed_text(wa_id,
+                                                           "image")))
         return
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     # Unique per message: a shared pid-named file lets one user's
@@ -722,9 +746,12 @@ def handle_audio(wa_id, media_id):
     restore_session(wa_id)
     try:
         raw = fetch_media(media_id)
-    except Exception as exc:  # noqa: BLE001 - tell user to retry
-        send_payload(text_payload(wa_id, "Could not fetch that voice "
-                                        "note (%s)." % exc))
+    except Exception as exc:  # noqa: BLE001 - friendly line, log details
+        log_wa("media_fetch_error", wa_id, kind="audio",
+               error="%s: %s" % (type(exc).__name__, exc),
+               traceback=traceback.format_exc()[-4000:])
+        send_payload(text_payload(wa_id, media_failed_text(wa_id,
+                                                           "audio")))
         return
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     tmp = os.path.join(UPLOAD_DIR, "wa-au-%s.ogg" % uuid.uuid4().hex)
@@ -733,9 +760,12 @@ def handle_audio(wa_id, media_id):
     try:
         from app.services import voice as voice_mod
         text = voice_mod.transcribe(tmp)["text"].strip()
-    except Exception as exc:  # noqa: BLE001 - transcription failed
-        send_payload(text_payload(wa_id, "I couldn't hear that (%s)."
-                                        % exc))
+    except Exception as exc:  # noqa: BLE001 - friendly line, log details
+        log_wa("media_fetch_error", wa_id, kind="transcribe",
+               error="%s: %s" % (type(exc).__name__, exc),
+               traceback=traceback.format_exc()[-4000:])
+        send_payload(text_payload(wa_id, media_failed_text(wa_id,
+                                                           "audio")))
         return
     finally:
         try:
