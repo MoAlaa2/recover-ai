@@ -66,17 +66,20 @@ def test_recs_max_count():
     assert not ok
 
 
-def test_grounding_log_defaults_to_volume_dir(tmp_path, monkeypatch):
+def test_grounding_log_defaults_to_private_dir(tmp_path, monkeypatch):
     import json
 
     import app.core.config as config_mod
     from app.services import consultant as c
     monkeypatch.setattr(config_mod, "UPLOAD_DIR", str(tmp_path))
+    monkeypatch.setattr(config_mod, "PRIVATE_DIR",
+                        str(tmp_path / "private"))
     monkeypatch.setattr(c, "GROUNDING_LOG", None)
     c.log_grounding("s", "bad", "p", ["FA-AC-01"])
-    dest = tmp_path / "logs" / "grounding_log.json"
+    dest = tmp_path / "private" / "logs" / "grounding_log.json"
     assert dest.exists()
     assert json.load(open(dest))[0]["session_id"] == "s"
+    assert "uploads" not in str(dest)
 
 
 def test_declined_and_coordinated():

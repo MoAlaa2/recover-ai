@@ -14,6 +14,8 @@ def env(monkeypatch, tmp_path):
     for key, value in FAKE_ENV.items():
         monkeypatch.setenv(key, value)
     monkeypatch.setattr(wa, "UPLOAD_DIR", str(tmp_path))
+    # Sessions now live in the private dir: keep them per-test too.
+    monkeypatch.setattr(wa, "PRIVATE_DIR", str(tmp_path / "private"))
     monkeypatch.setattr(wa, "SYNC_MODE", True)
     return tmp_path
 

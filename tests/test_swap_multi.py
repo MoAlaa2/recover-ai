@@ -335,6 +335,8 @@ def test_multi_endpoint_shape(monkeypatch, tmp_path):
                 "final_url": "uploads/swap/final.jpg"}
 
     monkeypatch.setattr("app.services.swap.swap_multi", fake_multi)
+    # B1: routes only serve uploads/samples roots; admit the tmp room.
+    monkeypatch.setattr("app.api.chat.UPLOAD_DIR", str(tmp_path))
     client = TestClient(app)
     resp = client.post(
         "/api/swap/multi",
@@ -349,6 +351,8 @@ def test_multi_endpoint_shape(monkeypatch, tmp_path):
 def test_multi_endpoint_rejects(monkeypatch, tmp_path):
     from app.main import app
     room = make_room(tmp_path)
+    # Admit the tmp room so the 400s come from assignment validation.
+    monkeypatch.setattr("app.api.chat.UPLOAD_DIR", str(tmp_path))
     client = TestClient(app)
     bad_target = client.post(
         "/api/swap/multi",
