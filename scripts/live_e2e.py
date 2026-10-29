@@ -104,11 +104,13 @@ def wait_swap(pg, tag, trigger, timeout=300000):
 
 
 def run_phase(pg, lang, tag, photo, all_words, fallback_text,
-              want_multi, try_single=True, needles=None):
+              want_multi, try_single=True, needles=None, desktop=False):
     """One photo session. Returns timings dict.
 
     lang doubles as the ?lang= code (en has no suffix). needles
     overrides the summary-card assertions for other languages.
+    desktop skips the mobile-only room-bar View tap: the assign row
+    is directly visible in the canvas pane.
     """
     timings = {}
     errors = []
@@ -206,7 +208,8 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
         pg.wait_for_timeout(500)
 
     if want_multi:
-        pg.click("#roomView")
+        if not desktop:
+            pg.click("#roomView")
         pg.wait_for_selector("#assignRow:not([hidden])",
                              timeout=60000)
         assert pg.eval_on_selector_all(
