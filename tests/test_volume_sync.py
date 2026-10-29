@@ -15,7 +15,7 @@ class FakeVolume:
         self.calls.append("commit")
 
 
-def run(path, method, chunks=(b"ok",)):
+def run(path, method, chunks=(b"ok",), upload_dir=None):
     vol = FakeVolume()
     messages = []
 
@@ -34,7 +34,8 @@ def run(path, method, chunks=(b"ok",)):
 
     scope = {"type": "http", "path": path, "method": method,
              "headers": []}
-    asyncio.run(VolumeSyncMiddleware(inner, vol)(scope, receive, send))
+    asyncio.run(VolumeSyncMiddleware(
+        inner, vol, upload_dir=upload_dir)(scope, receive, send))
     return vol.calls, messages
 
 
@@ -100,3 +101,29 @@ def test_commit_before_final_send():
     asyncio.run(VolumeSyncMiddleware(inner, vol)(scope, receive, send))
     assert events.index("commit") < events.index(
         "sent:http.response.body")
+
+
+def test_upload_get_present_no_extra_wait(tmp_path):
+    (tmp_path / "a.jpg").write_bytes(b"x")
+    calls, out = run("/uploads/a.jpg", "GET",
+                     upload_dir=str(tmp_path))
+    assert calls == ["reload"]
+    assert out[-1]["body"] == b"ok"
+
+
+def test_upload_get_missing_waits_then_passes_through():
+    calls, out = run("/uploads/nope.jpg", "GET",
+                     upload_dir="/nonexistent-xyz-recover")
+    assert calls == ["reload"] + ["reload"] * 8
+    assert out[-1]["body"] == b"ok"
+
+
+def test_upload_get_missing_no_dir_no_wait():
+    calls, _ = run("/uploads/nope.jpg", "GET")
+    assert calls == ["reload"]
+
+
+def test_share_bogus_token_no_wait():
+    calls, _ = run("/share/bogus.jpg", "GET",
+                   upload_dir="/nonexistent-xyz-recover")
+    assert calls == []

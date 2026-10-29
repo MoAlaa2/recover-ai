@@ -45,9 +45,48 @@ class VolumeSyncMiddleware:
     WRITE_PREFIXES = ("/api/upload", "/api/swap", "/api/session/",
                       "/webhook/whatsapp")
 
-    def __init__(self, inner, volume):
+    def __init__(self, inner, volume, upload_dir=None):
         self.inner = inner
         self.volume = volume
+        self.upload_dir = upload_dir
+
+    def _disk_path(self, path):
+        """Map a file-serving GET path to its on-disk file, or None."""
+        if self.upload_dir and path.startswith("/uploads/"):
+            rel = path[len("/uploads/"):].split("?")[0].split("#")[0]
+            if not rel or rel.startswith(".") or ".." in rel.split("/"):
+                return None
+            return os.path.join(self.upload_dir, rel)
+        if path.startswith("/share/"):
+            try:
+                from app.services import share as share_mod
+            except Exception:  # noqa: BLE001 - fail open to the 404
+                return None
+            token = path[len("/share/"):].split("?")[0].split("#")[0]
+            try:
+                rel = share_mod.verify_token(token)
+            except Exception:  # noqa: BLE001 - bad key/env, fast 404
+                return None
+            if not rel:
+                return None
+            return os.path.join(self.upload_dir, rel) \
+                if self.upload_dir else None
+        return None
+
+    async def _ensure_visible(self, disk_path, tries=8):
+        """Wait until a just-written file is servable.
+
+        Volume commit/flush is eventually consistent: a burst of GETs
+        the millisecond after an upload 404s (measured 9/10 on one
+        probe). The happy path costs one stat call; only a missing
+        file reloads and waits, 0.5s at a time.
+        """
+        import asyncio
+        for _ in range(tries):
+            if disk_path and os.path.exists(disk_path):
+                return
+            await asyncio.to_thread(self.volume.reload)
+            await asyncio.sleep(0.5)
 
     @staticmethod
     def reads_volume(path, method):
@@ -82,6 +121,10 @@ class VolumeSyncMiddleware:
         method = scope.get("method", "")
         if self.reads_volume(path, method):
             await asyncio.to_thread(self.volume.reload)
+        if method == "GET":
+            disk = self._disk_path(path)
+            if disk is not None:
+                await self._ensure_visible(disk)
         if not self.writes_volume(path, method):
             await self.inner(scope, receive, send)
             return
@@ -199,4 +242,5 @@ def web():
     import sys
     sys.path.insert(0, "/root/recover")
     from app.main import app as fastapi_app
-    return DemoLockMiddleware(VolumeSyncMiddleware(fastapi_app, vol))
+    return DemoLockMiddleware(VolumeSyncMiddleware(
+        fastapi_app, vol, upload_dir="/root/recover/uploads"))
