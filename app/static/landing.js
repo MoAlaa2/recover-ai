@@ -7,8 +7,9 @@
   // 52 kg CO2e for life-cycle stages A1-A3 (manufacturing).
   var CO2_PER_SOFA_KG = 52;
 
-  // Real hero swap: living sample + FA-NL-06, verify min 8/10.
-  var HERO = { code: "FA-NL-06", score: 8 };
+  // Real hero swap: living sample, 3-item multi (sofa + cushions +
+  // curtains); caption names the sofa fabric, score is its verify min.
+  var HERO = { code: "FA-AC-01", score: 9 };
 
   var RTL = ["ar", "ur", "fa"];
 

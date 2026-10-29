@@ -54,10 +54,10 @@
     },
     {
       "id": "allergy-sofa",
-      "pass": true,
+      "pass": false,
       "detail": [
         "recs_min_count PASS (3 recs)",
-        "hypo_or_disclosed PASS (relaxation disclosed)"
+        "hypo_or_disclosed FAIL (not disclosed)"
       ]
     },
     {
@@ -89,9 +89,9 @@
     },
     {
       "id": "velvet-budget",
-      "pass": true,
+      "pass": false,
       "detail": [
-        "reply_contains_any PASS (mentioned)"
+        "reply_contains_any FAIL (none mentioned)"
       ]
     },
     {

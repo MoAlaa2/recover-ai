@@ -142,7 +142,7 @@ def test_welcome_empty_state(server, page):
     page.wait_for_function("document.fonts.status === 'loaded'",
                            timeout=15000)
     assert page.eval_on_selector_all(
-        "#welcomeMsg [data-sample]", "e => e.length") == 3
+        "#welcomeMsg [data-sample]", "e => e.length") == 4
     assert page.eval_on_selector_all(
         "#welcomeMsg [data-upload]", "e => e.length") == 1
     box = page.evaluate("() => ({sw: document.documentElement.scrollWidth,"
