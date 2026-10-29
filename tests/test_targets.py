@@ -216,6 +216,30 @@ def test_subtract_cushions_keeps_sofa_when_erased():
     assert tmod._subtract_cushions(sofa, cush) is sofa
 
 
+def test_match_targets_five_languages():
+    from app.services import targets as tmod
+    avail = ["sofa", "cushions", "curtains"]
+    # "All" in hi/fr/es must open the multi flow like en/ar do.
+    assert tmod.match_targets("Tout", avail) == (avail, {"all": True})
+    assert tmod.match_targets("todos", avail) == (avail, {"all": True})
+    assert tmod.match_targets("सभी", avail) == (avail, {"all": True})
+    assert tmod.match_targets("सब कुछ बदलो", avail) == (
+        avail, {"all": True})
+    # Items in hi/fr/es.
+    assert tmod.match_targets("le canapé", avail) == (["sofa"], {})
+    assert tmod.match_targets("fauteuil", avail) == (["sofa"], {})
+    assert tmod.match_targets("les coussins", avail) == (
+        ["cushions"], {})
+    assert tmod.match_targets("los cojines", avail) == (["cushions"], {})
+    assert tmod.match_targets("las cortinas", avail) == (
+        ["curtains"], {})
+    assert tmod.match_targets("les rideaux", avail) == (["curtains"], {})
+    assert tmod.match_targets("परदे", avail) == (["curtains"], {})
+    # Bare सब is a substring of सबसे/सबूत: never an "all" match.
+    assert tmod.match_targets("सबसे अच्छा कपड़ा", avail) == ([], {})
+    assert tmod.match_targets("blabla", avail) == ([], {})
+
+
 def test_subtract_cushions_normal_case():
     from PIL import Image, ImageDraw
     from app.services import targets as tmod

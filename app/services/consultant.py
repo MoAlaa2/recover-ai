@@ -1563,29 +1563,102 @@ def accumulate_context(session, turn):
     return turn
 
 
-def confirm_piece_question(stated, detected, arabic):
-    if arabic:
-        return ("تأكيد سريع — ذكرت %s، لكن الصورة توضح %s بشكل أساسي. "
-                "لأي قطعة تبغى التوصية؟"
-                % (PIECE_NAMES_AR.get(stated, stated),
-                   PIECE_NAMES_AR.get(detected, detected)))
-    return ("Quick check — you mentioned your %s, but the photo mainly "
-            "shows a %s. Which piece should I recommend for?"
-            % (stated, detected))
+LANG5 = ("en", "ar", "hi", "fr", "es")
+
+# Short deterministic server lines in all five journey languages.
+# Everything longer (relaxation disclosures, light-color notes) stays
+# EN/AR: the model covers those in-language first, verified on live
+# hi/fr/es turns.
+CLOSEST_LINES = {
+    "en": "These are the closest matches I found for you:",
+    "ar": "هذه أقرب الخيارات اللي لقيتها لك:",
+    "hi": "ये आपके लिए सबसे क़रीबी विकल्प हैं जो मुझे मिले:",
+    "fr": "Voici les correspondances les plus proches que j'ai trouvées :",
+    "es": "Estas son las opciones más cercanas que encontré para ti:",
+}
+UNREADABLE_LINES = {
+    "en": ("I couldn't read that photo — please send a JPG or PNG photo, "
+           "or pick a sample room."),
+    "ar": ("ما قدرت أقرأ الصورة — ارسل صورة JPG أو PNG، "
+           "أو اختر غرفة جاهزة."),
+    "hi": ("मैं वह फ़ोटो पढ़ नहीं पाया — कृपया JPG या PNG फ़ोटो भेजें, "
+           "या कोई सैंपल रूम चुनें।"),
+    "fr": ("Je n'ai pas pu lire cette photo — envoyez une photo JPG ou "
+           "PNG, ou choisissez une pièce d'exemple."),
+    "es": ("No pude leer esa foto — envía una foto JPG o PNG, o elige "
+           "una habitación de ejemplo."),
+}
+DECLINE_LINES = {
+    "en": ("That's outside my expertise — I'm here for your fabrics "
+           "and interiors. What fabric can I help you with?"),
+    "ar": ("هذا خارج تخصصي، أنا هنا لأقمشتك وديكورك. "
+           "أساعدك بأي قماش اليوم؟"),
+    "hi": ("यह मेरी विशेषज्ञता से बाहर है — मैं यहाँ आपके फ़ैब्रिक "
+           "और इंटीरियर के लिए हूँ। आज मैं आपकी किस फ़ैब्रिक में "
+           "मदद करूँ?"),
+    "fr": ("Cela dépasse mon expertise — je suis là pour vos tissus et "
+           "votre intérieur. Quel tissu puis-je vous aider à choisir "
+           "aujourd'hui ?"),
+    "es": ("Eso está fuera de mi especialidad — estoy aquí para tus "
+           "telas e interiores. ¿Con qué tela te ayudo hoy?"),
+}
+CONFIRM_LINES = {
+    "en": ("Quick check — you mentioned your %s, but the photo mainly "
+           "shows a %s. Which piece should I recommend for?"),
+    "ar": ("تأكيد سريع — ذكرت %s، لكن الصورة توضح %s بشكل أساسي. "
+           "لأي قطعة تبغى التوصية؟"),
+    "hi": ("एक जल्दी पुष्टि — आपने %s कहा, लेकिन तस्वीर में ज़्यादातर "
+           "%s है। मैं किसके लिए सुझाव दूँ?"),
+    "fr": ("Vérification rapide — vous avez mentionné %s, mais la photo "
+           "montre surtout %s. Pour quelle pièce dois-je recommander ?"),
+    "es": ("Una comprobación rápida — mencionaste %s, pero la foto "
+           "muestra sobre todo %s. ¿Para qué pieza recomiendo?"),
+}
+PIECE_NAMES_5 = {
+    "sofa": ("sofa", "الكنبة", "सोफ़ा", "canapé", "sofá"),
+    "armchair": ("armchair", "الكرسي", "कुर्सी", "fauteuil", "sillón"),
+    "curtains": ("curtains", "الستائر", "परदे", "rideaux", "cortinas"),
+    "cushions": ("cushions", "الوسائد", "कुशन", "coussins", "cojines"),
+}
+LANG_INDEX = {"en": 0, "ar": 1, "hi": 2, "fr": 3, "es": 4}
 
 
-def decline_reply(topic, arabic):
+def _reply_lang(turn=None, message="", session=None):
+    """Best-known 5-lang code for a deterministic server line."""
+    lang = (turn or {}).get("lang") or (session or {}).get("lang")
+    if lang in LANG5:
+        return lang
+    try:
+        detected = detect_user_lang(message)
+    except Exception:  # noqa: BLE001 - fall back to Arabic check
+        detected = None
+    if detected in LANG5:
+        return detected
+    return "ar" if is_arabic(message) else "en"
+
+
+def confirm_piece_question(stated, detected, lang="en"):
+    idx = LANG_INDEX.get(lang, 0)
+    names = PIECE_NAMES_5
+    piece = lambda p: names.get(p, (p, p, p, p, p))[idx]  # noqa: E731
+    return CONFIRM_LINES.get(lang, CONFIRM_LINES["en"]) % (piece(stated),
+                                                          piece(detected))
+
+
+def decline_reply(topic, lang="en"):
     """One-line polite decline with a steer back. No model call."""
-    if arabic:
-        base = "هذا خارج تخصصي، أنا هنا لأقمشتك وديكورك."
-        if topic and topic in PIECE_NAMES_AR:
-            return base + " نكمل على %s؟" % PIECE_NAMES_AR[topic]
-        return base + " أساعدك بأي قماش اليوم؟"
-    base = ("That's outside my expertise — I'm here for your fabrics "
-            "and interiors.")
-    if topic:
-        return base + " Shall we continue with your %s?" % topic
-    return base + " What fabric can I help you with?"
+    if lang in ("en", "ar"):
+        if lang == "ar":
+            base = "هذا خارج تخصصي، أنا هنا لأقمشتك وديكورك."
+            if topic and topic in PIECE_NAMES_AR:
+                return base + " نكمل على %s؟" % PIECE_NAMES_AR[topic]
+            return base + " أساعدك بأي قماش اليوم؟"
+        base = ("That's outside my expertise — I'm here for your fabrics "
+                "and interiors.")
+        if topic:
+            return base + " Shall we continue with your %s?" % topic
+        return base + " What fabric can I help you with?"
+    return DECLINE_LINES.get(lang, DECLINE_LINES["en"])
 
 
 def chat(session_id, message, image_path=None, chat_fn=None,
@@ -1612,8 +1685,9 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
         session["lang"] = lang
     if not image_path and not is_in_scope(message) and not (
             _spark_open_enabled() and baseten_scope_allows(message)):
-        arabic = is_arabic(message)
-        reply = decline_reply(session.get("topic"), arabic)
+        reply = decline_reply(
+            session.get("topic"),
+            _reply_lang(None, message, session))
         history.append({"role": "user", "content": message or ""})
         history.append({"role": "assistant", "content": reply})
         return {"reply": reply, "recommendations": []}
@@ -1675,13 +1749,8 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
         try:
             room_analysis = analyze_room(image_path, turn.get("lang"))
         except Exception:  # noqa: BLE001 - unreadable photo, not a crash
-            arabic = is_arabic(message)
-            if arabic:
-                reply = ("ما قدرت أقرأ الصورة — ارسل صورة JPG أو PNG، "
-                         "أو اختر غرفة جاهزة.")
-            else:
-                reply = ("I couldn't read that photo — please send a "
-                         "JPG or PNG photo, or pick a sample room.")
+            lang = _reply_lang(turn, message, session)
+            reply = UNREADABLE_LINES.get(lang, UNREADABLE_LINES["en"])
             history.append({"role": "user", "content": user_text})
             history.append({"role": "assistant", "content": reply})
             return {"reply": reply, "recommendations": [],
@@ -1699,8 +1768,9 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
         detected = detect_piece((room_analysis or {}).get("furniture", ""))
         if stated and detected and stated != detected:
             session["detected_piece"] = detected
-            confirm = confirm_piece_question(stated, detected,
-                                             is_arabic(message))
+            confirm = confirm_piece_question(
+                stated, detected,
+                _reply_lang(turn, message, session))
     history.append({"role": "user", "content": user_text})
     if on_step and image_path:
         on_step("room")
@@ -1833,9 +1903,8 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
         if note and note not in reply:
             reply = (reply + "\n\n" + note).strip()
     if used_fallback:
-        arabic = (turn.get("lang") or "en") == "ar"
-        line = ("هذه أقرب الخيارات اللي لقيتها لك:" if arabic else
-                "These are the closest matches I found for you:")
+        lang = _reply_lang(turn)
+        line = CLOSEST_LINES.get(lang, CLOSEST_LINES["en"])
         if "closest match" not in reply.lower() and "أقرب" not in reply:
             reply = (reply + "\n\n" + line).strip()
     if not any(m.get("role") == "assistant" for m in history):

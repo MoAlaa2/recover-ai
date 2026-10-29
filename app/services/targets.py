@@ -29,15 +29,29 @@ TARGET_LABELS = {
 }
 
 CHOICE_WORDS = {
-    "sofa": ("sofa", "كنبة", "كنبه", "sofas"),
+    # "sofa" also covers the armchair sample: list_types only ever
+    # reports sofa/cushions/curtains, so fauteuil/sillon/Kursi must
+    # land on the chair the user sees.
+    "sofa": ("sofa", "sofas", "كنبة", "كنبه", "canapé", "canape",
+             "fauteuil", "sofá", "sillon", "sillón", "सोफ़ा", "सोफा",
+             "कुर्सी"),
     "cushions": ("cushion", "cushions", "pillow", "pillows", "وسائد",
-                 "وساده", "مخدات", "مخدة"),
+                 "وساده", "مخدات", "مخدة", "coussin", "coussins",
+                 "cojín", "cojin", "cojines", "कुशन", "तकिया",
+                 "तकिये"),
     "curtains": ("curtain", "curtains", "drape", "drapes", "ستائر",
-                 "ستاره", "ستارة", "sheer", "blackout"),
+                 "ستاره", "ستارة", "sheer", "blackout", "rideau",
+                 "rideaux", "voilage", "cortina", "cortinas",
+                 "visillo", "परदा", "परदे", "पर्दा", "पर्दे"),
 }
-ALL_WORDS = ("all", "everything", "كل", "كلهم", "both", "الكل")
+# Bare Hindi "सब" is a substring of common words (सबसे, सबूत), so
+# the Hindi "all" relies on सभी / सब कुछ only.
+ALL_WORDS = ("all", "everything", "كل", "كلهم", "both", "الكل",
+             "tout", "tous", "toutes", "todo", "todos", "todas",
+             "सभी", "सब कुछ", "mix")
 SKIP_WORDS = ("just show me", "skip", "show me", "وريني", "تخط",
-              "بدون أسئلة", "no questions")
+              "بدون أسئلة", "no questions", "montre-moi", "passer",
+              "muéstrame", "muestrame", "omitir", "दिखाओ", "छोड़ो")
 
 
 def match_targets(message, available):

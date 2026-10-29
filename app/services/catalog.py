@@ -304,7 +304,9 @@ SCOPE_DECLINE_PATTERNS = [
     r"stock|salary|loan|lawyer|court|زواج|طلاق|علاقة|صحة|دكتور|طبيب|"
     r"رجيم|راتب|قرض|استثمار|محامي|محكمة|قانون",
     r"capital of|who invented|who discovered|tallest|longest|عاصمة|"
-    r"من اخترع|من اكتشف|أطول|أين تقع",
+    r"من اخترع|من اكتشف|أطول|أين تقع|capitale|capital|राजधानी",
+    r"président|presidente|राष्ट्रपति|चुनाव|élections?|elecciones|"
+    r"गणित|calcul|cálculo",
     r"football|soccer|premier league|world cup|مباراة|الدوري|كأس العالم|"
     r"كرة القدم",
 ]

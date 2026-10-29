@@ -1172,6 +1172,74 @@ def test_receipt_summary_hindi_french_spanish():
     assert es.startswith("Coincide:") and "Fácil de limpiar" in es
 
 
+def test_fallback_line_follows_turn_lang():
+    log_path = "/tmp/test-grounding-log-lang.json"
+    if os.path.exists(log_path):
+        os.remove(log_path)
+    old_log, c.GROUNDING_LOG = c.GROUNDING_LOG, log_path
+    try:
+        calls = {"n": 0}
+
+        def fake(messages, tools=None):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return tool_call("search_catalog", {"usage": "upholstery"})
+            if calls["n"] == 2:
+                return final_text(block(["FA-XX-01", "FA-XX-02",
+                                         "FA-XX-03"]))
+            return final_text(block(["FA-YY-01", "FA-YY-02", "FA-YY-03"]))
+
+        out = c.chat("test-ground-fallback-fr", "sofa fabric please",
+                     chat_fn=fake, lang="fr")
+        assert "Voici les correspondances les plus proches" in out["reply"]
+        assert "closest matches" not in out["reply"]
+    finally:
+        c.GROUNDING_LOG = old_log
+
+
+def test_decline_follows_message_lang():
+    def boom(messages, tools=None):
+        raise AssertionError("model must not be called")
+
+    hi = c.chat("test-scope-hi", "फ्रांस का राष्ट्रपति कौन है?",
+                chat_fn=boom)
+    assert "विशेषज्ञता" in hi["reply"] and "expertise" not in hi["reply"]
+    fr = c.chat("test-scope-fr",
+                "Je veux savoir qui a gagné les élections", chat_fn=boom)
+    assert "expertise" in fr["reply"] and "outside my expertise" not in fr["reply"]
+    es = c.chat("test-scope-es",
+                "¿Quién ganó las elecciones para presidente?",
+                chat_fn=boom)
+    assert "especialidad" in es["reply"] and "outside my expertise" not in es["reply"]
+
+
+def test_confirm_piece_question_five_langs():
+    fr = c.confirm_piece_question("sofa", "curtains", "fr")
+    assert "canapé" in fr and "rideaux" in fr and "Quick check" not in fr
+    hi = c.confirm_piece_question("sofa", "cushions", "hi")
+    assert "सोफ़ा" in hi and "कुशन" in hi
+    es = c.confirm_piece_question("curtains", "sofa", "es")
+    assert "cortinas" in es and "sofá" in es
+    ar = c.confirm_piece_question("sofa", "curtains", "ar")
+    assert "الكنبة" in ar
+
+
+def test_unreadable_photo_reply_follows_lang(monkeypatch):
+    import tempfile
+    monkeypatch.setattr(c, "analyze_room",
+                        lambda *a, **k: (_ for _ in ()).throw(
+                            RuntimeError("nope")))
+    with tempfile.NamedTemporaryFile(suffix=".jpg") as tmp:
+        tmp.write(b"not a photo")
+        tmp.flush()
+        out = c.chat("test-unreadable-hi", "photo", image_path=tmp.name,
+                     chat_fn=lambda m, tools=None: final_text("x"),
+                     lang="hi")
+    assert "सैंपल रूम" in out["reply"]
+    assert "couldn't read" not in out["reply"]
+    assert out["recommendations"] == []
+
+
 def test_enrich_receipt_uses_turn_lang():
     turn = {"needs_all": ["easy-clean"], "needs_any": [], "budgets": [],
             "tones": [], "relaxed": [], "chosen_targets": [],
