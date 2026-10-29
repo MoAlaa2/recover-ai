@@ -88,6 +88,7 @@
       closeLabel: "Close",
       swapFail: "The preview failed. Please try again with another photo.",
       swapTimeout: "The preview timed out — the model is slow right now. Tap Try again.",
+      underHood: "Under the hood",
       roomTitle: "Your room",
       roomType: "Room",
       style: "Style",
@@ -141,6 +142,7 @@
       closeLabel: "إغلاق",
       swapFail: "تعذّرت المعاينة. حاول مرة ثانية بصورة ثانية.",
       swapTimeout: "المعاينة طولت — النموذج بطيء الحين. اضغط حاول مرة ثانية.",
+      underHood: "تحت الغطاء",
       roomTitle: "مساحتك",
       roomType: "الغرفة",
       style: "الستايل",
@@ -255,6 +257,7 @@
       closeLabel: "बंद करें",
       swapFail: "झलक नहीं बनी। दूसरी फोटो से फिर कोशिश करें।",
       swapTimeout: "झलक में समय लग गया — मॉडल अभी धीमा है। फिर कोशिश करें दबाएँ।",
+      underHood: "परदे के पीछे",
       roomTitle: "आपका कमरा",
       roomType: "कमरा",
       style: "स्टाइल",
@@ -352,6 +355,7 @@
       closeLabel: "Fermer",
       swapFail: "Aperçu impossible. Réessayez avec une autre photo.",
       swapTimeout: "L'aperçu a expiré — le modèle est lent pour le moment. Touchez Réessayer.",
+      underHood: "En coulisses",
       roomTitle: "Votre pièce",
       roomType: "Pièce",
       style: "Style",
@@ -449,6 +453,7 @@
       closeLabel: "Cerrar",
       swapFail: "No se pudo generar la vista. Prueba con otra foto.",
       swapTimeout: "La vista tardó demasiado — el modelo está lento ahora. Toca Reintentar.",
+      underHood: "Entre bastidores",
       roomTitle: "Tu espacio",
       roomType: "Habitación",
       style: "Estilo",
@@ -698,6 +703,7 @@
     });
     $("micBtn").setAttribute("aria-label", t("micLabel"));
     renderChips();
+    if (typeof paintStepBadges === "function") paintStepBadges();
   }
 
   function renderChips() {
@@ -825,11 +831,11 @@
     return document.getElementById("pending");
   }
 
-  function showStep(key) {
+  function showStep(key, model) {
     var scope = pendingScope();
     var el = scope && scope.querySelector(".agent-step");
     if (!el) return;
-    el.textContent = stepLabel(key);
+    el.innerHTML = esc(stepLabel(key)) + modelBadge(model);
     el.classList.remove("swap");
     void el.offsetWidth;
     el.classList.add("swap");
@@ -1117,6 +1123,8 @@
       var done = !!(state.swaps[r.code] && state.swaps[r.code].result_url);
       var status = running ? (state.pendingSwapLabel || t("stepDetect")) :
         done ? t("previewing") : t("seeIt");
+      var statusBadge = running ? modelBadge(state.pendingSwapModel)
+                                : "";
       var cls = "ccard" + (done ? " previewing" : "") +
         (running ? " running" : "");
       return '<button type="button" class="' + cls + '" data-code="' +
@@ -1125,7 +1133,8 @@
         '<span class="cc-t"><span class="cc-n" dir="auto">' + esc(name) +
         '</span><span class="cc-m">' + esc(r.code) + " · " +
         esc(formatPrice(r.price_sar_per_m)) + "</span>" +
-        '<span class="cc-s">' + esc(status) + "</span></span></button>";
+        '<span class="cc-s">' + esc(status) + statusBadge +
+        "</span></span></button>";
     }).join("");
     icons();
   }
@@ -1369,11 +1378,11 @@
     openSwap(code, { target: tg });
   }
 
-  function showSwapStep(label) {
+  function showSwapStep(label, model) {
     var scope = pendingScope();
     var el = scope && scope.querySelector(".agent-step");
     if (!el) return;
-    el.textContent = canvasStepLabel(label);
+    el.innerHTML = esc(canvasStepLabel(label)) + modelBadge(model);
     el.classList.remove("swap");
     void el.offsetWidth;
     el.classList.add("swap");
@@ -1403,7 +1412,7 @@
         var buf = "";
         function onEvt(evt) {
           if (evt.type === "step") {
-            showSwapStep(evt.label);
+            showSwapStep(evt.label, evt.model);
           } else if (evt.type === "done") {
             try { reader.cancel(); } catch (e) {}
             finalizeMulti(evt.result || {});
@@ -1890,6 +1899,27 @@
 
   var SWAP_STEP = { segment: 0, edit: 1, composite: 1, verify: 2 };
 
+  var MODEL_BADGE = { "muse-spark-1.3": "Spark",
+                      "muse-image-1.0": "Image", "sam-3.1": "SAM" };
+
+  function modelBadge(model) {
+    var short = MODEL_BADGE[model];
+    if (!short) return "";
+    return ' <span class="model-badge">' + esc(short) + "</span>";
+  }
+
+  var SWAP_STAGE_MODEL = ["sam-3.1", "muse-image-1.0", "muse-spark-1.3"];
+
+  function paintStepBadges() {
+    var items = document.querySelectorAll("#swapSteps li");
+    var labels = [t("stepDetect"), t("stepApply"), t("stepCheck")];
+    for (var i = 0; i < 3 && i < items.length; i++) {
+      if (items[i].id === "swapRetryRow") continue;
+      items[i].innerHTML = esc(labels[i]) +
+        modelBadge(SWAP_STAGE_MODEL[i]);
+    }
+  }
+
   function swapFabricMeta(code) {
     var list = state.lastRecs || [];
     for (var i = 0; i < list.length; i++) {
@@ -2034,6 +2064,11 @@
     $("swapSteps").hidden = false;
     $("swapTimeoutMsg").hidden = true;
     $("swapRetryBtn").hidden = true;
+    if ($("swapTrace")) $("swapTrace").hidden = true;
+    if ($("hoodToggle")) $("hoodToggle").hidden = true;
+    state.pendingSwapModel = null;
+    state.swapTrace = [];
+    paintStepBadges();
     renderCanvasRow();
     clearSwapTimers();
     swapTimers.push(setTimeout(function () {
@@ -2100,6 +2135,10 @@
     function onEvt(evt) {
       if (evt.type === "step") {
         state.pendingSwapLabel = canvasStepLabel(evt.label);
+        state.pendingSwapModel = evt.model || null;
+        (state.swapTrace = state.swapTrace || []).push(
+          { label: evt.label, model: evt.model || null,
+            t: Date.now() });
         renderCanvasRow();
         if (evt.label === "retry") {
           var row = $("swapRetryRow");
@@ -2167,6 +2206,29 @@
     }
   }
 
+  function renderTrace(res) {
+    var box = $("swapTrace");
+    if (!box) return;
+    var prev = state.swapAttemptT0 || Date.now(), html = "";
+    (state.swapTrace || []).forEach(function (s) {
+      var secs = Math.max(0, (s.t - prev) / 1000);
+      prev = s.t;
+      html += '<div class="trace-row"><span dir="auto">' +
+        esc(canvasStepLabel(s.label)) + "</span>" +
+        modelBadge(s.model) +
+        '<span class="trace-secs">' + secs.toFixed(1) + "s</span></div>";
+    });
+    var scores = (res && res.scores) || {};
+    html += '<div class="trace-row total"><span>match ' +
+      [scores.color, scores.pattern, scores.scale, scores.isolation]
+        .map(function (v) { return v || 0; }).join(" · ") +
+      " · tries " + ((res && res.attempts) || 1) + "</span></div>";
+    box.innerHTML = html;
+    box.hidden = true;
+    var btn = $("hoodToggle");
+    if (btn) { btn.textContent = t("underHood"); btn.hidden = false; }
+  }
+
   function finalizeSwap(code, meta, res) {
     // Server fabric meta fills gaps when the swap was triggered outside
     // the recommendation list (browse panel, multi-apply): without it the
@@ -2188,6 +2250,7 @@
       "/" + state.roomPhoto.replace(/^\/+/, "") : "";
     var after = "/" + (res.result_url || "").replace(/^\/+/, "");
     renderSwapResult(before, after, res, match, vals, meta);
+    renderTrace(res);
     var entry = { fabric_code: code,
                   result_url: res.result_url || "",
                   mask_url: res.mask_url || "",
@@ -2457,7 +2520,7 @@
         var buf = "";
         function onEvt(evt) {
           if (evt.type === "step") {
-            showStep(evt.label);
+            showStep(evt.label, evt.model);
           } else if (evt.type === "token") {
             gotToken = true;
             var scope = pendingScope();
@@ -3055,6 +3118,10 @@
     $("swapRetryBtn").addEventListener("click", function () {
       if (state.swapCode) openSwap(state.swapCode,
                                    { target: state.swapTarget });
+    });
+    $("hoodToggle").addEventListener("click", function () {
+      var box = $("swapTrace");
+      if (box) box.hidden = !box.hidden;
     });
     $("swapModal").addEventListener("click", function (e) {
       if (e.target === $("swapModal")) closeSwap();

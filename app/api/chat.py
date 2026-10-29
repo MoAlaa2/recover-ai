@@ -14,11 +14,30 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from app.core.config import BASE_DIR, UPLOAD_DIR
+from app.core.config import BASE_DIR, SPARK_MODEL, UPLOAD_DIR
 from app.services import consultant
 from app.services import targets as targets_mod
-from app.services.swap import SwapError, swap
+from app.services.swap import EDIT_MODEL, SAM_MODEL, SwapError, swap
 from app.services.voice import AUDIO_EXT, VoiceError, transcribe
+
+# Which model powers each streamed step label. Chat tool steps run on
+# the Spark agent; swap stages name their own model; local-only work
+# (composite) carries no model and gets no badge.
+STEP_MODELS = {
+    "search": SPARK_MODEL, "claw": SPARK_MODEL, "details": SPARK_MODEL,
+    "room": SPARK_MODEL, "photo": SPARK_MODEL,
+    "segment": SAM_MODEL, "edit": EDIT_MODEL, "composite": None,
+    "verify": SPARK_MODEL, "retry": SPARK_MODEL,
+}
+
+
+def step_event(label):
+    """One SSE step event, with the powering model when it has one."""
+    evt = {"type": "step", "label": label}
+    model = STEP_MODELS.get(label)
+    if model:
+        evt["model"] = model
+    return evt
 
 PIECE_TARGET = {"sofa": "sofa", "armchair": "armchair", "chair": "armchair",
                 "curtains": "curtains", "cushions": "cushions"}
@@ -235,8 +254,7 @@ def swap_multi_stream(req: SwapMultiRequest):
         try:
             res = swap_multi(
                 req.image_path, cleaned,
-                on_step=lambda s: events.put({"type": "step",
-                                              "label": s}))
+                on_step=lambda s: events.put(step_event(s)))
             before = req.image_path or ""
             for item in res.get("results", []):
                 record_preview(req.session_id, item["code"], item,
@@ -479,7 +497,7 @@ def landing_meta():
 def swap_stream(req: SwapRequest):
     """Same as /api/swap but streams backend progress as SSE.
 
-    Events: {"type": "step", "label": ...} as each stage starts, then
+    Events: {"type": "step", "label": ..., "model": ...} per stage, then
     {"type": "done", "result": {...}} with the full /api/swap payload,
     or {"type": "error", ...} on failure.
     """
@@ -490,8 +508,7 @@ def swap_stream(req: SwapRequest):
     def run():
         try:
             res = swap(req.image_path, req.fabric_code, target,
-                       on_step=lambda s: events.put({"type": "step",
-                                                    "label": s}))
+                       on_step=lambda s: events.put(step_event(s)))
             # The result bubble shows name + price even when the swap was
             # triggered outside the recommendation list (browse panel,
             # multi-apply): the client only knows the code there.
@@ -552,7 +569,7 @@ def chat_stream(req: ChatRequest):
     """Same as /api/chat but streams reply tokens as SSE.
 
     Events: {"type": "token", "text": ...} as text arrives,
-    {"type": "step", "label": ...} for progress, then a final
+    {"type": "step", "label": ..., "model": ...} for progress, then a final
     {"type": "done", "result": {...}} with the full /api/chat payload,
     or {"type": "error", ...} on failure.
     """
@@ -569,8 +586,7 @@ def chat_stream(req: ChatRequest):
                 req.session_id, req.message, req.image_path,
                 on_token=lambda t: events.put({"type": "token",
                                                 "text": t}),
-                on_step=lambda s: events.put({"type": "step",
-                                               "label": s}),
+                on_step=lambda s: events.put(step_event(s)),
                 lang=req.lang)
             events.put({"type": "done", "result": res})
         except FileNotFoundError as exc:
