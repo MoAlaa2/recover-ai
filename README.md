@@ -95,12 +95,14 @@ Streaming chat and swap progress run over SSE.
 
 ## Quality
 
-- **Unit tests** — 241 tests (`tests/`): grounding fallback,
+- **Unit tests** — 249 tests (`tests/`): grounding fallback,
   receipts honesty, streaming fences, swap composite/codec, voice,
   multi-object assignment, meterage/quote, sourced CO₂, WhatsApp
-  mapping, Baseten fallback, swap fabric meta, plus headless WebKit
-  (iPhone 15 Pro, EN+AR) chat and overflow suites and a desktop
-  parity driver (`scripts/desktop_e2e.py`, Chromium + WebKit).
+  mapping, Baseten fallback, swap fabric meta, twin-bubble
+  coalescing/refresh, share-link volume wait, room-image retry, plus
+  headless WebKit (iPhone 15 Pro, EN+AR) chat and overflow suites and
+  a desktop parity driver (`scripts/desktop_e2e.py`, Chromium +
+  WebKit).
 - **Scenario eval** — `scripts/eval_scenarios.py` + `data/scenarios.json`
   (22 scripted multi-turn scenarios incl. Arabic/Hindi/French/Spanish
   replies, off-topic guarding, multi-object photo turns and meterage
