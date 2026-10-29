@@ -565,6 +565,11 @@
   function initialLang() {
     var q = new URLSearchParams(location.search).get("lang");
     if (q && STRINGS[q]) return q;
+    // A7/A6: carry the language picked on the landing page.
+    try {
+      var saved = window.localStorage.getItem("recover_lang");
+      if (saved && STRINGS[saved]) return saved;
+    } catch (e) {}
     var nav = (navigator.language || "en").toLowerCase();
     if (nav.indexOf("ar") === 0) return "ar";
     if (nav.indexOf("hi") === 0) return "hi";
@@ -2487,7 +2492,7 @@
     return new Promise(function (resolve, reject) {
       var ctrl = new AbortController();
       var settled = false, stall = null;
-      var gotToken = false;
+      var gotToken = false, streamStarted = false;
       function armStall() {
         if (stall) clearTimeout(stall);
         stall = setTimeout(function () {
@@ -2514,6 +2519,7 @@
         signal: ctrl.signal
       }).then(function (r) {
         if (!r.ok || !r.body) throw new Error("HTTP " + r.status);
+        streamStarted = true;
         armStall();
         var reader = r.body.getReader();
         var dec = new TextDecoder();
@@ -2561,13 +2567,15 @@
         }
         return pump();
       }).catch(function (e) {
-        if (gotToken) { finish(e); return; }
+        // A5: once the server accepted the stream it is still running
+        // the turn; a second POST would run it again on the same session.
+        if (gotToken || streamStarted || settled) { finish(e); return; }
         postJSON("/api/chat", {
           session_id: state.sessionId,
           message: text || "",
           image_path: imagePath || null,
           lang: state.pinned ? state.lang : null
-        }, 120000, 1).then(function (res) {
+        }, 120000, 0).then(function (res) {
           res.fallback = true;
           finish(null, res);
         }).catch(finish);
@@ -2575,8 +2583,18 @@
     });
   }
 
+  function setChatBusy(on) {
+    // A2: one turn in flight at a time; chips/outlines/composer wait.
+    state.chatBusy = !!on;
+    document.body.classList.toggle("chat-busy", !!on);
+    var btn = document.querySelector("#composer button[type=submit]");
+    if (btn) btn.disabled = !!on;
+  }
+
   function send(text, imagePath, photoPreview, silent) {
     if (!text && !imagePath) return;
+    if (state.chatBusy) return;
+    setChatBusy(true);
     if (!silent) addMsg(text || "", "me", photoPreview);
     // Old option chips belong to the turn that produced them.
     if (chipsEl) { chipsEl.innerHTML = ""; chipsEl.hidden = true; }
@@ -2593,6 +2611,7 @@
     }, 8000);
     function finish() {
       clearTimeout(thinkingTimer);
+      setChatBusy(false);
     }
     streamChat(text, imagePath).then(function (res) {
       finish();
@@ -2947,7 +2966,7 @@
     $("composer").addEventListener("submit", function (e) {
       e.preventDefault();
       var text = composerInput.value.trim();
-      if (!text) return;
+      if (!text || state.chatBusy) return;
       composerInput.value = "";
       chipsEl.hidden = true;
       state.booted = true;
@@ -3032,7 +3051,7 @@
     (function holdBefore() {
       var btn = $("holdBefore");
       if (!btn) return;
-      var downAt = 0, pinned = false;
+      var downAt = 0, pinned = false, wasPinned = false;
       function showBefore(on) {
         var img = $("canvasImg");
         if (!img || !state.roomPhoto) return;
@@ -3041,17 +3060,22 @@
       }
       btn.addEventListener("pointerdown", function () {
         downAt = Date.now();
-        pinned = false;
+        wasPinned = pinned;
         showBefore(true);
       });
-      ["pointerup", "pointerleave", "pointercancel"].forEach(function (ev) {
+      // Tap toggles, hold peeks. iOS fires pointerleave right after
+      // pointerup, so only pointerup decides the toggle.
+      btn.addEventListener("pointerup", function () {
+        if (Date.now() - downAt < 300) {
+          pinned = !wasPinned;
+        } else {
+          pinned = false;
+        }
+        showBefore(pinned);
+      });
+      ["pointerleave", "pointercancel"].forEach(function (ev) {
         btn.addEventListener(ev, function () {
-          if (Date.now() - downAt < 300) {
-            pinned = !pinned;
-            showBefore(pinned);
-          } else if (!pinned) {
-            showBefore(false);
-          }
+          if (!pinned) showBefore(false);
         });
       });
     })();
@@ -3109,7 +3133,9 @@
       }
     });
     $("swapTryAgain").addEventListener("click", function () {
-      if (state.swapCode) openSwap(state.swapCode, { noRetry: true });
+      if (state.swapCode) openSwap(state.swapCode,
+                                   { noRetry: true,
+                                     target: state.swapTarget });
     });
     $("baRange").addEventListener("input", function (e) {
       baUpdate(Number(e.target.value));

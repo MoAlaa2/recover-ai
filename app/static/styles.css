@@ -1651,3 +1651,8 @@ body.modal-open { overflow: hidden; }
   color: var(--rc-ink-muted);
   margin: 6px 0 0;
 }
+
+/* A2: while a reply is streaming, other turn starters wait. */
+body.chat-busy .chips button,
+body.chat-busy .ol-tap,
+body.chat-busy [data-action="try"] { pointer-events: none; opacity: .55; }

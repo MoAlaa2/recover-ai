@@ -280,7 +280,13 @@ def swap_multi_stream(req: SwapMultiRequest):
 
     def gen():
         while True:
-            evt = events.get()
+            try:
+                evt = events.get(timeout=15)
+            except queue.Empty:
+                # Heartbeat so proxies and the client stall timer see a
+                # live stream while a slow model call is in flight.
+                yield ": ping\n\n"
+                continue
             yield "data: %s\n\n" % json.dumps(evt, ensure_ascii=False)
             if evt["type"] in ("done", "error"):
                 break
@@ -540,7 +546,13 @@ def swap_stream(req: SwapRequest):
 
     def gen():
         while True:
-            evt = events.get()
+            try:
+                evt = events.get(timeout=15)
+            except queue.Empty:
+                # Heartbeat so proxies and the client stall timer see a
+                # live stream while a slow model call is in flight.
+                yield ": ping\n\n"
+                continue
             yield "data: %s\n\n" % json.dumps(evt, ensure_ascii=False)
             if evt["type"] in ("done", "error"):
                 break
@@ -600,7 +612,13 @@ def chat_stream(req: ChatRequest):
 
     def gen():
         while True:
-            evt = events.get()
+            try:
+                evt = events.get(timeout=15)
+            except queue.Empty:
+                # Heartbeat so proxies and the client stall timer see a
+                # live stream while a slow model call is in flight.
+                yield ": ping\n\n"
+                continue
             yield "data: %s\n\n" % json.dumps(evt, ensure_ascii=False)
             if evt["type"] in ("done", "error"):
                 break

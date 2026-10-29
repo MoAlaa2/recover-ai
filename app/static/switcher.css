@@ -31,6 +31,17 @@
   line-height: 1.6;
 }
 .rcsw-chev { opacity: 0.6; }
+.rcsw-beta {
+  font-size: var(--rc-fs-xs);
+  font-weight: 600;
+  background: var(--rc-chalk);
+  color: var(--rc-ink-muted);
+  border: 1px solid var(--rc-line);
+  border-radius: var(--rc-r-pill);
+  padding: 1px 8px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
 .rcsw-chev svg { width: 16px; height: 16px; }
 
 .rcsw-pop {

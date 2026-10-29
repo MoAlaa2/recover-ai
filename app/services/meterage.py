@@ -34,7 +34,8 @@ TARGET_PIECE = {
 }
 CUSHIONS_FRACTION = 0.4
 CURTAIN_FULLNESS = 2.2
-CURTAIN_HEM_M = 1.0
+CURTAIN_HEM_M = 1.0  # legacy, unused
+CURTAIN_ALLOWANCE_M = 0.3
 CURTAIN_DROPS_DEFAULT = 2
 
 
@@ -64,17 +65,28 @@ def piece_meters(piece_key, fabric=None, count=1):
     return round_up_half(base)
 
 
-def curtain_meters(width_m, height_m, fabric=None, drops=None):
-    """Curtain meters; height is recorded for the summary.
+def _to_meters(value):
+    """Accept meters or centimetres (anything over 10 is read as cm)."""
+    v = float(value)
+    return v / 100.0 if v > 10 else v
 
-    Formula: ((width x 2.2 fullness / 1.37) + 1 hem) x drops.
+
+def curtain_meters(width_m, height_m, fabric=None, drops=None):
+    """Curtain meters for one window.
+
+    Each panel covers width x 2.2 fullness / panels; it needs
+    ceil(that / 1.37) fabric widths, each cut to the drop height plus
+    a header/hem allowance. Total = panels x widths x (height + 0.3).
     Returns None when the window size is unknown.
     """
     if not width_m or not height_m:
         return None
-    drops = drops or CURTAIN_DROPS_DEFAULT
-    base = ((float(width_m) * CURTAIN_FULLNESS / FABRIC_WIDTH_M)
-            + CURTAIN_HEM_M) * drops
+    width = _to_meters(width_m)
+    height = _to_meters(height_m)
+    panels = max(1, int(drops or CURTAIN_DROPS_DEFAULT))
+    widths_per_panel = math.ceil(
+        width * CURTAIN_FULLNESS / panels / FABRIC_WIDTH_M - 1e-9)
+    base = panels * widths_per_panel * (height + CURTAIN_ALLOWANCE_M)
     if is_patterned(fabric):
         base *= PATTERN_UPLIFT
     return round_up_half(base)
@@ -94,18 +106,20 @@ def estimate_item(target, fabric, curtain_dims=None, pillow_count=0):
             return None, "needs measurements"
         return meters, ""
     if target == "cushions":
-        base = YARDAGE["sofa-3-seat"] * CUSHIONS_FRACTION
+        # "cushions" on a photo means the throw pillows SAM counted;
+        # only without a count do we fall back to the seat cushions.
         if pillow_count:
-            base += YARDAGE["throw-pillow"] * max(0, int(pillow_count))
+            base = YARDAGE["throw-pillow"] * max(1, int(pillow_count))
+            note = "%d throw pillow(s)" % int(pillow_count)
+        else:
+            base = YARDAGE["sofa-3-seat"] * CUSHIONS_FRACTION
+            note = "seat cushions only"
         if is_patterned(fabric):
             base *= PATTERN_UPLIFT
-        note = "seat cushions only"
-        if pillow_count:
-            note += " + %d throw pillow(s)" % pillow_count
         return round_up_half(base), note
     piece = TARGET_PIECE.get(target)
     if piece is None:
-        return None, "unknown piece"
+        return None, "unknown item"
     return piece_meters(piece, fabric), ""
 
 

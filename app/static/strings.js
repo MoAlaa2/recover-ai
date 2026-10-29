@@ -81,7 +81,8 @@ window.RC_STRINGS = {
     swSoon: "Coming soon",
     swFooter: "Not listed? Just type — ReCover replies in the language you write in.",
     swClose: "Close",
-    swBadge: "%d live"
+    swBadge: "%d live",
+    betaTag: "Beta"
   },
   ar: {
     tagline: "غيّر القماش، لا الأثاث.",
@@ -152,7 +153,8 @@ window.RC_STRINGS = {
     swSoon: "قريباً",
     swFooter: "لغتك مو موجودة؟ اكتب فقط — ReCover يرد باللغة اللي تكتب فيها.",
     swClose: "إغلاق",
-    swBadge: "%d مباشرة"
+    swBadge: "%d مباشرة",
+    betaTag: "تجريبي"
   },
   hi: {
     tagline: "लुक बदलें, फ़र्नीचर नहीं।",
@@ -223,7 +225,8 @@ window.RC_STRINGS = {
     swSoon: "जल्द आ रहा है",
     swFooter: "भाषा नहीं दिखी? बस लिखें — ReCover उसी भाषा में जवाब देता है।",
     swClose: "बंद करें",
-    swBadge: "%d लाइव"
+    swBadge: "%d लाइव",
+    betaTag: "बीटा"
   },
   fr: {
     tagline: "Changez le look, pas le meuble.",
@@ -294,7 +297,8 @@ window.RC_STRINGS = {
     swSoon: "Bientôt",
     swFooter: "Langue absente ? Écrivez — ReCover répond dans votre langue.",
     swClose: "Fermer",
-    swBadge: "%d en direct"
+    swBadge: "%d en direct",
+    betaTag: "Bêta"
   },
   es: {
     tagline: "Cambia el look, no el mueble.",
@@ -365,6 +369,7 @@ window.RC_STRINGS = {
     swSoon: "Próximamente",
     swFooter: "¿No está tu idioma? Escribe — ReCover responde en tu idioma.",
     swClose: "Cerrar",
-    swBadge: "%d en vivo"
+    swBadge: "%d en vivo",
+    betaTag: "Beta"
   }
 };

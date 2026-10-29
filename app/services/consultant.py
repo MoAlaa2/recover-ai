@@ -9,8 +9,10 @@ import base64
 import json
 import os
 import re
+import threading
 import time
 import urllib.request
+import uuid
 
 from app.core.config import (BASE_DIR, CHAT_URL, SPARK_MODEL,
                              require_api_key)
@@ -26,6 +28,15 @@ SESSIONS = {}
 MAX_TOOL_ROUNDS = 4
 MAX_RETRIES = 1
 CHAT_TIMEOUT = 60
+
+# Muse Spark reasoning + output caps (Chat Completions: top-level
+# reasoning_effort minimal..max, none 400s; max_tokens caps reasoning
+# tokens + visible output COMBINED, so the base cap keeps ~3x headroom
+# over the worst observed rec turn and length finish_reason retries
+# once at the high cap instead of truncating a reply mid-block).
+REASONING_EFFORT = "low"
+CHAT_MAX_TOKENS = 12000
+CHAT_MAX_TOKENS_RETRY = 24000
 
 # Temporary latency instrumentation. Active only with CHAT_PERF=1 in the
 # environment; one JSON line per model/tool/turn event, under the
@@ -217,38 +228,66 @@ def baseten_scope_allows(text):
         return False
 
 
-def _call_chat(messages, tools=None):
-    """Low-level chat call. Monkeypatch this in tests."""
-    payload = {"model": SPARK_MODEL, "messages": messages}
+def _chat_payload(messages, tools=None, cap=CHAT_MAX_TOKENS):
+    """Chat payload with reasoning effort + combined output cap."""
+    payload = {"model": SPARK_MODEL, "messages": messages,
+               "reasoning_effort": REASONING_EFFORT,
+               "max_tokens": cap}
     if tools:
         payload["tools"] = tools
         payload["tool_choice"] = "auto"
+    return payload
+
+
+def _finish_reason(body):
+    try:
+        return (body.get("choices") or [{}])[0].get("finish_reason")
+    except (AttributeError, IndexError, TypeError):
+        return None
+
+
+def _post_chat(payload, messages, tools, attempt):
+    """One HTTP chat round with perf logging. Returns the body."""
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        CHAT_URL, data=data,
+        headers={"Authorization": "Bearer " + require_api_key(),
+                 "Content-Type": "application/json"},
+        method="POST")
+    t0 = time.time()
+    with urllib.request.urlopen(req, timeout=CHAT_TIMEOUT) as resp:
+        body = json.loads(resp.read().decode("utf-8"))
+    usage = (body.get("usage") or {}) if isinstance(body, dict) \
+        else {}
+    chars = 0
+    for m in messages:
+        c = m.get("content", "")
+        chars += len(c) if isinstance(c, str) else len(
+            json.dumps(c, ensure_ascii=False))
+    _perf({"kind": "model", "seconds": round(time.time() - t0, 2),
+           "prompt_tokens": usage.get("prompt_tokens"),
+           "completion_tokens": usage.get("completion_tokens"),
+           "n_messages": len(messages), "prompt_chars": chars,
+           "with_tools": bool(tools),
+           "attempt": attempt})
+    return body
+
+
+def _call_chat(messages, tools=None):
+    """Low-level chat call. Monkeypatch this in tests."""
+    payload = _chat_payload(messages, tools)
     last_err = None
     timeouts = 0
     for attempt in range(MAX_RETRIES + 1):
         try:
-            data = json.dumps(payload).encode("utf-8")
-            req = urllib.request.Request(
-                CHAT_URL, data=data,
-                headers={"Authorization": "Bearer " + require_api_key(),
-                         "Content-Type": "application/json"},
-                method="POST")
-            t0 = time.time()
-            with urllib.request.urlopen(req, timeout=CHAT_TIMEOUT) as resp:
-                body = json.loads(resp.read().decode("utf-8"))
-            usage = (body.get("usage") or {}) if isinstance(body, dict) \
-                else {}
-            chars = 0
-            for m in messages:
-                c = m.get("content", "")
-                chars += len(c) if isinstance(c, str) else len(
-                    json.dumps(c, ensure_ascii=False))
-            _perf({"kind": "model", "seconds": round(time.time() - t0, 2),
-                   "prompt_tokens": usage.get("prompt_tokens"),
-                   "completion_tokens": usage.get("completion_tokens"),
-                   "n_messages": len(messages), "prompt_chars": chars,
-                   "with_tools": bool(tools),
-                   "attempt": attempt})
+            body = _post_chat(payload, messages, tools, attempt)
+            if _finish_reason(body) == "length" and payload.get(
+                    "max_tokens", 0) < CHAT_MAX_TOKENS_RETRY:
+                # Truncated mid-reply (maybe mid-rec-block): one silent
+                # re-post at the high cap instead of parsing a stub.
+                payload = _chat_payload(messages, tools,
+                                        CHAT_MAX_TOKENS_RETRY)
+                body = _post_chat(payload, messages, tools, attempt)
             return body
         except Exception as exc:  # noqa: BLE001 - retry then raise
             last_err = exc
@@ -306,9 +345,20 @@ class FenceFilter:
         return tail
 
 
-def _stream_once(url, api_key, model, messages, tools, on_token):
-    """One streaming attempt. Returns (full_text, tool_calls, usage)."""
+def _stream_once(url, api_key, model, messages, tools, on_token,
+                 cap=CHAT_MAX_TOKENS, _retried=False):
+    """One streaming attempt. Returns (full_text, tool_calls, usage).
+
+    On the Meta endpoint the call carries reasoning_effort + max_tokens
+    (the Baseten fallback keeps its own gateway behavior). A length
+    finish is re-fetched once, silently, at the high cap so the caller
+    parses a whole reply instead of a cut-off stub.
+    """
     payload = {"model": model, "messages": messages, "stream": True}
+    tuned = url == CHAT_URL
+    if tuned:
+        payload["reasoning_effort"] = REASONING_EFFORT
+        payload["max_tokens"] = cap
     if tools:
         payload["tools"] = tools
         payload["tool_choice"] = "auto"
@@ -322,6 +372,7 @@ def _stream_once(url, api_key, model, messages, tools, on_token):
     parts = []
     calls = {}
     usage = {}
+    finish = None
     with urllib.request.urlopen(req,
                                 timeout=CHAT_TIMEOUT) as resp:
         buf = b""
@@ -345,6 +396,7 @@ def _stream_once(url, api_key, model, messages, tools, on_token):
                             evt["usage"], dict):
                         usage = evt["usage"]
                     for choice in evt.get("choices", []):
+                        finish = choice.get("finish_reason") or finish
                         delta = choice.get("delta", {})
                         text = delta.get("content")
                         if text:
@@ -387,6 +439,11 @@ def _stream_once(url, api_key, model, messages, tools, on_token):
                "completion_tokens"),
            "n_messages": len(messages), "prompt_chars": chars,
            "with_tools": bool(tools), "via": url})
+    if finish == "length" and tuned and not _retried and cap < (
+            CHAT_MAX_TOKENS_RETRY):
+        return _stream_once(url, api_key, model, messages, tools,
+                            lambda t: None, CHAT_MAX_TOKENS_RETRY,
+                            True)
     return "".join(parts), tool_calls, usage
 
 
@@ -538,6 +595,12 @@ def rank_key(summary, required, wanted_styles, wanted_tone, max_price,
             item["price_sar_per_m"])
 
 
+# Safety requirements are never relaxed to fill the shortlist: a hotel
+# that needs fire-resistant fabric gets fewer/costlier/lower-martindale
+# options before it gets a non-compliant one.
+SAFETY_FEATURES = {"fire-resistant"}
+
+
 def run_search(args, turn):
     args = args or {}
     # Expert rules merged in: pet needs are OR-filters, always enforced.
@@ -572,7 +635,9 @@ def run_search(args, turn):
         suitable_for=_as_list(args.get("suitable_for")),
         opacity=args.get("opacity"), max_price=args.get("max_price"),
         limit=50,
-        protected=turn.get("protected", ()),
+        protected=tuple(set(turn.get("protected", ())) | {
+            f for f in model_all + needs_all + model_any + needs_any
+            if f in SAFETY_FEATURES}),
         pet_safe=turn.get("pet_safe", False),
         snag_levels=snag or None,
         min_martindale=mart)
@@ -1458,6 +1523,64 @@ def wants_recommendations(message):
     return bool(WANTS_RECS_RE.search(message or ""))
 
 
+def _needs_ready(turn):
+    """True when the session already carries enough stated needs."""
+    return bool(turn.get("needs_all") or turn.get("needs_any")
+                or turn.get("budgets") or turn.get("min_martindale"))
+
+
+def _maybe_prefetch_search(history, turn, message, on_step):
+    """Search-first: fewer-round rec turns.
+
+    When the session already has enough needs (or the user explicitly
+    asks), run search_catalog locally and inject the results as a tool
+    exchange, so the model skips its own search round. Details stay the
+    model's job: it calls get_fabric for the candidates it judges
+    relevant, which keeps specialized retrieval (luxe, sadu,
+    fire-resistant) as good as an unassisted turn while cutting the
+    usual 3-4 rounds down to 2. Grounding is unchanged: every code
+    comes from a real search, turn["seen"] is populated, and
+    valid_recommendations still enforces seen-only codes.
+    """
+    if turn.get("searched"):
+        return
+    # Only on an explicit "recommend now": a generic seeded search on
+    # ordinary need-gathering turns hands the model untargeted results
+    # (no style/feature args) and hurt specialized picks in eval.
+    # ...and only when the session already carries stated needs: with
+    # none (e.g. "sadu cushions"), an empty-args search returns generic
+    # top fabrics and the model copies them; let it search with its own
+    # pattern/style filters instead.
+    if not wants_recommendations(message) or not _needs_ready(turn):
+        return
+    seed_args = {"usage": "curtains"} if turn.get(
+        "curtains_only") else {}
+    seed_args["limit"] = 12
+    if on_step:
+        on_step("search")
+    result = run_search(seed_args, turn)
+    turn["seen"].extend(f["code"] for f in result["fabrics"])
+    for name in result["relaxed_constraints"]:
+        if name not in turn["relaxed"]:
+            turn["relaxed"].append(name)
+    turn["searched"] = True
+    # Unique per injection: repeated prefetches in one session must not
+    # reuse tool_call ids (the API rejects duplicate ids with a 400).
+    tag = uuid.uuid4().hex[:8]
+    calls = [{"id": "seed-search-%s" % tag, "type": "function",
+              "function": {"name": "search_catalog",
+                           "arguments": json.dumps(seed_args)}}]
+    history.append({"role": "assistant", "content": None,
+                    "tool_calls": calls})
+    history.append({"role": "tool",
+                    "tool_call_id": "seed-search-%s" % tag,
+                    "content": json.dumps(
+                        {"fabrics": result["fabrics"][:12],
+                         "relaxed_constraints":
+                             result["relaxed_constraints"]},
+                        ensure_ascii=False)})
+
+
 def valid_recommendations(data, seen):
     """Check exactly 3 grounded codes. Returns (recs, bad_code).
 
@@ -1665,13 +1788,28 @@ def chat(session_id, message, image_path=None, chat_fn=None,
          on_token=None, on_step=None, lang=None):
     """One user turn. Returns {reply, recommendations, room_analysis?}."""
     t0 = time.time()
-    try:
-        return _chat(session_id, message, image_path, chat_fn,
-                     on_token=on_token, on_step=on_step, lang=lang)
-    finally:
-        _perf({"kind": "turn", "seconds": round(time.time() - t0, 2),
-               "image": bool(image_path),
-               "msg_chars": len(message or "")})
+    # A5: one turn at a time per session, so a client fallback or a
+    # double tap can't interleave two turns into the same history.
+    with _session_lock(session_id):
+        try:
+            return _chat(session_id, message, image_path, chat_fn,
+                         on_token=on_token, on_step=on_step, lang=lang)
+        finally:
+            _perf({"kind": "turn", "seconds": round(time.time() - t0, 2),
+                   "image": bool(image_path),
+                   "msg_chars": len(message or "")})
+
+
+_LOCKS = {}
+_LOCKS_GUARD = threading.Lock()
+
+
+def _session_lock(session_id):
+    with _LOCKS_GUARD:
+        lock = _LOCKS.get(session_id)
+        if lock is None:
+            lock = _LOCKS[session_id] = threading.RLock()
+        return lock
 
 
 def _chat(session_id, message, image_path=None, chat_fn=None,
@@ -1774,6 +1912,7 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     history.append({"role": "user", "content": user_text})
     if on_step and image_path:
         on_step("room")
+    _maybe_prefetch_search(history, turn, message, on_step)
     final_text, exhausted = agent_turn(list(history), chat_fn, turn,
                                          on_token=on_token,
                                          on_step=on_step)

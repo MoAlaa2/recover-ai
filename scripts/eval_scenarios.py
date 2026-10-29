@@ -241,12 +241,21 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--only", default="",
                         help="comma-separated scenario ids")
+    parser.add_argument("--langs", default="",
+                        help="comma-separated variant langs to run "
+                             "(e.g. en,ar skips hi/fr/es Beta variants)")
     args = parser.parse_args(argv)
     with open(SCEN_PATH, encoding="utf-8") as f:
         scenarios = json.load(f)
     if args.only:
         wanted = {s.strip() for s in args.only.split(",") if s.strip()}
         scenarios = [s for s in scenarios if s["id"] in wanted]
+    if args.langs:
+        keep = {s.strip() for s in args.langs.split(",") if s.strip()}
+        for sc in scenarios:
+            if "variants" in sc:
+                sc["variants"] = [v for v in sc["variants"]
+                                  if v.get("lang", "en") in keep]
     load_specs()
     report = {"scenarios": []}
     errors = 0

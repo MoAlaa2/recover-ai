@@ -292,6 +292,16 @@ SCOPE_KEEP_WORDS = [
     "أبغى", "أبي", "ودي", "بيت", "منزل", "شقة",
 ]
 
+# Prices, budget ranges and measurements ("80-150 SAR", "١٠٠-٢٥٠ ر.س",
+# "3×2.5", "2.5 m") look like arithmetic to the decline rules below but
+# are ordinary consultant answers (the budget chips send exactly these).
+SCOPE_KEEP_PATTERNS = [
+    r"sar\b|riyal|ر\.?\s?س|ريال",
+    r"^\s*[\d.,]+\s*(?:m|cm|م|سم|متر)?\s*[-–x×*]\s*[\d.,]+\s*"
+    r"(?:m|cm|م|سم|متر|sar|ر\.?\s?س)?\s*$",
+    r"\d\s*(?:m|cm|mm|م|سم|متر|meters?|metres?)\b",
+]
+
 # Regexes that mark a turn as outside the consultant's scope.
 SCOPE_DECLINE_PATTERNS = [
     r"\d\s*[+\-*/×÷%^]\s*\d",
@@ -384,6 +394,8 @@ def is_in_scope(text):
     if not t.strip():
         return True
     if any(w in t for w in SCOPE_KEEP_WORDS):
+        return True
+    if any(re.search(p, t) for p in SCOPE_KEEP_PATTERNS):
         return True
     return not any(re.search(p, t) for p in SCOPE_DECLINE_PATTERNS)
 

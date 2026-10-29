@@ -14,12 +14,12 @@
   var RTL = ["ar", "ur", "fa"];
 
   function initialLang() {
+    var q = new URLSearchParams(location.search).get("lang");
+    if (q && window.RC_STRINGS[q]) return q;
     try {
       var saved = window.localStorage.getItem("recover_lang");
       if (saved && window.RC_STRINGS[saved]) return saved;
     } catch (e) {}
-    var q = new URLSearchParams(location.search).get("lang");
-    if (q && window.RC_STRINGS[q]) return q;
     var nav = (navigator.language || "en").toLowerCase();
     if (nav.indexOf("ar") === 0) return "ar";
     if (nav.indexOf("hi") === 0) return "hi";

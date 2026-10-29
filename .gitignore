@@ -229,3 +229,6 @@ docs/HANDOFF.md
 # Overnight-run morning report (local only)
 docs/MORNING_REPORT.md
 .env.demo
+
+# Private review notes (security findings) — never public
+docs/REVIEW.md

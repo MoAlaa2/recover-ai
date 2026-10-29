@@ -121,10 +121,16 @@ window.RCSwitcher = (function () {
       b.className = "rcsw-live";
       if (l.code === lang) b.setAttribute("aria-current", "true");
       b.innerHTML = '<span class="t"><span class="n"></span>' +
-        '<span class="e"></span></span>' +
+        '<span class="e"></span>' +
+        '<span class="rcsw-beta" hidden></span></span>' +
         '<span class="ck"><i data-lucide="check" aria-hidden="true"></i></span>';
       b.querySelector(".n").textContent = l.native;
       b.querySelector(".e").textContent = l.name;
+      if (l.code === "hi" || l.code === "fr" || l.code === "es") {
+        var beta = b.querySelector(".rcsw-beta");
+        beta.textContent = t(lang, "betaTag");
+        beta.hidden = false;
+      }
       (function (code) {
         b.addEventListener("click", function () {
           close(st);

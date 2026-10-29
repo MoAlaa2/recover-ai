@@ -43,15 +43,23 @@ def test_armchair_and_ottoman():
 def test_cushions_seat_only_plus_pillows():
     assert m.estimate_item("cushions", PLAIN) == (7.0,
                                                  "seat cushions only")
+    # A pillow count from the photo means throw pillows only (A12).
     meters, note = m.estimate_item("cushions", PLAIN, pillow_count=2)
-    assert meters == 8.0
+    assert meters == 1.0
     assert "2" in note
 
 
 def test_curtains_formula_and_missing():
     meters, note = m.estimate_item(
         "curtains", PLAIN, {"width_m": 3, "height_m": 2.5})
-    assert meters == 12.0
+    # 2 panels x 3 widths x (2.5 + 0.3) = 16.8 -> 17.0 (A11)
+    assert meters == 17.0
+    tall, _ = m.estimate_item(
+        "curtains", PLAIN, {"width_m": 3, "height_m": 4})
+    assert tall > meters  # height now matters
+    cm, _ = m.estimate_item(
+        "curtains", PLAIN, {"width_m": 300, "height_m": 250})
+    assert cm == meters  # centimetres are converted
     assert note == ""
     meters, note = m.estimate_item("curtains", PLAIN, {})
     assert meters is None
@@ -111,7 +119,7 @@ def test_estimate_cost_tool_curtains_dims():
                          {"target": "curtains", "code": "FA-AC-01",
                           "width_m": 3, "height_m": 2.5},
                          {"session": session, "seen": []})
-    assert got["meters"] == 12.0
+    assert got["meters"] == 17.0
     assert session["curtain_dims"]["width_m"] == 3
 
 
@@ -132,8 +140,8 @@ def test_estimate_cost_auto_counts_pillows(tmp_path):
     out = c.execute_tool("estimate_cost", {"target": "cushions"},
                          {"session": session, "seen": []})
     assert out["pillows"] == 2
-    assert out["meters"] == 8.0
-    assert "+ 2 throw pillow" in out["note"]
+    assert out["meters"] == 1.0
+    assert "2 throw pillow" in out["note"]
     fixed = c.execute_tool("estimate_cost",
                            {"target": "cushions", "pillows": 5},
                            {"session": session, "seen": []})
