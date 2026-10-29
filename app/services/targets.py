@@ -214,9 +214,22 @@ def masks_for(image_path, types, api_key=None):
         except sam_codec.MaskError:
             continue
     if "sofa" in masks and "cushions" in masks:
-        masks["sofa"] = ImageChops.subtract(masks["sofa"],
-                                            masks["cushions"])
+        masks["sofa"] = _subtract_cushions(masks["sofa"],
+                                           masks["cushions"])
     return masks
+
+
+def _subtract_cushions(sofa, cushions):
+    """Sofa minus cushions, unless that would erase the sofa.
+
+    When the cushions mask covers (nearly) the whole sofa mask, the
+    subtraction leaves nothing tappable; keep the original sofa.
+    """
+    cut = ImageChops.subtract(sofa, cushions)
+    hist = cut.histogram()
+    if sum(hist[128:]) >= 0.10 * cut.size[0] * cut.size[1]:
+        return cut
+    return sofa
 
 
 def _component_boxes(mask, min_area_frac=0.005, max_boxes=8):

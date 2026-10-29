@@ -206,3 +206,23 @@ def test_count_components_blobs_and_noise(tmp_path):
     img.save(path)
     assert t.count_components(path) == 3
     assert t.count_components(Image.new("L", (100, 100), 0)) == 0
+
+
+def test_subtract_cushions_keeps_sofa_when_erased():
+    from PIL import Image
+    from app.services import targets as tmod
+    sofa = Image.new("L", (100, 100), 255)
+    cush = Image.new("L", (100, 100), 255)
+    assert tmod._subtract_cushions(sofa, cush) is sofa
+
+
+def test_subtract_cushions_normal_case():
+    from PIL import Image, ImageDraw
+    from app.services import targets as tmod
+    sofa = Image.new("L", (100, 100), 255)
+    cush = Image.new("L", (100, 100), 0)
+    ImageDraw.Draw(cush).rectangle([10, 10, 30, 30], fill=255)
+    out = tmod._subtract_cushions(sofa, cush)
+    assert out is not sofa
+    assert out.getpixel((20, 20)) == 0
+    assert out.getpixel((80, 80)) == 255

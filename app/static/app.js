@@ -72,6 +72,7 @@
       sampleLiving: "Living room",
       sampleMajlis: "Majlis",
       sampleArmchair: "Armchair",
+      sampleCurtains: "Curtains",
       holdBefore: "Hold for before",
       previewing: "Previewing",
       compareSide: "Compare side by side",
@@ -183,6 +184,7 @@
       sampleLiving: "غرفة معيشة",
       sampleMajlis: "مجلس",
       sampleArmchair: "كرسي",
+      sampleCurtains: "ستائر",
       holdBefore: "اضغط لرؤية قبل",
       previewing: "تُعرض الآن",
       compareSide: "قارن جنباً إلى جنب",
@@ -280,6 +282,7 @@
       sampleLiving: "लिविंग रूम",
       sampleMajlis: "मजलिस",
       sampleArmchair: "कुर्सी",
+      sampleCurtains: "परदे",
       holdBefore: "पहले देखने के लिए दबाएँ",
       previewing: "दिखाया जा रहा है",
       compareSide: "साथ-साथ तुलना करें",
@@ -375,6 +378,7 @@
       sampleLiving: "Salon",
       sampleMajlis: "Majlis",
       sampleArmchair: "Fauteuil",
+      sampleCurtains: "Rideaux",
       holdBefore: "Maintenez pour avant",
       previewing: "Aperçu en cours",
       compareSide: "Comparer côte à côte",
@@ -470,6 +474,7 @@
       sampleLiving: "Salón",
       sampleMajlis: "Majlis",
       sampleArmchair: "Sillón",
+      sampleCurtains: "Cortinas",
       holdBefore: "Mantén para ver el antes",
       previewing: "Vista previa",
       compareSide: "Comparar lado a lado",
@@ -1072,6 +1077,7 @@
     div.id = "welcomeMsg";
     div.innerHTML = AVATAR + '<div dir="auto"><div class="sample-row">' +
       '<button type="button" data-sample="living"><img src="/data/samples/living.jpg" alt="living"><span>' + esc(t("sampleLiving")) + "</span></button>" +
+      '<button type="button" data-sample="curtains"><img src="/data/samples/curtains.jpg" alt="curtains"><span>' + esc(t("sampleCurtains")) + "</span></button>" +
       '<button type="button" data-sample="majlis"><img src="/data/samples/majlis.jpg" alt="majlis"><span>' + esc(t("sampleMajlis")) + "</span></button>" +
       '<button type="button" data-sample="armchair"><img src="/data/samples/armchair.jpg" alt="armchair"><span>' + esc(t("sampleArmchair")) + "</span></button>" +
       "</div>" +
@@ -1662,7 +1668,9 @@
   }
 
   function loadSample(id) {
-    if (["living", "majlis", "armchair"].indexOf(id) < 0) return;
+    if (["living", "curtains", "majlis", "armchair"].indexOf(id) < 0) {
+      return;
+    }
     fetch("/data/samples/" + id + ".jpg")
       .then(function (r) {
         if (!r.ok) throw new Error("sample");
