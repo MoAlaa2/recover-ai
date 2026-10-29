@@ -13,6 +13,7 @@ import os
 import threading
 import time
 import traceback
+import uuid
 
 import httpx
 
@@ -674,7 +675,9 @@ def handle_image(wa_id, media_id, caption=""):
                                         % exc))
         return
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-    tmp = os.path.join(UPLOAD_DIR, "wa-in-%s.bin" % os.getpid())
+    # Unique per message: a shared pid-named file lets one user's
+    # photo leak into another user's turn under concurrency.
+    tmp = os.path.join(UPLOAD_DIR, "wa-in-%s.bin" % uuid.uuid4().hex)
     with open(tmp, "wb") as f:
         f.write(raw)
     dest = os.path.join(UPLOAD_DIR, "wa-%s.jpg" % mid_tag(media_id))
@@ -724,7 +727,7 @@ def handle_audio(wa_id, media_id):
                                         "note (%s)." % exc))
         return
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-    tmp = os.path.join(UPLOAD_DIR, "wa-au-%s.ogg" % mid_tag(media_id))
+    tmp = os.path.join(UPLOAD_DIR, "wa-au-%s.ogg" % uuid.uuid4().hex)
     with open(tmp, "wb") as f:
         f.write(raw)
     try:

@@ -172,6 +172,30 @@ def test_process_message_replies_from_arrival_number(
     assert "1432888193234143" in logged
 
 
+def test_temp_files_unique_per_message(env, waid, monkeypatch, tmp_path):
+    import re
+    monkeypatch.setattr(wa, "UPLOAD_DIR", str(tmp_path))
+    srcs = []
+    monkeypatch.setattr(wa, "fetch_media", lambda mid: b"rawbytes")
+    monkeypatch.setattr(
+        wa, "DOWNLOAD_FN", lambda mid: b"rawbytes")
+    from app.api import chat as chat_mod
+    monkeypatch.setattr(
+        chat_mod, "convert_to_jpg",
+        lambda src, dest: srcs.append(src) or True)
+    monkeypatch.setattr(
+        wa.consultant_mod, "chat",
+        lambda *a, **k: {"reply": "ok", "options": [],
+                         "recommendations": [], "targets": {},
+                         "detected_lang": "en"})
+    monkeypatch.setattr(wa, "SEND_FN", lambda payload: {"ok": True})
+    wa.handle_image(waid, "media-one", "")
+    wa.handle_image(waid, "media-two", "")
+    assert len(srcs) == 2 and srcs[0] != srcs[1]
+    assert not re.search(r"wa-in-\d+\.bin$", srcs[0])
+    assert all("wa-in-" in s and s.endswith(".bin") for s in srcs)
+
+
 def test_try_swap_media_fail_sends_text(
         env, outbox, waid, monkeypatch, tmp_path):
     import os
