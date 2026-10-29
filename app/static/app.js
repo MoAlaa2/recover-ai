@@ -27,6 +27,10 @@
       roomSub: "Your room",
       takePhoto: "Take or upload a photo",
       tryOn: "Try on my photo",
+      tryOnTarget: "Try on the %s",
+      tryWord: { sofa: "sofa", armchair: "armchair", curtains: "curtains", cushions: "cushions" },
+      tapToChange: "Tap what you'd like to change",
+      fewQualify: "Only %d fabrics qualified — here they are:",
       thinking: "Thinking…",
       pieceYou: { sofa: "sofa", armchair: "armchair", curtains: "curtains", cushions: "cushions" },
       stepRetry: "Refining the fit",
@@ -118,6 +122,10 @@
       roomSub: "غرفتك",
       takePhoto: "صوّر أو ارفع صورة",
       tryOn: "جرّبه على صورتي",
+      tryOnTarget: "جرّبه على %s",
+      tryWord: { sofa: "الكنبة", armchair: "الكرسي", curtains: "الستائر", cushions: "المخدات" },
+      tapToChange: "اضغط على اللي ودك تغّيره",
+      fewQualify: "بس %d أقمشة تناسب — هذي هي:",
       thinking: "لحظة…",
       tailoring: "نفصّل %s بقماشك…",
       pieceWord: { sofa: "الكنبة", armchair: "الكرسي", curtains: "الستائر", cushions: "الوسائد" },
@@ -1049,6 +1057,12 @@
     state.selectedTarget = id;
     renderOutlines();
     renderAssignRow();
+    var taps = document.querySelectorAll("[data-outline]");
+    for (var i = 0; i < taps.length; i++) {
+      taps[i].classList.toggle("sel", taps[i].dataset.outline === id);
+    }
+    var bar = $("roomBar");
+    if (bar) bar.classList.toggle("sel", !!id);
     if (fromTap) {
       var opt = optionForTarget(id);
       if (opt) send(opt);
@@ -1066,6 +1080,8 @@
         if (path !== state.roomPhoto) return;
         state.outlines = (data && data.targets) || [];
         renderOutlines();
+        renderAssignRow();
+        postOutlineMessage();
       }).catch(function () {});
   }
 
@@ -1552,6 +1568,14 @@
       recsEl.appendChild(p);
       return;
     }
+    if (recs.length < 3) {
+      var note = document.createElement("p");
+      note.className = "few-qualify";
+      note.setAttribute("dir", "auto");
+      note.textContent = (t("fewQualify") || "Only %d fabrics qualified.")
+        .replace("%d", String(recs.length));
+      recsEl.appendChild(note);
+    }
     recs.forEach(function (r) {
       var card = document.createElement("div");
       card.className = "card";
@@ -1575,10 +1599,8 @@
       if (r.relaxed_budget) {
         relaxed += '<li class="warn"><span>⚠</span> ' + esc(budgetPill(r.relaxed_budget)) + "</li>";
       }
-      var receipts = "";
-      if (matched || relaxed || relaxedFeats) {
-        receipts = '<ul class="receipts">' + matched + relaxed + relaxedFeats + "</ul>";
-      }
+      // One short receipt line only (see receipt_summary server-side).
+      var receipts = receiptLine(r);
       var done = state.swaps[r.code];
       var action;
       if (done && done.result_url) {
@@ -1609,9 +1631,23 @@
     icons();
   }
 
+  function tryOnLabel(target) {
+    var words = t("tryWord") || {};
+    var word = words[target] || targetLabel(target);
+    return (t("tryOnTarget") || "Try on the %s").replace("%s", word);
+  }
+
+  function receiptLine(r) {
+    if (!r.receipt) return "";
+    return '<p class="receipt-line" dir="auto">' + esc(r.receipt) + "</p>";
+  }
+
   function miniRecsHTML(recs) {
     return '<div class="mini-recs">' + recs.map(function (r) {
       var name = state.lang === "ar" ? r.name_ar : r.name_en;
+      var tgt = r.target || state.selectedTarget || "";
+      var label = tgt && SWAP_TARGETS.indexOf(tgt) >= 0 ?
+        tryOnLabel(tgt) : t("tryOn");
       return '<div class="mini-card" data-fabric="' + esc(r.code) +
         '" role="button" tabindex="0">' +
         '<img src="/' + esc(r.image) + '" alt="' + esc(name) +
@@ -1619,17 +1655,26 @@
         '<div class="mini-n" dir="auto">' + esc(name) + "</div>" +
         '<div class="mini-m">' + esc(r.code) + " · " +
         esc(formatPrice(r.price_sar_per_m)) + "</div>" +
+        receiptLine(r) +
         '<button type="button" class="seeit mini-try" data-try="' +
-        esc(r.code) + '"><span>' + esc(t("tryOn")) + "</span></button>" +
+        esc(r.code) + '"' + (tgt ? ' data-target="' + esc(tgt) + '"' : "") +
+        '><span>' + esc(label) + "</span></button>" +
         "</div>";
     }).join("") + "</div>";
+  }
+
+  function fewQualifyNote(recs) {
+    if (!recs || recs.length >= 3) return "";
+    return '<p class="few-qualify" dir="auto">' +
+      esc((t("fewQualify") || "Only %d fabrics qualified.").replace(
+        "%d", String(recs.length))) + "</p>";
   }
 
   function appendRecsToChat(recs) {
     var div = document.createElement("div");
     div.className = "msg them recs-msg";
-    div.innerHTML = AVATAR + '<div dir="auto">' + miniRecsHTML(recs) +
-      "</div>";
+    div.innerHTML = AVATAR + '<div class="recs-body" dir="auto">' +
+      fewQualifyNote(recs) + miniRecsHTML(recs) + "</div>";
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
     icons();
@@ -1644,7 +1689,16 @@
 
   function maybeAutoPreview(res) {
     if (res && res.preview && res.preview.code) {
-      var opts = {};
+      // Mark this turn's reply bubble: when the swap lands, its text
+      // folds into the single swap message instead of a second bubble.
+      var bubbles = messagesEl.querySelectorAll(".msg.them");
+      for (var i = bubbles.length - 1; i >= 0; i--) {
+        if (bubbles[i].querySelector(".ptext")) {
+          bubbles[i].setAttribute("data-auto", "1");
+          break;
+        }
+      }
+      var opts = { keepMark: true };
       if (res.preview.target) opts.target = res.preview.target;
       openSwap(res.preview.code, opts);
     }
@@ -1652,6 +1706,14 @@
 
   function handleResult(res) {
     autoLang(res);
+    if (res.targets) {
+      state.assignments = res.targets.assignments || {};
+      state.chosenTargets = res.targets.chosen || [];
+      if (state.chosenTargets.length === 1 &&
+          SWAP_TARGETS.indexOf(state.chosenTargets[0]) >= 0) {
+        state.selectedTarget = state.chosenTargets[0];
+      }
+    }
     if (res.detected_piece) state.detectedPiece = res.detected_piece;
     if (res.recommendations && res.recommendations.length) {
       state.lastRecs = res.recommendations;
@@ -1662,8 +1724,9 @@
     renderRoomCard(state.lastRoom, state.lastDetected);
     renderCanvas();
     addMsg(leadIn(res), "them");
+    postOutlineMessage();
     if (state.lastRecs && state.lastRecs.length) showRecs(state.lastRecs);
-    if (state.lastOptions && state.lastOptions.length) renderOptions(state.lastOptions);
+    renderOptions(state.lastOptions);
     maybeAutoPreview(res);
   }
 
@@ -1709,7 +1772,9 @@
 
   var SWAP_TARGETS = ["sofa", "armchair", "curtains", "cushions"];
 
-  function tryFabric(code) {
+  function tryFabric(code, target) {
+    if (target && SWAP_TARGETS.indexOf(target) < 0) target = "";
+    if (target) state.selectedTarget = target;
     if (!state.roomPhoto) {
       if (isNarrow()) {
         openSheet();
@@ -1722,7 +1787,7 @@
       }
       return;
     }
-    openSwap(code);
+    openSwap(code, target ? { target: target } : undefined);
   }
 
   function fabricSheetRec(code) {
@@ -1754,10 +1819,8 @@
     if (r.relaxed_budget) {
       relaxed += '<li class="warn"><span>⚠</span> ' + esc(budgetPill(r.relaxed_budget)) + "</li>";
     }
-    var receipts = "";
-    if (matched || relaxed || relaxedFeats) {
-      receipts = '<ul class="receipts">' + matched + relaxed + relaxedFeats + "</ul>";
-    }
+    // One short receipt line only (see receipt_summary server-side).
+    var receipts = receiptLine(r);
     $("fabricSheetBody").innerHTML =
       '<div class="swatch big"><img src="/' + esc(r.image) + '" alt="' +
       esc(name) + '"><span class="code-pill">' + esc(r.code) + "</span></div>" +
@@ -1771,7 +1834,11 @@
       receipts + "</div>";
     var btn = $("fabricTry");
     btn.setAttribute("data-try", r.code);
-    btn.querySelector("span").textContent = t("tryOn");
+    if (r.target) btn.setAttribute("data-target", r.target);
+    else btn.removeAttribute("data-target");
+    btn.querySelector("span").textContent =
+      (r.target && SWAP_TARGETS.indexOf(r.target) >= 0) ?
+      tryOnLabel(r.target) : t("tryOn");
     $("fabricSheet").hidden = false;
     document.body.classList.add("modal-open");
     icons();
@@ -1784,6 +1851,13 @@
 
   function openSwap(code, opts) {
     opts = opts || {};
+    // A new manual swap supersedes any earlier auto-preview mark.
+    if (!opts.keepMark) {
+      var stale = messagesEl.querySelectorAll('[data-auto="1"]');
+      for (var si = 0; si < stale.length; si++) {
+        stale[si].removeAttribute("data-auto");
+      }
+    }
     closeFabricSheet();
     if (!state.roomPhoto && !opts.review) {
       tryFabric(code);
@@ -1791,8 +1865,12 @@
     }
     state.swapCode = code;
     state.swapRetried = !!opts.noRetry;
-    var target = SWAP_TARGETS.indexOf(opts.target) >= 0 ?
-      opts.target : swapTarget();
+    // The chosen item wins: explicit call arg, then the user's current
+    // selection (chip/outline tap or recommendation card), then the
+    // detected-piece guess. Never silently swap a different item.
+    var target = SWAP_TARGETS.indexOf(opts.target) >= 0 ? opts.target :
+      (SWAP_TARGETS.indexOf(state.selectedTarget) >= 0 ?
+        state.selectedTarget : swapTarget());
     var words = t("pieceYou") || {};
     $("swapTitle").textContent =
       t("tailoring").replace("%s", words[target] || target);
@@ -1990,6 +2068,13 @@
   }
 
   function postSwapMessage(entry) {
+    // One swap = exactly one message: skip re-posts of the same result.
+    var rel = String(entry.result_url || "").replace(/^\/+/, "");
+    var thumbs = messagesEl.querySelectorAll(".chat-swap .swap-thumb");
+    for (var ti = 0; ti < thumbs.length; ti++) {
+      if (String(thumbs[ti].getAttribute("src") || "")
+          .replace(/^\/+/, "") === rel && rel) return;
+    }
     var meta = entry.meta || { code: entry.fabric_code };
     var name = state.lang === "ar" ? (meta.name_ar || meta.code || "")
                                    : (meta.name_en || meta.code || "");
@@ -1997,6 +2082,20 @@
     var vals = [scores.color, scores.pattern, scores.scale,
                 scores.isolation].map(function (v) { return v || 0; });
     var match = Math.min.apply(null, vals);
+    // Fold the auto-preview turn's reply text into this message so the
+    // swap never produces a second bubble.
+    var followHtml = "";
+    var marked = messagesEl.querySelectorAll('.msg.them[data-auto="1"]');
+    if (marked.length) {
+      var last = marked[marked.length - 1];
+      var ptext = last.querySelector(".ptext");
+      // ptext holds formatReply output (escaped text + <strong>/<br>),
+      // so transplanting its HTML is safe.
+      if (ptext && (ptext.textContent || "").trim()) {
+        followHtml = ptext.innerHTML;
+      }
+      last.parentNode.removeChild(last);
+    }
     var div = document.createElement("div");
     div.className = "msg them";
     var fabricImg = meta.image ?
@@ -2012,7 +2111,9 @@
       "</div></div>" +
       '<span class="match-badge small">' +
       esc(t("matchBadge").replace("%d", match)) + "</span></div>" +
-      '<p class="chat-follow">' + esc(t("followSwap")) + "</p>" +
+      (followHtml ? '<div class="chat-follow">' + followHtml + "</div>"
+                  : '<p class="chat-follow">' + esc(t("followSwap")) +
+                    "</p>") +
       "</div></div>";
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -2186,6 +2287,13 @@
   function send(text, imagePath, photoPreview, silent) {
     if (!text && !imagePath) return;
     if (!silent) addMsg(text || "", "me", photoPreview);
+    // Old option chips belong to the turn that produced them.
+    if (chipsEl) { chipsEl.innerHTML = ""; chipsEl.hidden = true; }
+    // So does any auto-preview mark: a new user turn starts fresh.
+    var stale = messagesEl.querySelectorAll('[data-auto="1"]');
+    for (var si = 0; si < stale.length; si++) {
+      stale[si].removeAttribute("data-auto");
+    }
     pendingBubble();
     var thinkingTimer = setTimeout(function () {
       var scope = pendingScope();
@@ -2213,7 +2321,10 @@
     if (res.targets) {
       state.assignments = res.targets.assignments || {};
       state.chosenTargets = res.targets.chosen || [];
-      if (!state.selectedTarget && state.chosenTargets.length) {
+      // The server's chosen item is the source of truth; a tap that
+      // produced this turn already set selectedTarget to the same item.
+      if (state.chosenTargets.length === 1 &&
+          SWAP_TARGETS.indexOf(state.chosenTargets[0]) >= 0) {
         state.selectedTarget = state.chosenTargets[0];
       }
     }
@@ -2228,13 +2339,51 @@
     renderCanvas();
     if (state.roomPhoto && !state.outlines.length) fetchOutlines();
     ensureBubbleText(res);
+    postOutlineMessage();
     if (state.lastRecs && state.lastRecs.length) {
       showRecs(state.lastRecs);
     }
-    if (state.lastOptions && state.lastOptions.length) {
-      renderOptions(state.lastOptions);
-    }
+    // Always re-render: a newer assistant message clears older chips.
+    renderOptions(state.lastOptions);
     maybeAutoPreview(res);
+  }
+
+  function postOutlineMessage() {
+    // After the photo is analyzed, post the photo itself into the chat
+    // with tappable item regions, once per image.
+    var avail = (state.outlines || []).filter(function (o) {
+      return o && o.id && o.box && o.size;
+    });
+    if (!avail.length || !state.roomPhoto) return;
+    if (state.outlinePostedFor === state.roomPhoto) return;
+    var src = "/" + String(state.roomPhoto).replace(/^\/+/, "");
+    var tags = avail.map(function (o) {
+      var w = o.size[0] || 1, h = o.size[1] || 1;
+      var left = Math.max(0, o.box[0] / w * 100);
+      var top = Math.max(0, o.box[1] / h * 100);
+      var width = Math.min(100 - left, (o.box[2] - o.box[0]) / w * 100);
+      var height = Math.min(100 - top, (o.box[3] - o.box[1]) / h * 100);
+      return '<button type="button" class="ol-chat-tap' +
+        (state.selectedTarget === o.id ? " sel" : "") +
+        '" data-outline="' + esc(o.id) + '" style="left:' +
+        left.toFixed(1) + "%;top:" + top.toFixed(1) + "%;width:" +
+        Math.max(6, width).toFixed(1) + "%;height:" +
+        Math.max(6, height).toFixed(1) + '%" aria-label="' +
+        esc(targetLabel(o.id)) + '"><span>' + esc(targetLabel(o.id)) +
+        "</span></button>";
+    }).join("");
+    var div = document.createElement("div");
+    div.className = "msg them outline-msg";
+    div.innerHTML = AVATAR + '<div class="chat-outline" dir="auto">' +
+      '<div class="chat-outline-photo"><img src="' + esc(src) +
+      '" alt="' + esc(t("roomSub")) + '" loading="lazy">' + tags +
+      "</div>" +
+      '<p class="chat-outline-cap">' + esc(t("tapToChange")) + "</p>" +
+      "</div>";
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    state.outlinePostedFor = state.roomPhoto;
+    icons();
   }
 
   function preparePhoto(file) {
@@ -2490,13 +2639,19 @@
       var s = e.target && e.target.closest ?
         e.target.closest("[data-sample]") : null;
       if (s && s.dataset.sample) loadSample(s.dataset.sample);
+      var ol = e.target && e.target.closest ?
+        e.target.closest("[data-outline]") : null;
+      if (ol && ol.dataset.outline) {
+        selectTarget(ol.dataset.outline, true);
+        return;
+      }
       var up = e.target && e.target.closest ?
         e.target.closest("[data-upload]") : null;
       if (up) fi.click();
       var tryBtn = e.target && e.target.closest ?
         e.target.closest("[data-try]") : null;
       if (tryBtn && tryBtn.dataset.try) {
-        tryFabric(tryBtn.dataset.try);
+        tryFabric(tryBtn.dataset.try, tryBtn.dataset.target || "");
         return;
       }
       var fab = e.target && e.target.closest ?

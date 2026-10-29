@@ -216,8 +216,12 @@ def test_partial_mention_still_discloses_the_rest():
     with mock.patch.object(c, "search_catalog", wrapped):
         out = c.chat("test-partial", "my cat needs sofa fabric",
                      chat_fn=fake)
-    assert "claw-safe weave" in out["reply"]
+    # The unmentioned snag relaxation lives once on the receipt line,
+    # never repeated as a prose sentence on a recommendation turn.
     assert len(out["recommendations"]) == 3
+    assert any("claw-safe weave" in r["receipt"]
+               for r in out["recommendations"])
+    assert "claw-safe weave" not in out["reply"]
 
 
 def test_math_question_is_declined_without_model_call():
@@ -471,8 +475,11 @@ def test_relaxed_constraint_message():
         return final_text(block(["FA-LA-01", "FA-LA-08", "FA-LA-04"]))
 
     out = c.chat("test-relaxed", "cheap curtains", chat_fn=fake)
-    assert "budget" in out["reply"].lower()
+    # The budget relaxation is disclosed once on the card receipt line,
+    # not repeated as a prose sentence on a recommendation turn.
     assert len(out["recommendations"]) == 3
+    assert "budget" in out["recommendations"][0]["receipt"]
+    assert "stretched the budget" not in out["reply"].lower()
 
 
 def test_options_block_returned_and_stripped():
@@ -1010,3 +1017,81 @@ def test_vision_bytes_capped(tmp_path):
     small = c.vision_jpeg_bytes(str(big))
     assert max(PILImage.open(__import__("io").BytesIO(small)).size) <= 1024
     assert len(small) < 4000 * 3000
+
+
+def _cushion_code():
+    summaries, _ = search_catalog(usage="cushions", limit=5)
+    assert summaries, "catalog needs cushion-suitable fabrics"
+    return summaries[0]["code"]
+
+
+def test_receipt_summary_dedupes_labels():
+    line = c.receipt_summary(
+        ["easy-clean", "easy-clean", "cool-tone"],
+        ["tone"], ["easy-clean"], 0, False)
+    assert line.count("easy-clean") == 1
+    assert line.count("Cool tone") == 1
+    assert line.count("color tone") == 1
+    assert line.startswith("Matches:")
+    assert "Eased:" in line
+    assert "\n" not in line
+
+
+def test_receipt_empty_without_stated_needs():
+    turn = {"needs_all": [], "needs_any": [], "budgets": [],
+            "tones": [], "relaxed": [], "chosen_targets": ["cushions"],
+            "lang": "en"}
+    recs = c.enrich([{"code": _cushion_code(), "reason": "r"}], turn)
+    assert recs[0]["target"] == "cushions"
+    assert recs[0]["receipt"] == ""
+    assert "pet-friendly" not in recs[0]["receipt"]
+    assert "antibacterial" not in recs[0]["receipt"]
+
+
+def test_preview_fabric_defaults_to_chosen_target():
+    code = _cushion_code()
+    turn = {"image": "uploads/x.jpg", "seen": [code],
+            "chosen_targets": ["cushions"]}
+    out = c._execute_tool("preview_fabric", {"code": code}, turn)
+    assert out == {"ok": True, "code": code, "target": "cushions"}
+
+
+def test_rec_turn_suppresses_prose_disclosure():
+    # The relaxed budget is disclosed once, on the card's receipt line —
+    # never repeated as a prose sentence on the same turn.
+    summaries, relaxed = search_catalog(
+        usage="upholstery", max_price=50, limit=50)
+    assert "max_price" in relaxed
+    codes = [s["code"] for s in summaries[:3]]
+
+    def fake(messages, tools=None):
+        if not hasattr(fake, "n"):
+            fake.n = 0
+        fake.n += 1
+        if fake.n == 1:
+            return tool_call("search_catalog",
+                             {"usage": "upholstery", "max_price": 50})
+        return final_text(block(codes))
+
+    out = c.chat("test-disclosure-once", "blue sofa under 50",
+                 chat_fn=fake)
+    assert len(out["recommendations"]) == 3
+    assert "To find these" not in out["reply"]
+    receipt = out["recommendations"][0]["receipt"]
+    assert receipt.count("budget") == 1
+
+
+def test_no_rec_turn_still_discloses():
+    def fake(messages, tools=None):
+        if not hasattr(fake, "n"):
+            fake.n = 0
+        fake.n += 1
+        if fake.n == 1:
+            return tool_call("search_catalog",
+                             {"usage": "upholstery", "max_price": 50})
+        return final_text("Blue is a great choice. What tone do you like?")
+
+    out = c.chat("test-disclosure-no-recs", "blue sofa under 50",
+                 chat_fn=fake)
+    assert out["recommendations"] == []
+    assert "To find these" in out["reply"]

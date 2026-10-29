@@ -220,5 +220,6 @@ def detect_targets(image_path, api_key=None):
         targets.append({"id": target, "type": target,
                         "label_en": label_en, "label_ar": label_ar,
                         "mask_url": os.path.join("uploads", "masks", name),
-                        "box": list(box)})
+                        "box": list(box),
+                        "size": [mask.size[0], mask.size[1]]})
     return targets

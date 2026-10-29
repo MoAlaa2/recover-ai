@@ -109,7 +109,11 @@ recommend, reply normally and end with one fenced block on its own lines:
 ```
 Exactly 3 items, codes only from tool results. On turns where you are still \
 asking questions, do NOT include the block and give NO tip. If you are told \
-a code was rejected, fix it with a real code from your tool results.
+a code was rejected, fix it with a real code from your tool results. \
+When you mention why a fabric fits (features, pets, kids, budget), name \
+only needs the user actually stated in this conversation — never invent \
+unstated ones (no pets, kids, antibacterial or other features unless the \
+user mentioned them).
 
 RELAXED CONSTRAINTS: if a tool result says constraints were relaxed, state \
 plainly in your reply which constraint was relaxed (for example budget).
@@ -886,6 +890,58 @@ def missing_relaxation(reply, relaxed, arabic):
     return missing
 
 
+RECEIPT_EXTRA_NAMES = {
+    "under-budget": ("Under budget", "ضمن الميزانية"),
+    "warm-tone": ("Warm tone", "درجة دافئة"),
+    "cool-tone": ("Cool tone", "درجة باردة"),
+    "neutral-tone": ("Neutral tone", "درجة محايدة"),
+}
+
+RECEIPT_MATCH_WORD = ("Matches", "يطابق")
+RECEIPT_EASED_WORD = ("Eased", "خففنا")
+
+
+def _receipt_label(key, arabic):
+    pair = RECEIPT_EXTRA_NAMES.get(key) or FEATURE_NAMES.get(key)
+    if pair:
+        return pair[1 if arabic else 0]
+    noun = RELAX_LABELS.get(key, (key, key))
+    return noun[1 if arabic else 0]
+
+
+def receipt_summary(matched, relaxed_keys, relaxed_feats, budget_over,
+                    arabic):
+    """One short receipt line, labels never repeated.
+
+    Only needs the user stated this session feed the line (matched /
+    relaxed are derived from those needs). Returns "" when empty.
+    """
+    match_labels = []
+    for key in matched or []:
+        label = _receipt_label(key, arabic)
+        if label not in match_labels:
+            match_labels.append(label)
+    ease_labels = []
+    for key in (relaxed_keys or []) + (relaxed_feats or []):
+        label = _receipt_label(key, arabic)
+        if label not in ease_labels and label not in match_labels:
+            ease_labels.append(label)
+    if budget_over:
+        label = "%s (+%s SAR)" % (
+            _receipt_label("max_price", arabic),
+            _money(budget_over, arabic))
+        if label not in ease_labels:
+            ease_labels.append(label)
+    parts = []
+    if match_labels:
+        parts.append("%s: %s" % (RECEIPT_MATCH_WORD[1 if arabic else 0],
+                                " · ".join(match_labels)))
+    if ease_labels:
+        parts.append("%s: %s" % (RECEIPT_EASED_WORD[1 if arabic else 0],
+                                " · ".join(ease_labels)))
+    return " — ".join(parts)
+
+
 def enrich(recommendations, turn):
     """Attach catalog details plus trust receipts.
 
@@ -900,6 +956,8 @@ def enrich(recommendations, turn):
     tones = turn.get("tones", [])
     relaxed = list(turn.get("relaxed", []))
     feat_relaxed = bool({"features", "any_features"} & set(relaxed))
+    chosen = turn.get("chosen_targets", []) or []
+    rec_target = chosen[0] if len(chosen) == 1 else ""
     out = []
     for rec in recommendations:
         item = get_fabric(rec["code"])
@@ -932,9 +990,13 @@ def enrich(recommendations, turn):
                     "features": item.get("features", []),
                     "snag_risk": item.get("snag_risk", "unknown"),
                     "reason": rec.get("reason", ""),
+                    "target": rec_target,
                     "matched": matched,
                     "relaxed": relaxed_keys,
                     "relaxed_features": relaxed_feats,
+                    "receipt": receipt_summary(
+                        matched, relaxed_keys, relaxed_feats, over,
+                        turn.get("lang") == "ar"),
                     "relaxed_budget": {"price": price, "over": over,
                                        "budget": budget}
                     if over > 0 else None})
@@ -989,9 +1051,12 @@ def _execute_tool(name, args, turn, on_step=None):
             return {"error": "unknown code",
                     "seen": [c for c in turn.get("seen", [])
                              if get_fabric(c)][:12]}
-        turn["preview"] = {"code": code,
-                           "target": (args or {}).get("target") or ""}
-        return {"ok": True, "code": code}
+        target = (args or {}).get("target") or ""
+        if not target:
+            chosen = turn.get("chosen_targets", []) or []
+            target = chosen[0] if len(chosen) == 1 else ""
+        turn["preview"] = {"code": code, "target": target}
+        return {"ok": True, "code": code, "target": target}
     if name == "assign_fabric":
         from app.services import targets as targets_mod
         target = (args or {}).get("target", "")
@@ -1457,6 +1522,9 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
                       [r["code"] for r in recommendations])
 
     chosen_targets = session.get("chosen_targets", [])
+    if (turn.get("preview") and not turn["preview"].get("target")
+            and len(chosen_targets) == 1):
+        turn["preview"]["target"] = chosen_targets[0]
     if (recommendations and chosen_targets and image_path
             and not turn.get("preview")
             and chosen_targets[0]
@@ -1517,7 +1585,10 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
                     if r["relaxed_budget"]] or [0])
     missing = missing_relaxation(reply, turn["relaxed"],
                                  is_arabic(user_text))
-    if missing:
+    # On recommendation turns the card's one-line receipt carries the
+    # relaxed info, so the prose disclosure stays only on turns
+    # without recommendations (never the same feature list twice).
+    if missing and not recommendations:
         needs = turn.get("needs_all", []) + turn.get("needs_any", [])
         reply = (reply + "\n\n" + disclosure_note(
             missing, is_arabic(user_text), max_over, needs)).strip()

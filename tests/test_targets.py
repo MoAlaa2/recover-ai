@@ -69,6 +69,9 @@ def test_masks_subtract_cushions_from_sofa(monkeypatch, tmp_path):
     assert by_id["sofa"]["box"] == [0, 0, 40, 30]
     assert by_id["cushions"]["box"] == [10, 10, 20, 20]
     assert by_id["sofa"]["label_ar"] == "الكنبة"
+    # Room pixel size rides along so the chat can place % taps.
+    assert by_id["sofa"]["size"] == [40, 30]
+    assert by_id["cushions"]["size"] == [40, 30]
     sofa_mask = Image.open(
         str(tmp_path / "masks" / by_id["sofa"]["mask_url"].split(
             "masks/")[1]))
