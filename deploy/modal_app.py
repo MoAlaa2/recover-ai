@@ -107,7 +107,7 @@ class DemoLockMiddleware:
     GET verification is public and POST is HMAC-verified instead.
     """
 
-    WEBHOOK_PREFIX = "/webhook/"
+    PUBLIC_PREFIXES = ("/webhook/", "/share/")
 
     def __init__(self, inner):
         self.inner = inner
@@ -119,7 +119,7 @@ class DemoLockMiddleware:
         if os.environ.get("DEMO_LOCK", "") != "1":
             await self.inner(scope, receive, send)
             return
-        if scope.get("path", "").startswith(self.WEBHOOK_PREFIX):
+        if scope.get("path", "").startswith(self.PUBLIC_PREFIXES):
             await self.inner(scope, receive, send)
             return
         if not self._authed(scope.get("headers", [])):

@@ -6,11 +6,12 @@ from fastapi import FastAPI
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
-from app.api.chat import router
+from app.api.chat import public_router, router
 from app.api.whatsapp import router as whatsapp_router
 
 app = FastAPI(title="ReCover consultant API")
 app.include_router(router)
+app.include_router(public_router)
 app.include_router(whatsapp_router)
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")

@@ -292,6 +292,50 @@ def clear_assignments(session_id: str):
     return {"assignments": {}}
 
 
+class ShareRequest(BaseModel):
+    result_url: str = ""
+
+
+@router.post("/share")
+def create_share(req: ShareRequest):
+    """Mint a public 14-day link for one swap result image."""
+    from app.services import share as share_mod
+    try:
+        rel = share_mod.resolve_result(req.result_url)
+    except RuntimeError:
+        raise HTTPException(500, "share unavailable")
+    if rel is None:
+        raise HTTPException(404, "result not found")
+    base = os.path.relpath(rel, UPLOAD_DIR)
+    try:
+        token, exp = share_mod.create_token(base)
+    except RuntimeError:
+        raise HTTPException(500, "share unavailable")
+    return {"token": token,
+            "share_path": "/share/" + token + ".jpg",
+            "expires_at": exp}
+
+
+public_router = APIRouter()
+
+
+@public_router.get("/share/{token}")
+def serve_share(token: str):
+    """One public result image. No listing, noindex, 14-day expiry."""
+    from fastapi.responses import FileResponse
+    from app.services import share as share_mod
+    rel = share_mod.verify_token(token)
+    if rel is None:
+        raise HTTPException(404, "link invalid or expired")
+    path = os.path.join(UPLOAD_DIR, rel)
+    if not os.path.isfile(path):
+        raise HTTPException(404, "result not found")
+    return FileResponse(path, media_type="image/jpeg",
+                        headers={"X-Robots-Tag": "noindex, nofollow",
+                                 "Cache-Control":
+                                 "public, max-age=1209600"})
+
+
 @router.get("/session/{session_id}/quote")
 def session_quote(session_id: str):
     """Meterage + price for the session's assignments (LOOP 4)."""

@@ -1349,7 +1349,7 @@
     return String(n);
   }
 
-  function waSummaryText(rows, total, co2line) {
+  function waSummaryText(rows, total, co2line, link) {
     var lines = rows.map(function (r) {
       return "• " + r.target + " → " + r.name + " (" + r.code + "): " +
         (r.meters !== undefined && r.meters !== null ?
@@ -1360,12 +1360,9 @@
                total);
     lines.push(t("preliminaryNote"));
     if (co2line) lines.push(co2line);
-    var view = state.canvasView || "";
-    if (view) {
-      var origin = "";
-      try { origin = window.location.origin; } catch (e) {}
-      lines.push(origin + "/" + view.replace(/^\/+/, ""));
-    }
+    // The preview travels as a public 14-day share link (the site
+    // itself stays locked, so a raw uploads path would 401).
+    if (link) lines.push(link);
     return lines.join("\n");
   }
 
@@ -1410,12 +1407,12 @@
               esc(name) + "</div><div>" + bits + "</div></div></div>";
           }).join("");
           var extra = "";
-          var waText = "";
-          if (quote && quote.items && quote.items.length) {
+          var co2txt = "";
+          var hasQuote = !!(quote && quote.items && quote.items.length);
+          if (hasQuote) {
             extra = '<div class="sum-total"><b>' + esc(t("totalLabel")) +
               "</b> " + esc(fmtMoney(quote.total)) + "</div>" +
               '<p class="coming">' + esc(t("preliminaryNote")) + "</p>";
-            var co2txt = "";
             if (quote.co2 && quote.co2.kg > 0) {
               var pieces = results.map(function (r) {
                 return targetLabel(r.target);
@@ -1429,43 +1426,67 @@
                 "</span></div></div>" +
                 '<p class="coming">' + esc(t("co2Note")) + "</p>";
             }
-            waText = waSummaryText(waRows, fmtMoney(quote.total),
-                                   co2txt);
           }
-          var div = document.createElement("div");
-          div.className = "msg them";
-          div.innerHTML = AVATAR + '<div dir="auto"><div class="sum-card">' +
-            "<b>" + esc(t("summaryTitle")) + "</b>" + rows + extra +
-            (waText ?
-              '<div class="sum-actions"><a class="seeit" target="_blank" ' +
-              'rel="noopener" href="https://wa.me/?text=' +
-              encodeURIComponent(waText) + '"><span>' +
-              esc(t("sendUpholsterer")) + "</span></a>" +
-              '<button type="button" class="ghost-btn sum-copy"><span>' +
-              esc(t("copySummary")) + "</span></button></div>" : "") +
-            "</div></div>";
-          messagesEl.appendChild(div);
-          messagesEl.scrollTop = messagesEl.scrollHeight;
-          var copyBtn = div.querySelector(".sum-copy");
-          if (copyBtn) {
-            copyBtn.addEventListener("click", function () {
-              var done = function () {
-                copyBtn.querySelector("span").textContent = t("copiedTick");
-              };
-              if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(waText).then(done, done);
-              } else {
-                var ta = document.createElement("textarea");
-                ta.value = waText;
-                document.body.appendChild(ta);
-                try { ta.select(); document.execCommand("copy"); }
-                catch (e) {}
-                document.body.removeChild(ta);
-                done();
-              }
-            });
+          var linkP = Promise.resolve("");
+          if (hasQuote && state.canvasView) {
+            linkP = fetchReq("/api/share", {
+                method: "POST",
+                json: { result_url: state.canvasView },
+                timeoutMs: 30000, retries: 1 })
+              .then(function (shareRes) {
+                if (shareRes && shareRes.share_path) {
+                  var origin = "";
+                  try { origin = window.location.origin; }
+                  catch (e) {}
+                  return origin + shareRes.share_path;
+                }
+                return "";
+              })
+              .catch(function () { return ""; });
           }
-          icons();
+          return linkP.then(function (shareLink) {
+            var waText = hasQuote ? waSummaryText(
+              waRows, fmtMoney(quote.total), co2txt, shareLink) : "";
+            var div = document.createElement("div");
+            div.className = "msg them";
+            div.innerHTML = AVATAR +
+              '<div dir="auto"><div class="sum-card">' +
+              "<b>" + esc(t("summaryTitle")) + "</b>" + rows + extra +
+              (waText ?
+                '<div class="sum-actions"><a class="seeit" ' +
+                'target="_blank" rel="noopener" ' +
+                'href="https://wa.me/?text=' +
+                encodeURIComponent(waText) + '"><span>' +
+                esc(t("sendUpholsterer")) + "</span></a>" +
+                '<button type="button" class="ghost-btn sum-copy">' +
+                "<span>" + esc(t("copySummary")) +
+                "</span></button></div>" : "") +
+              "</div></div>";
+            messagesEl.appendChild(div);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+            var copyBtn = div.querySelector(".sum-copy");
+            if (copyBtn) {
+              copyBtn.addEventListener("click", function () {
+                var done = function () {
+                  copyBtn.querySelector("span").textContent =
+                    t("copiedTick");
+                };
+                if (navigator.clipboard &&
+                    navigator.clipboard.writeText) {
+                  navigator.clipboard.writeText(waText).then(done, done);
+                } else {
+                  var ta = document.createElement("textarea");
+                  ta.value = waText;
+                  document.body.appendChild(ta);
+                  try { ta.select(); document.execCommand("copy"); }
+                  catch (e) {}
+                  document.body.removeChild(ta);
+                  done();
+                }
+              });
+            }
+            icons();
+          });
         });
     });
   }
