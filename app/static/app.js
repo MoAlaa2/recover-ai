@@ -87,6 +87,7 @@
       downloadLabel: "Download",
       closeLabel: "Close",
       swapFail: "The preview failed. Please try again with another photo.",
+      swapTimeout: "The preview timed out — the model is slow right now. Tap Try again.",
       roomTitle: "Your room",
       roomType: "Room",
       style: "Style",
@@ -139,6 +140,7 @@
       downloadLabel: "تحميل",
       closeLabel: "إغلاق",
       swapFail: "تعذّرت المعاينة. حاول مرة ثانية بصورة ثانية.",
+      swapTimeout: "المعاينة طولت — النموذج بطيء الحين. اضغط حاول مرة ثانية.",
       roomTitle: "مساحتك",
       roomType: "الغرفة",
       style: "الستايل",
@@ -252,6 +254,7 @@
       downloadLabel: "डाउनलोड",
       closeLabel: "बंद करें",
       swapFail: "झलक नहीं बनी। दूसरी फोटो से फिर कोशिश करें।",
+      swapTimeout: "झलक में समय लग गया — मॉडल अभी धीमा है। फिर कोशिश करें दबाएँ।",
       roomTitle: "आपका कमरा",
       roomType: "कमरा",
       style: "स्टाइल",
@@ -348,6 +351,7 @@
       downloadLabel: "Télécharger",
       closeLabel: "Fermer",
       swapFail: "Aperçu impossible. Réessayez avec une autre photo.",
+      swapTimeout: "L'aperçu a expiré — le modèle est lent pour le moment. Touchez Réessayer.",
       roomTitle: "Votre pièce",
       roomType: "Pièce",
       style: "Style",
@@ -444,6 +448,7 @@
       downloadLabel: "Descargar",
       closeLabel: "Cerrar",
       swapFail: "No se pudo generar la vista. Prueba con otra foto.",
+      swapTimeout: "La vista tardó demasiado — el modelo está lento ahora. Toca Reintentar.",
       roomTitle: "Tu espacio",
       roomType: "Habitación",
       style: "Estilo",
@@ -1406,7 +1411,8 @@
             try { reader.cancel(); } catch (e) {}
             state.multiRunning = false;
             dropPending();
-            addMsg(t("swapFail"), "them");
+            addMsg(evt.timeout ? t("swapTimeout") : t("swapFail"),
+                   "them");
           }
         }
         function pump() {
@@ -2023,80 +2029,141 @@
     document.body.classList.add("modal-open");
     setStep(0);
     state.pendingSwap = code;
+    state.swapTarget = target;
     state.pendingSwapLabel = t("stepDetect");
+    $("swapSteps").hidden = false;
+    $("swapTimeoutMsg").hidden = true;
+    $("swapRetryBtn").hidden = true;
     renderCanvasRow();
     clearSwapTimers();
     swapTimers.push(setTimeout(function () {
       if (!$("swapModal").hidden) $("swapStill").hidden = false;
-    }, 180000));
-    var meta = swapFabricMeta(code);
-    var reader = null;
+    }, 60000));
+    state.swapAttemptT0 = Date.now();
+    startSwapAttempt(code, target, swapFabricMeta(code), 0);
+  }
+
+  var SWAP_DEADLINE_MS = 115000;
+
+  function showSwapTimeout() {
+    clearSwapTimers();
+    state.pendingSwap = null;
+    state.pendingSwapLabel = null;
+    renderCanvasRow();
+    $("swapSteps").hidden = true;
+    $("swapStill").hidden = true;
+    var m = $("swapTimeoutMsg");
+    m.textContent = t("swapTimeout");
+    m.hidden = false;
+    var b = $("swapRetryBtn");
+    b.textContent = t("tryAgain");
+    b.hidden = false;
+  }
+
+  function startSwapAttempt(code, target, meta, attempt) {
+    var remaining = SWAP_DEADLINE_MS -
+      (Date.now() - (state.swapAttemptT0 || Date.now()));
+    if (remaining <= 0) {
+      showSwapTimeout();
+      return;
+    }
+    var ctrl = null, watchdog = null, reader = null, settled = false;
+    if (typeof AbortController !== "undefined") {
+      ctrl = new AbortController();
+      watchdog = setTimeout(function () {
+        try { ctrl.abort(); } catch (e) {}
+        onAttemptFailed(true);
+      }, remaining);
+    }
+    function stopWatch() {
+      if (watchdog) clearTimeout(watchdog);
+    }
+    function onAttemptFailed(timedOut) {
+      if (settled) return;
+      settled = true;
+      stopWatch();
+      try { if (reader) reader.cancel(); } catch (e) {}
+      if (timedOut && attempt < 1) {
+        startSwapAttempt(code, target, meta, attempt + 1);
+        return;
+      }
+      if (timedOut) {
+        showSwapTimeout();
+        return;
+      }
+      state.pendingSwap = null;
+      state.pendingSwapLabel = null;
+      renderCanvasRow();
+      hideSwapModal();
+      addMsg(t("swapFail"), "them");
+    }
+    function onEvt(evt) {
+      if (evt.type === "step") {
+        state.pendingSwapLabel = canvasStepLabel(evt.label);
+        renderCanvasRow();
+        if (evt.label === "retry") {
+          var row = $("swapRetryRow");
+          row.hidden = false;
+          row.className = "active";
+        } else if (SWAP_STEP[evt.label] !== undefined) {
+          var n = SWAP_STEP[evt.label];
+          var items = document.querySelectorAll("#swapSteps li");
+          for (var i = 0; i < 3 && i < items.length; i++) {
+            items[i].className = i < n ? "done" : i === n ? "active" : "";
+          }
+        }
+      } else if (evt.type === "done") {
+        if (settled) return;
+        settled = true;
+        stopWatch();
+        try { if (reader) reader.cancel(); } catch (e) {}
+        finalizeSwap(code, meta, evt.result || {});
+      } else if (evt.type === "error") {
+        onAttemptFailed(!!evt.timeout);
+      }
+    }
+    var buf = "";
+    var dec = new TextDecoder();
+    function pump() {
+      return reader.read().then(function (step) {
+        if (settled) return;
+        if (step.done) {
+          onAttemptFailed(true);
+          return;
+        }
+        buf += dec.decode(step.value, { stream: true });
+        var parts = buf.split("\n\n");
+        buf = parts.pop();
+        parts.forEach(function (part) {
+          part.split("\n").forEach(function (line) {
+            line = line.trim();
+            if (line.indexOf("data:") !== 0) return;
+            try { onEvt(JSON.parse(line.slice(5))); }
+            catch (e) {}
+          });
+        });
+        if (!settled) return pump();
+      });
+    }
     try {
-      fetch("/api/swap/stream", {
+      var init = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_id: state.sessionId,
                                image_path: state.roomPhoto,
                                fabric_code: code, target: target })
-      }).then(function (r) {
-        if (!r.ok || !r.body) throw new Error("HTTP " + r.status);
+      };
+      if (ctrl) init.signal = ctrl.signal;
+      fetch("/api/swap/stream", init).then(function (r) {
+        if (settled) return;
+        if (!r.ok || !r.body) { onAttemptFailed(true); return; }
         reader = r.body.getReader();
-        var dec = new TextDecoder();
-        var buf = "";
-        function onEvt(evt) {
-          if (evt.type === "step") {
-            state.pendingSwapLabel = canvasStepLabel(evt.label);
-            renderCanvasRow();
-            if (evt.label === "retry") {
-              var row = $("swapRetryRow");
-              row.hidden = false;
-              row.className = "active";
-            } else if (SWAP_STEP[evt.label] !== undefined) {
-              var n = SWAP_STEP[evt.label];
-              var items = document.querySelectorAll("#swapSteps li");
-              for (var i = 0; i < 3 && i < items.length; i++) {
-                items[i].className = i < n ? "done" : i === n ? "active" : "";
-              }
-            }
-          } else if (evt.type === "done") {
-            try { reader.cancel(); } catch (e) {}
-            finalizeSwap(code, meta, evt.result || {});
-          } else if (evt.type === "error") {
-            try { reader.cancel(); } catch (e) {}
-            state.pendingSwap = null;
-            state.pendingSwapLabel = null;
-            renderCanvasRow();
-            hideSwapModal();
-            addMsg(t("swapFail"), "them");
-          }
-        }
-        function pump() {
-          return reader.read().then(function (step) {
-            if (step.done) return;
-            buf += dec.decode(step.value, { stream: true });
-            var parts = buf.split("\n\n");
-            buf = parts.pop();
-            parts.forEach(function (part) {
-              part.split("\n").forEach(function (line) {
-                line = line.trim();
-                if (line.indexOf("data:") !== 0) return;
-                try { onEvt(JSON.parse(line.slice(5))); }
-                catch (e) {}
-              });
-            });
-            return pump();
-          });
-        }
         return pump();
       }).catch(function () {
-        if (!$("swapResult") || $("swapResult").hidden) {
-          hideSwapModal();
-          addMsg(t("swapFail"), "them");
-        }
+        onAttemptFailed(true);
       });
     } catch (e) {
-      hideSwapModal();
-      addMsg(t("swapFail"), "them");
+      onAttemptFailed(true);
     }
   }
 
@@ -2985,6 +3052,10 @@
       baUpdate(Number(e.target.value));
     });
     $("swapClose").addEventListener("click", closeSwap);
+    $("swapRetryBtn").addEventListener("click", function () {
+      if (state.swapCode) openSwap(state.swapCode,
+                                   { target: state.swapTarget });
+    });
     $("swapModal").addEventListener("click", function (e) {
       if (e.target === $("swapModal")) closeSwap();
     });

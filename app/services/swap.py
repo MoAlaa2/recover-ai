@@ -8,7 +8,8 @@ Pipeline notes:
   feathered. This pastes only what the edit actually changed near the
   piece, so surroundings the edit preserved stay pixel-identical.
 - The raw merged SAM mask is saved alongside for debugging.
-- Every model call has a timeout and one retry.
+- Every model call is capped at 75s with one silent retry; a single
+  swap has a 105s overall budget and raises TimeoutSwapError past it.
 """
 import base64
 import io
@@ -40,15 +41,66 @@ TARGET_CONCEPTS = {
 
 VERIFY_LABELS = ("color", "pattern", "scale", "isolation")
 
+# Hard per-model-call cap (seconds). No single network call may hang
+# longer than this; the client enforces the overall 2-minute budget.
+MODEL_TIMEOUT = 75
+# Overall wall budget for one single swap incl. the corrective retry.
+# Together with the client watchdog this guarantees no spinner
+# survives past ~2 minutes.
+SWAP_BUDGET_S = 105
+
+# Overridden with a tmp path in unit tests; None means the
+# Volume-backed runtime logs dir.
+TIMEOUT_LOG = None
+
 
 class SwapError(RuntimeError):
     """Swap failed (bad input, segmentation, edit or verify error)."""
 
 
-def _post_json(url, payload, api_key, timeout):
-    """POST JSON with one retry. Returns the parsed response body."""
+class TimeoutSwapError(SwapError):
+    """A swap stage timed out (client retries once, then Try again)."""
+
+
+def _is_timeout(exc):
+    """True for socket/URL timeouts (the only errors that fail over)."""
+    import socket
+    if isinstance(exc, TimeoutError):
+        return True
+    return isinstance(getattr(exc, "reason", None),
+                      (TimeoutError, socket.timeout))
+
+
+def _timeout_log_path():
+    if TIMEOUT_LOG:
+        return TIMEOUT_LOG
+    from app.core.config import runtime_logs_dir
+    return os.path.join(runtime_logs_dir(), "swap_timeouts.jsonl")
+
+
+def _log_timeout(stage, model, timeout_s, seconds, error):
+    """One JSON line per timed-out model call: stage + model + budget."""
+    entry = {"ts": time.time(), "stage": stage, "model": model,
+             "timeout_s": timeout_s, "seconds": round(seconds, 2),
+             "error": str(error)[:200]}
+    try:
+        dest = _timeout_log_path()
+        with open(dest, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except OSError:
+        pass
+
+
+def _post_json(url, payload, api_key, timeout, stage="", model=""):
+    """POST JSON with one silent retry on a fresh request.
+
+    Returns the parsed response body. Timeouts are logged with
+    stage + model and raised as TimeoutSwapError (after the retry);
+    every other failure stays a plain SwapError.
+    """
     data = json.dumps(payload).encode("utf-8")
     last_err = None
+    t0 = time.time()
     for attempt in range(2):
         try:
             req = urllib.request.Request(
@@ -60,7 +112,15 @@ def _post_json(url, payload, api_key, timeout):
                 return json.loads(resp.read().decode("utf-8"))
         except Exception as exc:  # noqa: BLE001 - retry once, then raise
             last_err = exc
-            time.sleep(2 * (attempt + 1))
+            if _is_timeout(exc):
+                _log_timeout(stage, model, timeout,
+                             time.time() - t0, exc)
+            if attempt == 0:
+                time.sleep(2)
+    if _is_timeout(last_err):
+        raise TimeoutSwapError(
+            "swap timed out in %s — please try again"
+            % (stage or "model call"))
     raise SwapError("request failed: %s" % last_err)
 
 
@@ -101,7 +161,7 @@ def _output_text(body):
     return "\n".join(texts)
 
 
-def segment(image_bytes, concept, api_key=None, timeout=120):
+def segment(image_bytes, concept, api_key=None, timeout=MODEL_TIMEOUT):
     """Run SAM 3.1 on room bytes. Returns parsed records (may be empty)."""
     key = api_key or require_api_key()
     room = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -114,8 +174,11 @@ def segment(image_bytes, concept, api_key=None, timeout=120):
                             + _b64_image(room)}]}],
             "metadata": {"mask_encoding": "one_bit"}}
     try:
-        resp = _post_json(SAM_URL, body, key, timeout=timeout)
+        resp = _post_json(SAM_URL, body, key, timeout=timeout,
+                          stage="segment", model=SAM_MODEL)
     except SwapError as exc:
+        if isinstance(exc, TimeoutSwapError):
+            raise
         raise SwapError("segmentation failed: %s" % exc)
     try:
         return sam_codec.parse_output_text(_output_text(resp))
@@ -163,7 +226,7 @@ def edit_prompt(fabric, piece_label, corrective=None):
 
 
 def edit_room(room_bytes, swatch_bytes, fabric, piece_label,
-              api_key=None, corrective=None, timeout=300):
+              api_key=None, corrective=None, timeout=MODEL_TIMEOUT):
     """Reupholster via Muse Image edit. Returns the edited PIL image."""
     key = api_key or require_api_key()
     room_b64 = base64.b64encode(room_bytes).decode("ascii")
@@ -175,9 +238,12 @@ def edit_room(room_bytes, swatch_bytes, fabric, piece_label,
                         + swatch_b64}],
             "n": 1}
     try:
-        resp = _post_json(EDIT_URL, body, key, timeout=timeout)
+        resp = _post_json(EDIT_URL, body, key, timeout=timeout,
+                          stage="edit", model=EDIT_MODEL)
         raw = base64.b64decode(resp["data"][0]["b64_json"])
     except (SwapError, KeyError, ValueError) as exc:
+        if isinstance(exc, TimeoutSwapError):
+            raise
         raise SwapError("fabric edit failed: %s" % exc)
     try:
         return Image.open(io.BytesIO(raw)).convert("RGB")
@@ -227,7 +293,7 @@ def paste_strict(original, edited, mask, feather=6):
 
 
 def verify(swatch_bytes, result_image, fabric, piece_label, api_key=None,
-           timeout=120):
+           timeout=MODEL_TIMEOUT):
     """Score the swap with muse-spark-1.3 vision. Returns dict of 0-10."""
     key = api_key or require_api_key()
     buf = io.BytesIO()
@@ -257,13 +323,16 @@ def verify(swatch_bytes, result_image, fabric, piece_label, api_key=None,
                 + base64.b64encode(buf.getvalue()).decode("ascii")}}]}]}
     try:
         resp = _post_json("https://api.meta.ai/v1/chat/completions",
-                          body, key, timeout=timeout)
+                          body, key, timeout=timeout,
+                          stage="verify", model=SPARK_MODEL)
         content = resp["choices"][0]["message"]["content"] or ""
         scores = json.loads(content[content.find("{"):content.rfind("}")
                                         + 1])
         return {k: max(0, min(10, int(scores.get(k, 0))))
                 for k in VERIFY_LABELS}
     except (SwapError, KeyError, ValueError) as exc:
+        if isinstance(exc, TimeoutSwapError):
+            raise
         raise SwapError("swap verification failed: %s" % exc)
 
 
@@ -307,8 +376,21 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
     with open(swatch_path, "rb") as f:
         swatch_bytes = f.read()
 
+    t_end = time.monotonic() + SWAP_BUDGET_S
+
+    def call_timeout():
+        """Per-call cap shrunk to fit the overall swap budget."""
+        return max(5.0, min(MODEL_TIMEOUT, t_end - time.monotonic()))
+
+    def need_budget(stage):
+        if t_end - time.monotonic() < 10:
+            raise TimeoutSwapError(
+                "swap timed out in %s — please try again" % stage)
+
     step("segment")
-    records = segment(room_bytes, concept, key)
+    need_budget("segment")
+    records = segment(room_bytes, concept, key,
+                      timeout=call_timeout())
     if not records:
         raise SwapError("could not find the %s in this photo" % concept)
     boxes = []
@@ -334,15 +416,19 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
             corrective = _corrective(best["scores"], concept)
             step("retry")
         step("edit")
+        need_budget("edit")
         edited = edit_room(room_bytes, swatch_bytes, fabric, concept,
-                           key, corrective).resize((width, height),
-                                                   Image.BILINEAR)
+                           key, corrective,
+                           timeout=call_timeout()).resize(
+                               (width, height), Image.BILINEAR)
         step("composite")
         mask = paste_mask(room, edited, union)
         result = room.copy()
         result.paste(edited, (0, 0), mask)
         step("verify")
-        scores = verify(swatch_bytes, result, fabric, concept, key)
+        need_budget("verify")
+        scores = verify(swatch_bytes, result, fabric, concept, key,
+                        timeout=call_timeout())
         attempts = round_no + 1
         cand = {"result": result, "mask": mask, "scores": scores}
         if best is None or (min(scores.values()), sum(scores.values())) > (

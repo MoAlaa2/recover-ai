@@ -42,7 +42,7 @@ def test_paste_mask_empty_when_unchanged():
 def test_verify_parsing(monkeypatch):
     import app.services.swap as mod
 
-    def fake_post(url, payload, api_key, timeout):
+    def fake_post(url, payload, api_key, timeout, **kw):
         return {"choices": [{"message": {"content":
                  "Scores: {\"color\": 9, \"pattern\": 8, "
                  "\"scale\": 9, \"isolation\": 7}"}}]}
@@ -56,7 +56,7 @@ def test_verify_parsing(monkeypatch):
 def test_verify_rejects_garbage(monkeypatch):
     import app.services.swap as mod
 
-    def fake_post(url, payload, api_key, timeout):
+    def fake_post(url, payload, api_key, timeout, **kw):
         return {"choices": [{"message": {"content": "no json here"}}]}
     monkeypatch.setattr(mod, "_post_json", fake_post)
     with pytest.raises(s.SwapError):

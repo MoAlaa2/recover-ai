@@ -217,6 +217,7 @@ def swap_multi_fabrics(req: SwapMultiRequest):
 def swap_multi_stream(req: SwapMultiRequest):
     """Same as /api/swap/multi but streams backend progress as SSE."""
     from app.services.swap import SwapError as _SwapError
+    from app.services.swap import TimeoutSwapError as _TimeoutSwapError
     from app.services.swap import swap_multi
     try:
         _check_image(req.image_path)
@@ -247,12 +248,15 @@ def swap_multi_stream(req: SwapMultiRequest):
                 {i["target"]: i["code"] for i in cleaned})
             events.put({"type": "done", "result": res})
         except _SwapError as exc:
-            events.put({"type": "error", "message": str(exc)})
+            events.put({"type": "error", "message": str(exc),
+                        "timeout": isinstance(exc, _TimeoutSwapError)})
         except RuntimeError as exc:
-            events.put({"type": "error", "message": str(exc)})
+            events.put({"type": "error", "message": str(exc),
+                        "timeout": False})
         except Exception:  # noqa: BLE001 - never hang the stream
             events.put({"type": "error",
-                        "message": "multi-swap failed"})
+                        "message": "multi-swap failed",
+                        "timeout": False})
 
     threading.Thread(target=run, daemon=True).start()
 
@@ -481,6 +485,7 @@ def swap_stream(req: SwapRequest):
     """
     target = _swap_target(req)
     events = queue.Queue()
+    from app.services.swap import TimeoutSwapError as _TimeoutSwapError
 
     def run():
         try:
@@ -505,11 +510,14 @@ def swap_stream(req: SwapRequest):
                          req.image_path or "")
             events.put({"type": "done", "result": res})
         except SwapError as exc:
-            events.put({"type": "error", "message": str(exc)})
+            events.put({"type": "error", "message": str(exc),
+                        "timeout": isinstance(exc, _TimeoutSwapError)})
         except RuntimeError as exc:
-            events.put({"type": "error", "message": str(exc)})
+            events.put({"type": "error", "message": str(exc),
+                        "timeout": False})
         except Exception:  # noqa: BLE001 - never hang the stream
-            events.put({"type": "error", "message": "swap failed"})
+            events.put({"type": "error", "message": "swap failed",
+                        "timeout": False})
 
     threading.Thread(target=run, daemon=True).start()
 
