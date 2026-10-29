@@ -300,7 +300,15 @@ def detect_targets(image_path, api_key=None):
         mask.save(os.path.join(out_dir, name))
         box = mask.getbbox() or (0, 0, mask.size[0], mask.size[1])
         label_en, label_ar = TARGET_LABELS[target]
-        boxes = _component_boxes(mask) or [list(box)]
+        boxes = _component_boxes(mask)
+        if len(types) > 1:
+            # Taps choose AMONG items: a blob covering most of the
+            # photo cannot disambiguate, so it is not a tap (the item
+            # stays choosable through its chip). A lone item keeps
+            # its region even in a close-up.
+            full = mask.size[0] * mask.size[1]
+            boxes = [b for b in boxes
+                     if (b[2] - b[0]) * (b[3] - b[1]) <= 0.7 * full]
         targets.append({"id": target, "type": target,
                         "label_en": label_en, "label_ar": label_ar,
                         "mask_url": os.path.join("uploads", "masks", name),

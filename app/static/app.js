@@ -2381,14 +2381,17 @@
     if (!avail.length || !state.roomPhoto) return;
     if (state.outlinePostedFor === state.roomPhoto) return;
     var src = "/" + String(state.roomPhoto).replace(/^\/+/, "");
+    // No boxes means no trustworthy region: the item stays choosable
+    // through its chip, and no full-photo tap is ever rendered.
     var taps = [];
     avail.forEach(function (o) {
-      var list = (o.boxes && o.boxes.length) ? o.boxes : [o.box];
+      var list = (o.boxes && o.boxes.length) ? o.boxes : [];
       list.forEach(function (bx) {
         if (bx) taps.push({ id: o.id, box: bx, size: o.size });
       });
     });
     taps.sort(function (a, b) { return boxArea(b) - boxArea(a); });
+    if (!taps.length) return;
     var tags = taps.map(function (tp) {
       var w = (tp.size && tp.size[0]) || 1;
       var h = (tp.size && tp.size[1]) || 1;

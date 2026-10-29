@@ -69,7 +69,9 @@ def test_masks_subtract_cushions_from_sofa(monkeypatch, tmp_path):
     assert set(by_id) == {"sofa", "cushions"}
     assert by_id["sofa"]["box"] == [0, 0, 40, 30]
     assert by_id["cushions"]["box"] == [10, 10, 20, 20]
-    assert by_id["sofa"]["boxes"] == [[0, 0, 40, 30]]
+    # Two items compete: the full-photo sofa blob cannot disambiguate,
+    # so it is not a tap; the tight cushions blob stays.
+    assert by_id["sofa"]["boxes"] == []
     assert by_id["cushions"]["boxes"] == [[10, 10, 20, 20]]
     assert by_id["sofa"]["label_ar"] == "الكنبة"
     # Room pixel size rides along so the chat can place % taps.
@@ -104,6 +106,21 @@ def test_masks_fall_back_to_raw_concept(monkeypatch, tmp_path):
              for item in t.detect_targets(str(room))}
     assert set(by_id) == {"cushions"}
     assert calls == ["throw pillows on the sofa", "cushions"]
+
+
+def test_lone_item_keeps_closeup_tap(monkeypatch, tmp_path):
+    room = tmp_path / "room.jpg"
+    Image.new("RGB", (40, 30), (200, 180, 160)).save(str(room))
+    monkeypatch.setattr(t, "require_api_key", lambda: "k")
+    monkeypatch.setattr(t, "UPLOAD_DIR", str(tmp_path))
+    monkeypatch.setattr(t, "list_types", lambda path: ["sofa"])
+    monkeypatch.setattr(t, "segment",
+                        lambda rb, concept, key: [{"concept": concept}])
+    monkeypatch.setattr(
+        t, "sam_mask", lambda records, size: Image.new("L", size, 255))
+    by_id = {item["id"]: item
+             for item in t.detect_targets(str(room))}
+    assert by_id["sofa"]["boxes"] == [[0, 0, 40, 30]]
 
 
 def test_component_boxes_ignore_specks():

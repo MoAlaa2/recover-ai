@@ -104,9 +104,11 @@ def check(pg, lang, tag):
         "e => { const r = e.getBoundingClientRect(); "
         "return [r.x + r.width / 2, r.y + r.height / 2]; }")
     pg.mouse.click(box[0], box[1])
-    # Answer the needs rounds until the rec cards appear.
+    # First round: choose cushions explicitly (the target under test).
+    # Later rounds: answer needs generically until the cards appear.
     t0 = time.perf_counter()
-    for _ in range(4):
+    cushion_key = "cushion" if lang == "en" else "وسا"
+    for round_no in range(4):
         try:
             pg.wait_for_selector("#chips:not([hidden])", timeout=90000)
         except Exception:
@@ -115,10 +117,14 @@ def check(pg, lang, tag):
             "#chips button", "els => els.map(x => x.textContent)")
         if not texts:
             break
-        pick = next((c for c in texts
-                     if "all" in c.lower() or "mix" in c.lower()
-                     or "كل" in c or "just" in c.lower()
-                     or "show" in c.lower()), texts[0])
+        if round_no == 0:
+            pick = next((c for c in texts
+                         if cushion_key in (c or "").lower()), texts[0])
+        else:
+            pick = next((c for c in texts
+                         if "all" in c.lower() or "mix" in c.lower()
+                         or "كل" in c or "just" in c.lower()
+                         or "show" in c.lower()), texts[0])
         pg.click("#chips button:has-text('%s')" % pick[:14])
         pg.wait_for_timeout(2500)
         if pg.eval_on_selector_all("#messages .mini-card",
