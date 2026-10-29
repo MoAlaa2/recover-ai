@@ -737,31 +737,65 @@ def collapse_adjacent_dupes(text):
 
 
 RELAX_LABELS = {
-    "max_price": ("budget", "الميزانية"),
-    "tone": ("color tone", "درجة اللون"),
-    "colors": ("colors", "الألوان"),
-    "styles": ("style", "الستايل"),
-    "features": ("fabric features", "مواصفات القماش"),
-    "any_features": ("pet protection", "الحماية من الحيوانات"),
-    "snag_levels": ("claw-safe weave", "قماش آمن من الخدش"),
-    "min_martindale": ("durability", "المتانة"),
-    "opacity": ("curtain opacity", "تعتيم الستارة"),
-    "suitable_for": ("intended use", "الاستخدام المقصود"),
-    "plain_or_patterned": ("pattern", "النقشة"),
-    "usage": ("fabric use", "استخدام القماش"),
+    "max_price": ("budget", "الميزانية", "बजट", "budget", "presupuesto"),
+    "tone": ("color tone", "درجة اللون", "रंगत", "ton", "tono"),
+    "colors": ("colors", "الألوان", "रंग", "couleurs", "colores"),
+    "styles": ("style", "الستايل", "स्टाइल", "style", "estilo"),
+    "features": ("fabric features", "مواصفات القماش", "कपड़े की खूबियाँ",
+                  "caractéristiques", "características"),
+    "any_features": ("pet protection", "الحماية من الحيوانات",
+                     "पालतू सुरक्षा", "protection animaux",
+                     "protección mascotas"),
+    "snag_levels": ("claw-safe weave", "قماش آمن من الخدش",
+                     "पंजा-सुरक्षित बुनाई", "tissu anti-griffes",
+                     "tejido antirrasguños"),
+    "min_martindale": ("durability", "المتانة", "टिकाऊपन", "durabilité",
+                        "durabilidad"),
+    "opacity": ("curtain opacity", "تعتيم الستارة", "परदे की ओपेसिटी",
+                "opacité", "opacidad"),
+    "suitable_for": ("intended use", "الاستخدام المقصود", "उपयोग",
+                     "usage prévu", "uso previsto"),
+    "plain_or_patterned": ("pattern", "النقشة", "डिज़ाइन", "motif",
+                           "estampado"),
+    "usage": ("fabric use", "استخدام القماش", "कपड़े का उपयोग", "usage",
+              "uso"),
 }
 
+RECEIPT_LANGS = ("en", "ar", "hi", "fr", "es")
+
+
+def _receipt_lang(lang):
+    """Normalize a lang code or legacy arabic bool to a receipt lang."""
+    if lang is True or lang == "ar":
+        return "ar"
+    return lang if lang in RECEIPT_LANGS else "en"
+
+
 FEATURE_NAMES = {
-    "pet-friendly": ("pet-friendly", "مناسب للحيوانات"),
-    "scratch-resistant": ("scratch-resistant", "مقاوم للخدش"),
-    "easy-clean": ("easy-clean", "سهل التنظيف"),
-    "stain-resistant": ("stain-resistant", "مقاوم للبقع"),
-    "washable": ("washable", "قابل للغسل"),
-    "antibacterial": ("antibacterial", "مضاد للبكتيريا"),
-    "fire-resistant": ("fire-resistant", "مقاوم للحريق"),
-    "hypoallergenic": ("hypoallergenic", "مضاد للحساسية"),
-    "blackout": ("blackout", "تعتيم كامل"),
-    "fade-resistant": ("fade-resistant", "مقاوم للبهتان"),
+    "pet-friendly": ("pet-friendly", "مناسب للحيوانات",
+                     "पालतू-मित्रवत", "Animaux admis",
+                     "Apto para mascotas"),
+    "scratch-resistant": ("scratch-resistant", "مقاوم للخدش",
+                          "खरोंच-रोधी", "Résistant aux griffes",
+                          "Resistente a arañazos"),
+    "easy-clean": ("easy-clean", "سهل التنظيف", "आसान-सफ़ाई",
+                   "Facile d'entretien", "Fácil de limpiar"),
+    "stain-resistant": ("stain-resistant", "مقاوم للبقع", "दाग-रोधी",
+                        "Antitache", "Antimanchas"),
+    "washable": ("washable", "قابل للغسل", "धोने योग्य", "Lavable",
+                 "Lavable"),
+    "antibacterial": ("antibacterial", "مضاد للبكتيريا", "जीवाणुरोधी",
+                       "Antibactérien", "Antibacteriano"),
+    "fire-resistant": ("fire-resistant", "مقاوم للحريق", "आग-रोधी",
+                       "Ignifugé", "Ignífugo"),
+    "hypoallergenic": ("hypoallergenic", "مضاد للحساسية",
+                        "हाइपोएलर्जेनिक", "Hypoallergénique",
+                        "Hipoalergénico"),
+    "blackout": ("blackout", "تعتيم كامل", "ब्लैकआउट", "Occultant",
+                 "Opaco"),
+    "fade-resistant": ("fade-resistant", "مقاوم للبهتان", "रंग-टिकाऊ",
+                        "Résistant à la décoloration",
+                        "Resistente a la decoloración"),
 }
 
 
@@ -894,14 +928,20 @@ def missing_relaxation(reply, relaxed, arabic):
 
 
 RECEIPT_EXTRA_NAMES = {
-    "under-budget": ("Under budget", "ضمن الميزانية"),
-    "warm-tone": ("Warm tone", "درجة دافئة"),
-    "cool-tone": ("Cool tone", "درجة باردة"),
-    "neutral-tone": ("Neutral tone", "درجة محايدة"),
+    "under-budget": ("Under budget", "ضمن الميزانية", "बजट के अंदर",
+                     "Dans le budget", "Dentro del presupuesto"),
+    "warm-tone": ("Warm tone", "درجة دافئة", "गर्म रंग", "Ton chaud",
+                  "Tono cálido"),
+    "cool-tone": ("Cool tone", "درجة باردة", "ठंडा रंग", "Ton froid",
+                  "Tono frío"),
+    "neutral-tone": ("Neutral tone", "درجة محايدة", "तटस्थ रंग",
+                     "Ton neutre", "Tono neutro"),
 }
 
-RECEIPT_MATCH_WORD = ("Matches", "يطابق")
-RECEIPT_EASED_WORD = ("Eased", "خففنا")
+RECEIPT_MATCH_WORD = ("Matches", "يطابق", "मेल", "Conforme",
+                       "Coincide")
+RECEIPT_EASED_WORD = ("Eased", "خففنا", "ढील दी", "Assoupli",
+                       "Flexibilizado")
 
 # Words proving the USER stated a style/color/pattern need. Relaxed
 # search dimensions reach the card receipt only when the session's own
@@ -983,47 +1023,56 @@ def _stated_relaxed_keys(relaxed_keys, turn):
     return kept
 
 
-def _receipt_label(key, arabic):
+def _receipt_label(key, lang):
+    """Label for one receipt key in the session language.
+
+    lang is a code or the legacy arabic bool (True/False still work).
+    """
+    code = _receipt_lang(lang)
+    idx = RECEIPT_LANGS.index(code)
     pair = RECEIPT_EXTRA_NAMES.get(key) or FEATURE_NAMES.get(key)
     if pair:
-        return pair[1 if arabic else 0]
-    noun = RELAX_LABELS.get(key, (key, key))
-    return noun[1 if arabic else 0]
+        return pair[idx] if idx < len(pair) else pair[0]
+    noun = RELAX_LABELS.get(key, (key,) * len(RECEIPT_LANGS))
+    return noun[idx] if idx < len(noun) else noun[0]
 
 
 def receipt_summary(matched, relaxed_keys, relaxed_feats, budget_over,
-                    arabic):
+                    arabic, lang=None):
     """One short receipt line, labels never repeated.
 
     Only needs the user stated this session feed the line (matched /
     relaxed are derived from those needs). Returns "" when empty.
+    arabic is the legacy bool; lang (a code) wins when given.
     """
+    code = _receipt_lang(lang if lang is not None else arabic)
+    idx = RECEIPT_LANGS.index(code)
     match_labels = []
     for key in matched or []:
-        label = _receipt_label(key, arabic)
+        label = _receipt_label(key, code)
         if label not in match_labels:
             match_labels.append(label)
     ease_labels = []
     # Stated need-features first, then relaxed dimensions; one short
     # line max, so the eased list is capped.
     for key in (relaxed_feats or []) + (relaxed_keys or []):
-        label = _receipt_label(key, arabic)
+        label = _receipt_label(key, code)
         if label not in ease_labels and label not in match_labels:
             ease_labels.append(label)
     ease_labels = ease_labels[:3]
     match_labels = match_labels[:3]
     if budget_over:
         label = "%s (+%s SAR)" % (
-            _receipt_label("max_price", arabic),
-            _money(budget_over, arabic))
+            _receipt_label("max_price", code),
+            _money(budget_over, code == "ar"))
         if label not in ease_labels:
             ease_labels.append(label)
     parts = []
     if match_labels:
-        parts.append("%s: %s" % (RECEIPT_MATCH_WORD[1 if arabic else 0],
+        parts.append("%s: %s" % (RECEIPT_MATCH_WORD[idx],
                                 " · ".join(match_labels)))
     if ease_labels:
-        parts.append("%s: %s" % (RECEIPT_EASED_WORD[1 if arabic else 0],
+        parts.append("%s: %s" % (RECEIPT_EASED_WORD[idx],
                                 " · ".join(ease_labels)))
     return " — ".join(parts)
 
@@ -1083,7 +1132,8 @@ def enrich(recommendations, turn):
                     "relaxed_features": relaxed_feats,
                     "receipt": receipt_summary(
                         matched, relaxed_keys, relaxed_feats, over,
-                        turn.get("lang") == "ar"),
+                        turn.get("lang") == "ar",
+                        lang=turn.get("lang") or "en"),
                     "relaxed_budget": {"price": price, "over": over,
                                        "budget": budget}
                     if over > 0 else None})

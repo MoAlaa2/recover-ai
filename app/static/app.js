@@ -49,7 +49,6 @@
       pickOne: "Pick",
       applyOne: "Apply",
       summaryTitle: "Your picks",
-      summaryNote: "Meterage estimate and send-to-upholsterer arrive in the next update.",
       closeBrowse: "Close",
       meterUnit: "m",
       sarUnit: "SAR",
@@ -161,7 +160,6 @@
       pickOne: "اختر",
       applyOne: "طبّق",
       summaryTitle: "اختياراتك",
-      summaryNote: "حساب الأمتار وإرسالها للمنجّد جايين في التحديث الجاي.",
       closeBrowse: "إغلاق",
       meterUnit: "م",
       sarUnit: "ر.س",
@@ -217,6 +215,30 @@
       roomSub: "आपका कमरा",
       takePhoto: "फोटो लें या अपलोड करें",
       tryOn: "मेरी फोटो पर देखें",
+      skipNote: "%s नहीं बदल पाए — जैसा है वैसा रखा",
+      tryOnTarget: "%s पर आज़माएँ",
+      tryWord: { sofa: "सोफ़ा", armchair: "कुर्सी", curtains: "परदे", cushions: "तकिए" },
+      tapToChange: "जो बदलना है उस पर दबाएँ",
+      fewQualify: "सिर्फ़ %d कपड़े सही बैठे — ये रहे:",
+      applyAll: "सब पर लागू करें",
+      resetPicks: "रीसेट",
+      browseTitle: "कपड़े देखें",
+      browseFor: "%s के लिए",
+      pickOne: "चुनें",
+      applyOne: "लागू करें",
+      summaryTitle: "आपकी पसंद",
+      closeBrowse: "बंद करें",
+      meterUnit: "मी",
+      sarUnit: "SAR",
+      totalLabel: "कुल",
+      sendUpholsterer: "मिस्त्री को भेजें",
+      copySummary: "सारांश कॉपी करें",
+      copiedTick: "कॉपी हुआ",
+      needsMeasure: "नाप चाहिए",
+      preliminaryNote: "शुरुआती अंदाज़ा — आखिरी नाप मिस्त्री लेगा।",
+      co2Line: "अपने %s को रखकर आप ≈%d kg CO₂e नए उत्पादन और ≈%d kg फ़र्नीचर कचरे से बचते हैं",
+      co2Source: "स्रोत: EPD NEPD-1805-759",
+      co2Note: "एक प्रकाशित EPD पर आधारित (A1–A3 उत्पादन चरण)।",
       thinking: "सोच रहा हूँ…",
       tailoring: "%s सजा रहा हूँ…",
       pieceWord: { sofa: "सोफ़ा", armchair: "कुर्सी", curtains: "पर्दे", cushions: "कुशन" },
@@ -288,6 +310,30 @@
       roomSub: "Votre pièce",
       takePhoto: "Prendre ou envoyer une photo",
       tryOn: "Voir sur ma photo",
+      skipNote: "Impossible de changer %s — laissé tel quel",
+      tryOnTarget: "Essayer sur %s",
+      tryWord: { sofa: "canapé", armchair: "fauteuil", curtains: "rideaux", cushions: "coussins" },
+      tapToChange: "Touchez ce que vous voulez changer",
+      fewQualify: "Seuls %d tissus conviennent — les voici :",
+      applyAll: "Tout appliquer",
+      resetPicks: "Réinitialiser",
+      browseTitle: "Parcourir les tissus",
+      browseFor: "pour votre %s",
+      pickOne: "Choisir",
+      applyOne: "Appliquer",
+      summaryTitle: "Vos choix",
+      closeBrowse: "Fermer",
+      meterUnit: "m",
+      sarUnit: "SAR",
+      totalLabel: "Total",
+      sendUpholsterer: "Envoyer au tapissier",
+      copySummary: "Copier le résumé",
+      copiedTick: "Copié",
+      needsMeasure: "mesures requises",
+      preliminaryNote: "Estimation préliminaire — votre tapissier prendra les mesures.",
+      co2Line: "En gardant votre %s vous évitez ≈%d kg de CO₂e de fabrication neuve et ≈%d kg de déchets de meubles",
+      co2Source: "Source : EPD NEPD-1805-759",
+      co2Note: "Basé sur une EPD publiée (étapes de fabrication A1–A3).",
       thinking: "Je réfléchis…",
       tailoring: "J'habille votre %s…",
       pieceWord: { sofa: "canapé", armchair: "fauteuil", curtains: "rideaux", cushions: "coussins" },
@@ -359,6 +405,30 @@
       roomSub: "Tu espacio",
       takePhoto: "Toma o sube una foto",
       tryOn: "Ver en mi foto",
+      skipNote: "No se pudo cambiar %s — se dejó como estaba",
+      tryOnTarget: "Probar en %s",
+      tryWord: { sofa: "sofá", armchair: "sillón", curtains: "cortinas", cushions: "cojines" },
+      tapToChange: "Toca lo que quieras cambiar",
+      fewQualify: "Solo %d telas sirven — aquí están:",
+      applyAll: "Aplicar a todo",
+      resetPicks: "Restablecer",
+      browseTitle: "Ver telas",
+      browseFor: "para tu %s",
+      pickOne: "Elegir",
+      applyOne: "Aplicar",
+      summaryTitle: "Tus elecciones",
+      closeBrowse: "Cerrar",
+      meterUnit: "m",
+      sarUnit: "SAR",
+      totalLabel: "Total",
+      sendUpholsterer: "Enviar al tapicero",
+      copySummary: "Copiar resumen",
+      copiedTick: "Copiado",
+      needsMeasure: "faltan medidas",
+      preliminaryNote: "Estimación preliminar — tu tapicero tomará las medidas.",
+      co2Line: "Al conservar tu %s evitas ≈%d kg de CO₂e de fabricación nueva y ≈%d kg de residuos de muebles",
+      co2Source: "Fuente: EPD NEPD-1805-759",
+      co2Note: "Basado en una EPD publicada (etapas de fabricación A1–A3).",
       thinking: "Pensando…",
       tailoring: "Vistiendo tu %s…",
       pieceWord: { sofa: "sofá", armchair: "sillón", curtains: "cortinas", cushions: "cojines" },
@@ -410,25 +480,33 @@
     }
   };
 
+  var LANG_INDEX = { en: 0, ar: 1, hi: 2, fr: 3, es: 4 };
+
+  function langLabel(pair) {
+    var i = LANG_INDEX[state.lang];
+    if (i === undefined) i = 0;
+    return pair[i] !== undefined ? pair[i] : pair[0];
+  }
+
   var FEATURE_LABELS = {
-    "fire-resistant": ["Fire-resistant", "مقاوم للحريق"],
-    "easy-clean": ["Easy-clean", "سهل التنظيف"],
-    "washable": ["Washable", "قابل للغسل"],
-    "stain-resistant": ["Stain-resistant", "مقاوم للبقع"],
-    "antibacterial": ["Antibacterial", "مضاد للبكتيريا"],
-    "pet-friendly": ["Pet-friendly", "مناسب للحيوانات"],
-    "scratch-resistant": ["Scratch-resistant", "مقاوم للخدش"],
-    "fade-resistant": ["Fade-resistant", "مقاوم للبهتان"],
-    "crease-resistant": ["Crease-resistant", "مقاوم للتجعد"],
-    "blackout": ["Blackout", "تعتيم كامل"],
-    "thermal-insulating": ["Thermal", "عازل حراري"],
-    "sound-absorbing": ["Sound-absorbing", "ماص للصوت"],
-    "hypoallergenic": ["Hypoallergenic", "مضاد للحساسية"],
-    "eco-friendly": ["Eco-friendly", "صديق للبيئة"],
-    "under-budget": ["Under budget", "ضمن الميزانية"],
-    "warm-tone": ["Warm tone", "درجة دافئة"],
-    "cool-tone": ["Cool tone", "درجة باردة"],
-    "neutral-tone": ["Neutral tone", "درجة محايدة"]
+    "fire-resistant": ["Fire-resistant", "مقاوم للحريق", "आग-रोधी", "Ignifugé", "Ignífugo"],
+    "easy-clean": ["Easy-clean", "سهل التنظيف", "आसान-सफ़ाई", "Facile d'entretien", "Fácil de limpiar"],
+    "washable": ["Washable", "قابل للغسل", "धोने योग्य", "Lavable", "Lavable"],
+    "stain-resistant": ["Stain-resistant", "مقاوم للبقع", "दाग-रोधी", "Antitache", "Antimanchas"],
+    "antibacterial": ["Antibacterial", "مضاد للبكتيريا", "जीवाणुरोधी", "Antibactérien", "Antibacteriano"],
+    "pet-friendly": ["Pet-friendly", "مناسب للحيوانات", "पालतू-मित्रवत", "Animaux admis", "Apto para mascotas"],
+    "scratch-resistant": ["Scratch-resistant", "مقاوم للخدش", "खरोंच-रोधी", "Résistant aux griffes", "Resistente a arañazos"],
+    "fade-resistant": ["Fade-resistant", "مقاوم للبهتان", "रंग-टिकाऊ", "Résistant à la décoloration", "Resistente a la decoloración"],
+    "crease-resistant": ["Crease-resistant", "مقاوم للتجعد", "सिलवट-रोधी", "Infroissable", "Antiarrugas"],
+    "blackout": ["Blackout", "تعتيم كامل", "ब्लैकआउट", "Occultant", "Opaco"],
+    "thermal-insulating": ["Thermal", "عازل حراري", "थर्मल", "Thermique", "Térmico"],
+    "sound-absorbing": ["Sound-absorbing", "ماص للصوت", "ध्वनि-अवशोषक", "Absorbant acoustique", "Absorbente acústico"],
+    "hypoallergenic": ["Hypoallergenic", "مضاد للحساسية", "हाइपोएलर्जेनिक", "Hypoallergénique", "Hipoalergénico"],
+    "eco-friendly": ["Eco-friendly", "صديق للبيئة", "पर्यावरण-मित्र", "Écologique", "Ecológico"],
+    "under-budget": ["Under budget", "ضمن الميزانية", "बजट के अंदर", "Dans le budget", "Dentro del presupuesto"],
+    "warm-tone": ["Warm tone", "درجة دافئة", "गर्म रंग", "Ton chaud", "Tono cálido"],
+    "cool-tone": ["Cool tone", "درجة باردة", "ठंडा रंग", "Ton froid", "Tono frío"],
+    "neutral-tone": ["Neutral tone", "درجة محايدة", "तटस्थ रंग", "Ton neutre", "Tono neutro"]
   };
 
   var FEATURE_ICONS = {
@@ -455,18 +533,18 @@
   }
 
   var RELAX_LABELS = {
-    "max_price": ["Budget", "الميزانية"],
-    "features": ["Fabric features", "مواصفات القماش"],
-    "any_features": ["Pet protection", "الحماية من الحيوانات"],
-    "snag_levels": ["Claw-safe weave", "قماش آمن من الخدش"],
-    "min_martindale": ["Durability", "المتانة"],
-    "colors": ["Colors", "الألوان"],
-    "tone": ["Color tone", "درجة اللون"],
-    "styles": ["Style", "الستايل"],
-    "suitable_for": ["Intended use", "الاستخدام المقصود"],
-    "plain_or_patterned": ["Pattern", "النقشة"],
-    "opacity": ["Curtain opacity", "تعتيم الستارة"],
-    "usage": ["Fabric use", "استخدام القماش"]
+    "max_price": ["Budget", "الميزانية", "बजट", "Budget", "Presupuesto"],
+    "features": ["Fabric features", "مواصفات القماش", "कपड़े की खूबियाँ", "Caractéristiques", "Características"],
+    "any_features": ["Pet protection", "الحماية من الحيوانات", "पालतू सुरक्षा", "Protection animaux", "Protección mascotas"],
+    "snag_levels": ["Claw-safe weave", "قماش آمن من الخدش", "पंजा-सुरक्षित बुनाई", "Tissu anti-griffes", "Tejido antirrasguños"],
+    "min_martindale": ["Durability", "المتانة", "टिकाऊपन", "Durabilité", "Durabilidad"],
+    "colors": ["Colors", "الألوان", "रंग", "Couleurs", "Colores"],
+    "tone": ["Color tone", "درجة اللون", "रंगत", "Ton", "Tono"],
+    "styles": ["Style", "الستايل", "स्टाइल", "Style", "Estilo"],
+    "suitable_for": ["Intended use", "الاستخدام المقصود", "उपयोग", "Usage prévu", "Uso previsto"],
+    "plain_or_patterned": ["Pattern", "النقشة", "डिज़ाइन", "Motif", "Estampado"],
+    "opacity": ["Curtain opacity", "تعتيم الستارة", "परदे की ओपेसिटी", "Opacité", "Opacidad"],
+    "usage": ["Fabric use", "استخدام القماش", "कपड़े का उपयोग", "Usage", "Uso"]
   };
 
   function initialLang() {
@@ -546,8 +624,8 @@
     var k = String(key || "");
     if (k.indexOf("fitted-") === 0) k = k.slice("fitted-".length);
     if (k.indexOf("feat-") === 0) k = k.slice("feat-".length);
-    var pair = FEATURE_LABELS[k] || [key, key];
-    return state.lang === "ar" ? pair[1] : pair[0];
+    var pair = FEATURE_LABELS[k] || [key, key, key, key, key];
+    return langLabel(pair);
   }
 
   function toArabicDigits(value) {
@@ -562,19 +640,29 @@
   function notFeatureLabel(key) {
     var label = featLabel(key);
     if (state.lang === "ar") return "مو " + label;
+    if (state.lang === "hi") return label + " नहीं";
+    if (state.lang === "fr") return "Non " + label.charAt(0).toLowerCase() + label.slice(1);
+    if (state.lang === "es") return "No " + label.charAt(0).toLowerCase() + label.slice(1);
     return "Not " + label.charAt(0).toLowerCase() + label.slice(1);
   }
 
   function budgetPill(rb) {
-    var price = state.lang === "ar" ? toArabicDigits(rb.price) + " ر.س/م" : rb.price + " SAR/m";
-    var over = state.lang === "ar" ? toArabicDigits(rb.over) : rb.over;
-    if (state.lang === "ar") return price + " — أعلى من ميزانيتك بـ " + over;
+    var price = rb.price + " SAR/m";
+    var over = rb.over;
+    if (state.lang === "ar") {
+      price = toArabicDigits(rb.price) + " ر.س/م";
+      over = toArabicDigits(rb.over);
+      return price + " — أعلى من ميزانيتك بـ " + over;
+    }
+    if (state.lang === "hi") return price + " — बजट से " + over + " ज़्यादा";
+    if (state.lang === "fr") return price + " — " + over + " au-dessus du budget";
+    if (state.lang === "es") return price + " — " + over + " sobre el presupuesto";
     return price + " — " + over + " over budget";
   }
 
   function relaxLabel(key) {
-    var pair = RELAX_LABELS[key] || [key, key];
-    return state.lang === "ar" ? pair[1] : pair[0];
+    var pair = RELAX_LABELS[key] || [key, key, key, key, key];
+    return langLabel(pair);
   }
 
   function esc(s) {

@@ -1151,3 +1151,33 @@ def test_no_rec_turn_still_discloses():
                  chat_fn=fake)
     assert out["recommendations"] == []
     assert "To find these" in out["reply"]
+
+
+def test_receipt_lang_normalizes_legacy_bool():
+    assert c._receipt_lang(True) == "ar"
+    assert c._receipt_lang(False) == "en"
+    assert c._receipt_lang("hi") == "hi"
+    assert c._receipt_lang("xx") == "en"
+
+
+def test_receipt_summary_hindi_french_spanish():
+    hi = c.receipt_summary(["easy-clean"], ["tone"], [], 0, False,
+                           lang="hi")
+    assert hi.startswith("मेल:") and "आसान-सफ़ाई" in hi
+    fr = c.receipt_summary(["easy-clean"], ["tone"], [], 0, False,
+                           lang="fr")
+    assert fr.startswith("Conforme:") and "Facile d'entretien" in fr
+    es = c.receipt_summary(["easy-clean"], ["tone"], [], 0, False,
+                           lang="es")
+    assert es.startswith("Coincide:") and "Fácil de limpiar" in es
+
+
+def test_enrich_receipt_uses_turn_lang():
+    turn = {"needs_all": ["easy-clean"], "needs_any": [], "budgets": [],
+            "tones": [], "relaxed": [], "chosen_targets": [],
+            "lang": "hi",
+            "session": {"messages": [{"role": "user",
+                                      "content": "mujhe aasan safai chahiye"}]}}
+    rec = c.enrich([{"code": "FA-NL-02", "reason": "r"}], turn)[0]
+    assert "आसान-सफ़ाई" in rec["receipt"]
+    assert "Easy-clean" not in rec["receipt"]
