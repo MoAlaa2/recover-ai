@@ -87,7 +87,7 @@ def _output_text(body):
     return "\n".join(texts)
 
 
-def segment(image_bytes, concept, api_key=None):
+def segment(image_bytes, concept, api_key=None, timeout=120):
     """Run SAM 3.1 on room bytes. Returns parsed records (may be empty)."""
     key = api_key or require_api_key()
     room = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -100,7 +100,7 @@ def segment(image_bytes, concept, api_key=None):
                             + _b64_image(room)}]}],
             "metadata": {"mask_encoding": "one_bit"}}
     try:
-        resp = _post_json(SAM_URL, body, key, timeout=120)
+        resp = _post_json(SAM_URL, body, key, timeout=timeout)
     except SwapError as exc:
         raise SwapError("segmentation failed: %s" % exc)
     try:
@@ -149,7 +149,7 @@ def edit_prompt(fabric, piece_label, corrective=None):
 
 
 def edit_room(room_bytes, swatch_bytes, fabric, piece_label,
-              api_key=None, corrective=None):
+              api_key=None, corrective=None, timeout=300):
     """Reupholster via Muse Image edit. Returns the edited PIL image."""
     key = api_key or require_api_key()
     room_b64 = base64.b64encode(room_bytes).decode("ascii")
@@ -161,7 +161,7 @@ def edit_room(room_bytes, swatch_bytes, fabric, piece_label,
                         + swatch_b64}],
             "n": 1}
     try:
-        resp = _post_json(EDIT_URL, body, key, timeout=300)
+        resp = _post_json(EDIT_URL, body, key, timeout=timeout)
         raw = base64.b64decode(resp["data"][0]["b64_json"])
     except (SwapError, KeyError, ValueError) as exc:
         raise SwapError("fabric edit failed: %s" % exc)
@@ -195,7 +195,21 @@ def paste_mask(original, edited, box, margin=0.04, feather=6):
     return mask.filter(ImageFilter.GaussianBlur(feather))
 
 
-def verify(swatch_bytes, result_image, fabric, piece_label, api_key=None):
+def paste_strict(original, edited, mask, feather=6):
+    """Composite edited onto original strictly inside mask (feathered).
+
+    Unlike paste_mask there is no change-map intersection: the caller
+    guarantees edited differs from original only where intended. Used
+    by the parallel multi engine for the one-pass composite.
+    """
+    soft = mask.filter(ImageFilter.GaussianBlur(feather))
+    out = original.copy()
+    out.paste(edited, (0, 0), soft)
+    return out
+
+
+def verify(swatch_bytes, result_image, fabric, piece_label, api_key=None,
+           timeout=120):
     """Score the swap with muse-spark-1.3 vision. Returns dict of 0-10."""
     key = api_key or require_api_key()
     buf = io.BytesIO()
@@ -225,7 +239,7 @@ def verify(swatch_bytes, result_image, fabric, piece_label, api_key=None):
                 + base64.b64encode(buf.getvalue()).decode("ascii")}}]}]}
     try:
         resp = _post_json("https://api.meta.ai/v1/chat/completions",
-                          body, key, timeout=120)
+                          body, key, timeout=timeout)
         content = resp["choices"][0]["message"]["content"] or ""
         scores = json.loads(content[content.find("{"):content.rfind("}")
                                         + 1])
@@ -359,15 +373,17 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                on_step=None):
     """Swap several items in one photo, largest item first.
 
-    assignments is a list of {"target": ..., "code": ...}. Each item is
-    edited on the current working image and composited through its own
-    mask, so earlier (larger) items survive later edits. Per-item
-    verify uses the same min-7 rule with one corrective retry.
+    assignments is a list of {"target": ..., "code": ...}. Every item
+    is edited from the ORIGINAL photo in a worker thread (segment,
+    edit, verify — one corrective retry), each network call bounded
+    to 60s. Verified items composite onto the original in one pass,
+    largest first, each strictly inside its own mask. Failures become
+    skips (reported, never fatal unless everything fails).
 
     Results are cached on disk per (image, target, code): a repeat run
     pastes the cached item through its own mask without model calls.
     Returns {"results": [{target, code, result_url, mask_url, scores,
-    attempts, cached}], "final_url": ...}.
+    attempts, cached}], "skipped": [...], "final_url": ...}.
     """
     def step(label):
         if on_step:
@@ -408,53 +424,95 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
             job["cache"] = (img_path, mask_path, meta_path)
         else:
             job["cache"] = None
-    # One failing item must not kill the whole room: segmentation or
-    # edit failures are collected as skips; the rest still swap.
-    infos = {}
-    skipped = []
-    for target in sorted({j["target"] for j in jobs
-                          if j["cache"] is None}):
-        concept = TARGET_CONCEPTS[target]
-        step("segment")
-        try:
-            records = segment(room_bytes, concept, key)
-        except SwapError as exc:
-            skipped.append({"target": target, "code": None,
-                            "reason": str(exc)})
-            continue
-        if not records:
-            skipped.append({"target": target, "code": None,
-                            "reason": "could not find the %s in this "
-                            "photo" % concept})
-            continue
-        union = _union_of(records, (width, height))
-        area = max(0, union[2] - union[0]) * max(0, union[3] - union[1])
-        infos[target] = {"concept": concept, "union": union,
-                         "mask": sam_mask(records, (width, height)),
-                         "area": area}
-    for job in jobs:
-        if job["cache"] is None:
-            if job["target"] in infos:
-                job["area"] = infos[job["target"]]["area"]
-            else:
-                for skip in skipped:
-                    if skip["target"] == job["target"] \
-                            and skip["code"] is None:
-                        skip["code"] = job["code"]
-                        break
-                job["area"] = -1
-    jobs.sort(key=lambda j: j["area"], reverse=True)
 
-    working = room.copy()
-    results = []
-    for job in jobs:
-        target, fabric = job["target"], job["fabric"]
-        if job["area"] < 0:
-            continue
-        info = infos.get(target)
+    def run_one(job):
+        """One item end to end from the ORIGINAL photo (retried once).
+
+        Returns (entry, skip, img, mask, area); entry is None on skip.
+        Each network call is bounded to 60s; failures become skips.
+        """
+        target, fabric, code = (job["target"], job["fabric"],
+                                job["code"])
+        concept = TARGET_CONCEPTS[target]
         swatch_path = os.path.join(BASE_DIR, fabric.get("image", ""))
         with open(swatch_path, "rb") as f:
             swatch_bytes = f.read()
+        img_path, mask_path, meta_path = _cache_paths(
+            out_dir, rtag, target, code)
+        best = None
+        attempts = 0
+        last_err = "unknown error"
+        for _ in range(2):
+            try:
+                step("segment")
+                records = segment(room_bytes, concept, key,
+                                  timeout=60)
+                if not records:
+                    raise SwapError("could not find the %s in this "
+                                    "photo" % concept)
+                mask = sam_mask(records, (width, height))
+                area = 0
+                for rec in records:
+                    try:
+                        bx0, by0, bx1, by1 = (rec or {}).get(
+                            "box", (0, 0, 0, 0))
+                        area = max(area, max(0, bx1 - bx0) * max(
+                            0, by1 - by0))
+                    except (TypeError, ValueError):
+                        continue
+                step("edit")
+                corrective = None
+                if best is not None:
+                    corrective = _corrective(best["scores"], concept)
+                    step("retry")
+                edited = edit_room(room_bytes, swatch_bytes, fabric,
+                                   concept, key, corrective,
+                                   timeout=60)
+                step("composite")
+                base_img = Image.open(
+                    io.BytesIO(room_bytes)).convert("RGB")
+                cand = paste_strict(base_img, edited, mask)
+                step("verify")
+                scores = verify(swatch_bytes, cand, fabric, concept,
+                                key, timeout=60)
+                attempts += 1
+                if best is None or (
+                        min(scores.values()),
+                        sum(scores.values())) > (
+                        min(best["scores"].values()),
+                        sum(best["scores"].values())):
+                    best = {"result": cand, "mask": mask,
+                            "scores": scores, "area": area}
+                if min(scores.values()) >= 7:
+                    break
+            except SwapError as exc:
+                last_err = str(exc)
+                continue
+        if best is None:
+            return (None,
+                    {"target": target, "code": code,
+                     "reason": last_err}, None, None, -1)
+        best["result"].save(img_path, "JPEG", quality=90)
+        best["mask"].save(mask_path)
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump({"scores": best["scores"],
+                       "attempts": attempts}, f)
+        base = os.path.relpath(out_dir, BASE_DIR)
+        entry = {"target": target, "code": code,
+                 "result_url": os.path.join(
+                     base, os.path.basename(img_path)),
+                 "mask_url": os.path.join(
+                     base, os.path.basename(mask_path)),
+                 "scores": best["scores"], "attempts": attempts,
+                 "cached": False}
+        return entry, None, best["result"], best["mask"], best["area"]
+
+    # One failing item must not kill the whole room: segmentation or
+    # edit failures are collected as skips; the rest still swap.
+    results = []
+    skipped = []
+    pieces = []
+    for job in jobs:
         if job["cache"] is not None:
             img_path, mask_path, meta_path = job["cache"]
             item_img = Image.open(img_path).convert("RGB")
@@ -466,72 +524,45 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                 attempts = int(meta.get("attempts", 0))
             except (ValueError, TypeError):
                 scores, attempts = {}, 0
-            working.paste(item_img, (0, 0), item_mask)
-            cached = True
-        else:
-            img_path, mask_path, meta_path = _cache_paths(
-                out_dir, rtag, target, job["code"])
-            buf = io.BytesIO()
-            working.save(buf, "JPEG", quality=90)
-            current_bytes = buf.getvalue()
-            try:
-                best = None
-                attempts = 0
-                for round_no in range(2):
-                    corrective = None
-                    if best is not None:
-                        corrective = _corrective(best["scores"],
-                                                 info["concept"])
-                        step("retry")
-                    step("edit")
-                    edited = edit_room(current_bytes, swatch_bytes,
-                                       fabric, info["concept"], key,
-                                       corrective).resize(
-                                           (width, height),
-                                           Image.BILINEAR)
-                    step("composite")
-                    mask = paste_mask(working, edited, info["union"])
-                    cand_img = working.copy()
-                    cand_img.paste(edited, (0, 0), mask)
-                    step("verify")
-                    scores = verify(swatch_bytes, cand_img, fabric,
-                                    info["concept"], key)
-                    attempts = round_no + 1
-                    cand = {"result": cand_img, "mask": mask,
-                            "scores": scores}
-                    if best is None or (
-                            min(scores.values()),
-                            sum(scores.values())) > (
-                            min(best["scores"].values()),
-                            sum(best["scores"].values())):
-                        best = cand
-                    if min(scores.values()) >= 7:
-                        break
-            except SwapError as exc:
-                skipped.append({"target": target, "code": job["code"],
-                                "reason": str(exc)})
-                continue
-            working = best["result"]
-            item_mask = best["mask"]
-            scores = best["scores"]
-            best["result"].save(img_path, "JPEG", quality=90)
-            best["mask"].save(mask_path)
-            with open(meta_path, "w", encoding="utf-8") as f:
-                json.dump({"scores": scores, "attempts": attempts}, f)
-            cached = False
-        base = os.path.relpath(out_dir, BASE_DIR)
-        results.append({
-            "target": target, "code": job["code"],
-            "result_url": os.path.join(
-                base, os.path.basename(img_path)),
-            "mask_url": os.path.join(
-                base, os.path.basename(mask_path)),
-            "scores": scores, "attempts": attempts, "cached": cached})
+            base = os.path.relpath(out_dir, BASE_DIR)
+            results.append({
+                "target": job["target"], "code": job["code"],
+                "result_url": os.path.join(
+                    base, os.path.basename(img_path)),
+                "mask_url": os.path.join(
+                    base, os.path.basename(mask_path)),
+                "scores": scores, "attempts": attempts,
+                "cached": True})
+            pieces.append((item_img, item_mask, job["area"],
+                           job["target"]))
+    pending = [j for j in jobs if j["cache"] is None]
+    if pending:
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(
+                max_workers=max(1, min(4, len(pending)))) as pool:
+            for entry, skip, img, mask, area in pool.map(
+                    run_one, pending):
+                if entry is not None:
+                    results.append(entry)
+                    pieces.append((img, mask, area,
+                                   entry["target"]))
+                else:
+                    skipped.append(skip)
     if not results:
         reason = skipped[0]["reason"] if skipped else "no assignments"
         raise SwapError("multi-swap failed: %s" % reason)
+    # One pass, largest first, each strictly inside its own mask.
+    pieces.sort(key=lambda piece: piece[2], reverse=True)
+    final = room.copy()
+    for img, mask, _, _ in pieces:
+        final = paste_strict(final, img, mask)
     final_name = "swapmulti-%s-final.jpg" % uuid.uuid4().hex
-    working.save(os.path.join(out_dir, final_name), "JPEG", quality=90)
+    final.save(os.path.join(out_dir, final_name), "JPEG", quality=90)
     base = os.path.relpath(out_dir, BASE_DIR)
+    areas = {}
+    for _, _, area, target in pieces:
+        areas.setdefault(target, area)
+    results.sort(key=lambda r: areas.get(r["target"], 0),
+                 reverse=True)
     return {"results": results, "skipped": skipped,
             "final_url": os.path.join(base, final_name)}

@@ -31,7 +31,7 @@ def make_room(tmp_path):
 def fakes(monkeypatch):
     calls = {"segment": [], "edit": [], "verify": 0}
 
-    def fake_segment(room_bytes, concept, key=None):
+    def fake_segment(room_bytes, concept, key=None, timeout=120):
         calls["segment"].append(concept)
         if concept == "sofa":
             return [{"box": (0, 0, 90, 90), "frame_size": (100, 100)}]
@@ -41,12 +41,13 @@ def fakes(monkeypatch):
         return Image.new("L", size, 255)
 
     def fake_edit(room_bytes, swatch_bytes, fabric, concept, key=None,
-                  corrective=None):
+                  corrective=None, timeout=300):
         calls["edit"].append(concept)
         shade = 100 if concept == "sofa" else 180
         return solid((shade, shade, shade))
 
-    def fake_verify(swatch_bytes, result, fabric, concept, key=None):
+    def fake_verify(swatch_bytes, result, fabric, concept, key=None,
+                    timeout=120):
         calls["verify"] += 1
         return {"color": 8, "pattern": 8, "scale": 8, "isolation": 8}
 
@@ -63,7 +64,9 @@ def test_multi_largest_first_and_files(tmp_path, fakes):
     res = s.swap_multi(room, [{"target": "cushions", "code": "FA-AC-02"},
                               {"target": "sofa", "code": "FA-AC-01"}],
                        api_key="k", out_dir=str(out))
-    assert fakes["edit"] == ["sofa", "cushions"]
+    # Edits run in parallel (completion order varies); results stay
+    # largest-first.
+    assert sorted(fakes["edit"]) == ["cushions", "sofa"]
     assert [r["target"] for r in res["results"]] == ["sofa", "cushions"]
     assert all(r["attempts"] == 1 and r["cached"] is False
                for r in res["results"])
@@ -94,7 +97,7 @@ def test_multi_retry_once_on_low_scores(tmp_path, monkeypatch):
               {"color": 8, "pattern": 8, "scale": 8, "isolation": 8}]
     edits = []
 
-    def fake_segment(room_bytes, concept, key=None):
+    def fake_segment(room_bytes, concept, key=None, timeout=120):
         return [{"box": (0, 0, 90, 90), "frame_size": (100, 100)}]
 
     monkeypatch.setattr(s, "segment", fake_segment)
@@ -114,7 +117,7 @@ def test_multi_retry_once_on_low_scores(tmp_path, monkeypatch):
 def test_multi_skips_failed_item_keeps_rest(tmp_path, monkeypatch):
     room = make_room(tmp_path)
 
-    def fake_segment(room_bytes, concept, key=None):
+    def fake_segment(room_bytes, concept, key=None, timeout=120):
         if concept == "cushions":
             return []
         return [{"box": (0, 0, 90, 90), "frame_size": (100, 100)}]
@@ -141,11 +144,11 @@ def test_multi_skips_failed_item_keeps_rest(tmp_path, monkeypatch):
 def test_multi_skips_edit_failure(tmp_path, monkeypatch):
     room = make_room(tmp_path)
 
-    def fake_segment(room_bytes, concept, key=None):
+    def fake_segment(room_bytes, concept, key=None, timeout=120):
         return [{"box": (0, 0, 90, 90), "frame_size": (100, 100)}]
 
     def fake_edit(room_bytes, swatch_bytes, fabric, concept, key=None,
-                  corrective=None):
+                  corrective=None, timeout=300):
         if concept == "cushions":
             raise s.SwapError("fabric edit failed: boom")
         return solid((9, 9, 9))
