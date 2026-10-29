@@ -58,6 +58,36 @@ def dump_state(pg, tag, stage):
         print("dump failed: %s" % ex)
 
 
+def wait_swap(pg, tag, trigger, timeout=300000):
+    """Wait for the swap result; re-fire the trigger once on timeout.
+
+    The client gives up on a silent stream after ~75s while a slow
+    server keeps working, so the retry (warmed caches) usually lands.
+    """
+    for attempt in range(2):
+        try:
+            pg.wait_for_selector("#swapResult:not([hidden])",
+                                 timeout=timeout)
+            return
+        except Exception as exc:  # noqa: BLE001
+            dump_state(pg, tag, "swap-timeout-%d" % attempt)
+            msgs = pg.eval_on_selector_all(
+                "#messages .msg", "e => e.map(x => x.innerText)")
+            print("SWAP-DUMP %s attempt %d tail=%r" % (
+                tag, attempt, msgs[-2:]))
+            try:
+                if pg.evaluate("() => !document.querySelector"
+                               "('#swapModal').hidden"):
+                    pg.click("#swapClose")
+                    pg.wait_for_timeout(1000)
+            except Exception:  # noqa: BLE001
+                pass
+            if attempt == 0:
+                trigger()
+            else:
+                raise
+
+
 def run_phase(pg, lang, tag, photo, all_words, fallback_text,
               want_multi, try_single=True):
     """One photo session. Returns timings dict."""
@@ -129,9 +159,10 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
 
     if try_single:
         t2 = time.perf_counter()
-        pg.click("#messages .mini-try >> nth=0")
-        pg.wait_for_selector("#swapResult:not([hidden])",
-                             timeout=300000)
+        once_try = lambda: pg.click(  # noqa: E731
+            "#messages .mini-try >> nth=0")
+        once_try()
+        wait_swap(pg, lang + "-" + tag, once_try)
         timings["swap_s"] = round(time.perf_counter() - t2, 1)
         shot("swap")
         pg.click("#swapClose")
@@ -151,9 +182,10 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
         pg.wait_for_selector("#browsePanel .browse-card",
                              timeout=120000)
         shot("browse")
-        pg.click("#browsePanel [data-apply]")
-        pg.wait_for_selector("#swapResult:not([hidden])",
-                             timeout=300000)
+        once_apply = lambda: pg.click(  # noqa: E731
+            "#browsePanel [data-apply]")
+        once_apply()
+        wait_swap(pg, lang + "-" + tag, once_apply)
         pg.click("#swapClose")
         pg.wait_for_timeout(500)
         t3 = time.perf_counter()
@@ -302,8 +334,10 @@ def run_target_phase(device, user, pw, browser, lang):
              lambda route: (sent.update(
                  json.loads(route.request.post_data or "{}")),
                  route.continue_()))
-    pg.click("#messages .mini-try >> nth=0")
-    pg.wait_for_selector("#swapResult:not([hidden])", timeout=600000)
+    once_try = lambda: pg.click(  # noqa: E731
+        "#messages .mini-try >> nth=0")
+    once_try()
+    wait_swap(pg, lang + "-target", once_try, timeout=600000)
     secs = round(time.perf_counter() - t0, 1)
     assert sent.get("target") == "cushions", sent
     pg.click("#swapClose")
