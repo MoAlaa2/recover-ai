@@ -648,6 +648,31 @@ def test_empty_reply_falls_back_localized():
     assert c.empty_fallback(False, False, "xx").startswith("Could you")
 
 
+def test_wants_recommendations_hi_forms():
+    assert c.wants_recommendations("अभी 3 फ़ैब्रिक सुझाएँ।")
+    assert c.wants_recommendations("सुझाव दीजिए")
+    assert c.wants_recommendations("Recommend 3 fabrics now.")
+    assert not c.wants_recommendations("मुझे यह पसंद है")
+
+
+def test_explicit_dodge_gets_seeded_recs_in_one_turn():
+    # The model asked a question instead of searching: the seeded
+    # server-side search still answers in the same turn, with no
+    # extra model round trip.
+    calls = {"n": 0}
+
+    def fake(messages, tools=None):
+        calls["n"] += 1
+        return final_text("Lovely. Which item should I change first?")
+
+    out = c.chat("test-seed", "Recommend 3 sofa fabrics now",
+                 chat_fn=fake)
+    assert calls["n"] == 1
+    codes = [r["code"] for r in out["recommendations"]]
+    assert len(codes) == 3
+    assert all(get_fabric(code) for code in codes)
+
+
 def test_grounding_retry_lists_exact_codes():
     import re
     log_path = "/tmp/test-grounding-log.json"

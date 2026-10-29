@@ -1449,7 +1449,7 @@ def agent_turn(messages, chat_fn, turn, on_token=None, on_step=None):
 WANTS_RECS_RE = re.compile(
     r"recommend|recommendation|show me options|show options|"
     r"رشح|رشّح|اقترح|وريني|اعرض|الخيارات|"
-    r"सुझाव|recommand|recomiend",
+    r"सुझा|recommand|recomiend",
     re.IGNORECASE)
 
 
@@ -1784,6 +1784,21 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     attempted = extracted is not None
     ground_bad = bad if isinstance(bad, str) else ""
 
+    # Explicit "recommend now" with no usable search yet: the model
+    # dodged the tools (asked a question instead, or its search came
+    # back empty). Seed one server-side search from the session needs
+    # so the deterministic fallback below still answers in THIS turn —
+    # hi/fr/es dodges cost a whole extra model round trip otherwise.
+    if wants_recommendations(message) and not [
+            c for c in turn["seen"] if get_fabric(c)]:
+        seed_args = {"usage": "curtains"} if turn.get(
+            "curtains_only") else {}
+        seed = run_search(seed_args, turn)
+        turn["seen"].extend(f["code"] for f in seed["fabrics"])
+        for name in seed["relaxed_constraints"]:
+            if name not in turn["relaxed"]:
+                turn["relaxed"].append(name)
+        turn["searched"] = True
     seen_codes = [c for c in turn["seen"] if get_fabric(c)]
     if bad:
         history.append({"role": "assistant", "content": final_text})
