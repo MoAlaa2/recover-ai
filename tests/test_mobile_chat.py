@@ -617,3 +617,32 @@ def test_multi_assign_flow_ar(server, page):
     box = page.evaluate("() => ({sw: document.documentElement.scrollWidth,"
                         " cw: document.documentElement.clientWidth})")
     assert box["sw"] == box["cw"]
+
+
+def test_canvas_image_retries_once_after_404(server, page):
+    """A just-written volume file can 404 the first GET: canvasImg must
+    retry once and recover instead of staying broken."""
+    import io
+    from PIL import Image
+    buf = io.BytesIO()
+    Image.new("RGB", (4, 3), (10, 120, 200)).save(buf, "PNG")
+    png = buf.getvalue()
+    hits = []
+
+    def probe(route):
+        hits.append(1)
+        if len(hits) == 1:
+            route.fulfill(status=404, body="nope")
+        else:
+            route.fulfill(status=200, content_type="image/png",
+                          body=png)
+
+    page.route("**/uploads/retry-probe.jpg*", probe)
+    page.goto(server + "/consult", wait_until="networkidle")
+    page.wait_for_selector("#canvasImg", state="attached", timeout=15000)
+    page.evaluate("document.querySelector('#canvasImg').src ="
+                 " '/uploads/retry-probe.jpg'")
+    page.wait_for_function(
+        "document.querySelector('#canvasImg').naturalWidth > 0",
+        timeout=15000)
+    assert len(hits) >= 2, "canvas must refetch after the first 404"

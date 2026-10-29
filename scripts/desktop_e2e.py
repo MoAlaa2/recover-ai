@@ -42,10 +42,22 @@ def desktop_asserts(pg, tag, errors):
         me_before = pg.eval_on_selector_all(
             "#messages .msg.me", "e => e.length")
         pg.mouse.click(pt["x"], pt["y"])
+        # A tap either sends the matching chip text (me message) or, when
+        # no chip matches this late in the journey, opens the browse panel
+        # for that target. Both mean the selection landed.
         pg.wait_for_function(
-            "n => document.querySelectorAll('#messages .msg.me').length > n",
+            "n => document.querySelectorAll('#messages .msg.me').length > n"
+            " || (function(){ var p = document.querySelector("
+            "'#browsePanel'); return p && !p.hidden; })()",
             arg=me_before, timeout=30000)
-        print("DESK %s canvas tap selects (me-message posted)" % tag)
+        picked = pg.evaluate(
+            "() => { var p = document.querySelector('#browsePanel');"
+            " return !!(p && !p.hidden); }")
+        if picked:
+            print("DESK %s canvas tap opens browse panel" % tag)
+            pg.click("#browseClose")
+        else:
+            print("DESK %s canvas tap selects (me-message posted)" % tag)
     # Desktop Try buttons name the target like mobile ones.
     btn = pg.eval_on_selector(
         "#recs .card .seeit >> nth=0",

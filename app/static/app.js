@@ -2091,6 +2091,17 @@
   }
 
   function finalizeSwap(code, meta, res) {
+    // Server fabric meta fills gaps when the swap was triggered outside
+    // the recommendation list (browse panel, multi-apply): without it the
+    // result bubble shows the code twice and no price.
+    var srv = (res && res.fabric) || {};
+    meta = meta || { code: code };
+    if (!meta.name_en && srv.name_en) meta.name_en = srv.name_en;
+    if (!meta.name_ar && srv.name_ar) meta.name_ar = srv.name_ar;
+    if (meta.price === undefined && srv.price_sar_per_m !== undefined) {
+      meta.price = srv.price_sar_per_m;
+    }
+    if (!meta.image && srv.image) meta.image = srv.image;
     clearSwapTimers();
     var scores = res.scores || {};
     var vals = [scores.color, scores.pattern, scores.scale,
@@ -2495,10 +2506,17 @@
     // through its chip, and no full-photo tap is ever rendered.
     var taps = [];
     avail.forEach(function (o) {
+      // One tag per item in the chat photo (the largest region): per-box
+      // tags stack identical labels on top of each other. The canvas
+      // layer keeps every box.
       var list = (o.boxes && o.boxes.length) ? o.boxes : [];
+      var best = null;
       list.forEach(function (bx) {
-        if (bx) taps.push({ id: o.id, box: bx, size: o.size });
+        if (bx && (!best || boxArea({ box: bx }) > boxArea({ box: best }))) {
+          best = bx;
+        }
       });
+      if (best) taps.push({ id: o.id, box: best, size: o.size });
     });
     taps.sort(function (a, b) { return boxArea(b) - boxArea(a); });
     if (!taps.length) return;
@@ -2996,9 +3014,29 @@
     });
     $("roomView").addEventListener("click", openSheet);
     $("roomThumbBtn").addEventListener("click", openSheet);
+    // A just-written volume file can 404 the first GET (deploy
+    // handover, sync lag): retry a failed room image once, a beat
+    // later, before treating it as broken.
+    function retryRoomImg(el, onDead) {
+      var cur = el.getAttribute("src") || "";
+      if (!cur || cur.indexOf("imgRetry=1") >= 0 ||
+          el.dataset.imgRetry === cur) {
+        if (onDead) onDead();
+        return;
+      }
+      el.dataset.imgRetry = cur;
+      setTimeout(function () {
+        el.src = cur + (cur.indexOf("?") < 0 ? "?" : "&") + "imgRetry=1";
+      }, 1500);
+    }
+    $("canvasImg").addEventListener("error", function () {
+      retryRoomImg($("canvasImg"));
+    });
     $("roomThumb").addEventListener("error", function () {
-      var bar = $("roomBar");
-      if (bar) bar.hidden = true;
+      retryRoomImg($("roomThumb"), function () {
+        var bar = $("roomBar");
+        if (bar) bar.hidden = true;
+      });
     });
     $("sheetClose").addEventListener("click", closeSheet);
     (function sheetSwipe() {

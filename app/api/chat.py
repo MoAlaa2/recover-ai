@@ -487,6 +487,20 @@ def swap_stream(req: SwapRequest):
             res = swap(req.image_path, req.fabric_code, target,
                        on_step=lambda s: events.put({"type": "step",
                                                     "label": s}))
+            # The result bubble shows name + price even when the swap was
+            # triggered outside the recommendation list (browse panel,
+            # multi-apply): the client only knows the code there.
+            try:
+                from app.services import catalog as catalog_mod
+                fab = catalog_mod.get_fabric(req.fabric_code) or {}
+                res["fabric"] = {
+                    "code": req.fabric_code,
+                    "name_en": fab.get("name_en", ""),
+                    "name_ar": fab.get("name_ar", ""),
+                    "price_sar_per_m": fab.get("price_sar_per_m"),
+                    "image": fab.get("image", "")}
+            except Exception:  # noqa: BLE001 - meta is best-effort
+                pass
             record_preview(req.session_id, req.fabric_code, res,
                          req.image_path or "")
             events.put({"type": "done", "result": res})
