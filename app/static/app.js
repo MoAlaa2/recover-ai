@@ -2216,12 +2216,20 @@
   }
 
   function postSwapMessage(entry) {
-    // One swap = exactly one message: skip re-posts of the same result.
+    // One bubble per fabric: a second result for the same code refreshes
+    // the existing bubble instead of posting a twin (Try, then Apply the
+    // same fabric from Browse, double taps). History stays available in
+    // the previews strip; an exact re-post is still a no-op.
     var rel = String(entry.result_url || "").replace(/^\/+/, "");
     var thumbs = messagesEl.querySelectorAll(".chat-swap .swap-thumb");
+    var existing = null;
     for (var ti = 0; ti < thumbs.length; ti++) {
       if (String(thumbs[ti].getAttribute("src") || "")
           .replace(/^\/+/, "") === rel && rel) return;
+      if (!existing && thumbs[ti].getAttribute("data-code") ===
+          entry.fabric_code) {
+        existing = thumbs[ti].closest(".msg");
+      }
     }
     var meta = entry.meta || { code: entry.fabric_code };
     var name = state.lang === "ar" ? (meta.name_ar || meta.code || "")
@@ -2244,11 +2252,9 @@
       }
       last.parentNode.removeChild(last);
     }
-    var div = document.createElement("div");
-    div.className = "msg them";
     var fabricImg = meta.image ?
       '<img class="chat-swap-fabric" src="/' + esc(meta.image) + '" alt="">' : "";
-    div.innerHTML = AVATAR + '<div dir="auto"><div class="chat-swap">' +
+    var html = AVATAR + '<div dir="auto"><div class="chat-swap">' +
       '<img class="swap-thumb" src="/' +
       esc((entry.result_url || "").replace(/^\/+/, "")) + '" alt="' +
       esc(name) + '" data-code="' + esc(entry.fabric_code) + '">' +
@@ -2263,7 +2269,14 @@
                   : '<p class="chat-follow">' + esc(t("followSwap")) +
                     "</p>") +
       "</div></div>";
-    messagesEl.appendChild(div);
+    if (existing) {
+      existing.innerHTML = html;
+    } else {
+      var div = document.createElement("div");
+      div.className = "msg them";
+      div.innerHTML = html;
+      messagesEl.appendChild(div);
+    }
     messagesEl.scrollTop = messagesEl.scrollHeight;
     icons();
   }

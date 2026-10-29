@@ -644,6 +644,38 @@ def test_double_try_fires_one_swap(server, page):
     assert page.evaluate("!document.getElementById('swapModal').hidden")
 
 
+def test_second_swap_same_fabric_refreshes_bubble(server, page):
+    """Try X, then Apply X from Browse: the second result refreshes the
+    existing bubble instead of posting a twin."""
+    second = dict(SWAP_MOCK)
+    second["result_url"] = "data/samples/majlis.jpg"
+    queue = [SWAP_MOCK, second]
+
+    def two_swaps(route):
+        route.fulfill(status=200, content_type="text/event-stream",
+                      body=swap_stream(queue.pop(0) if queue else second))
+
+    page.route("**/api/swap/stream", two_swaps)
+    page.goto(server + "/consult", wait_until="networkidle")
+    upload_photo(page)
+    tap = ("document.querySelector('#messages [data-try=\"FA-NL-07\"]')"
+           ".click()")
+    page.evaluate(tap)
+    page.wait_for_selector("#swapResult:not([hidden])", timeout=30000)
+    page.click("#swapClose")
+    page.wait_for_timeout(400)
+    page.evaluate(tap)
+    page.wait_for_selector("#swapResult:not([hidden])", timeout=30000)
+    page.click("#swapClose")
+    page.wait_for_timeout(400)
+    thumbs = page.eval_on_selector_all(
+        "#messages .chat-swap .swap-thumb", "e => e.map(x => x.src)")
+    assert len(thumbs) == 1, "same fabric must keep one bubble"
+    assert "majlis" in thumbs[0], "bubble must show the latest result"
+    matches = [t for t in bubbles(page) if "Fabric match" in t]
+    assert len(matches) == 1
+
+
 def test_view_again_opens_result_without_reswap(server, page):
     """Desktop 'View again' must show the finished result, never burn a
     second swap (and post a twin bubble)."""
