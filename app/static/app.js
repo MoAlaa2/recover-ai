@@ -1105,7 +1105,6 @@
       return boxArea(b) - boxArea(a);
     });
     ordered.forEach(function (o) {
-      var box = o.box || [0, 0, rw, rh];
       var fill = document.createElement("div");
       fill.className = "ol-fill" +
         (state.selectedTarget === o.id ? " sel" : "") +
@@ -1119,25 +1118,29 @@
       fill.style.webkitMaskImage = url;
       fill.style.maskImage = url;
       layer.appendChild(fill);
-      var tap = document.createElement("button");
-      tap.type = "button";
-      tap.className = "ol-tap" +
-        (state.selectedTarget === o.id ? " sel" : "");
-      tap.style.left = pct(ox + box[0] * scale, ew);
-      tap.style.top = pct(oy + box[1] * scale, eh);
-      tap.style.width = pct(Math.max(4, (box[2] - box[0]) * scale), ew);
-      tap.style.height = pct(Math.max(4, (box[3] - box[1]) * scale), eh);
-      tap.setAttribute("aria-label", targetLabel(o.id));
-      var tag = document.createElement("span");
-      tag.textContent = targetLabel(o.id) +
-        (state.assignments[o.id] ? " · " + state.assignments[o.id] : "");
-      tap.appendChild(tag);
-      (function (id) {
-        tap.addEventListener("click", function () {
-          selectTarget(id, true);
-        });
-      })(o.id);
-      layer.appendChild(tap);
+      var list = (o.boxes && o.boxes.length) ? o.boxes :
+        [o.box || [0, 0, rw, rh]];
+      list.forEach(function (box) {
+        var tap = document.createElement("button");
+        tap.type = "button";
+        tap.className = "ol-tap" +
+          (state.selectedTarget === o.id ? " sel" : "");
+        tap.style.left = pct(ox + box[0] * scale, ew);
+        tap.style.top = pct(oy + box[1] * scale, eh);
+        tap.style.width = pct(Math.max(4, (box[2] - box[0]) * scale), ew);
+        tap.style.height = pct(Math.max(4, (box[3] - box[1]) * scale), eh);
+        tap.setAttribute("aria-label", targetLabel(o.id));
+        var tag = document.createElement("span");
+        tag.textContent = targetLabel(o.id) +
+          (state.assignments[o.id] ? " · " + state.assignments[o.id] : "");
+        tap.appendChild(tag);
+        (function (id) {
+          tap.addEventListener("click", function () {
+            selectTarget(id, true);
+          });
+        })(o.id);
+        layer.appendChild(tap);
+      });
     });
   }
 
@@ -2359,27 +2362,37 @@
 
   function postOutlineMessage() {
     // After the photo is analyzed, post the photo itself into the chat
-    // with tappable item regions, once per image. Largest first so the
-    // smallest region stays on top where boxes overlap.
+    // with tappable item regions, once per image: one tap per mask
+    // blob, largest first.
     var avail = (state.outlines || []).filter(function (o) {
-      return o && o.id && o.box && o.size;
-    }).sort(function (a, b) { return boxArea(b) - boxArea(a); });
+      return o && o.id && (o.box || (o.boxes && o.boxes.length)) &&
+        o.size;
+    });
     if (!avail.length || !state.roomPhoto) return;
     if (state.outlinePostedFor === state.roomPhoto) return;
     var src = "/" + String(state.roomPhoto).replace(/^\/+/, "");
-    var tags = avail.map(function (o) {
-      var w = o.size[0] || 1, h = o.size[1] || 1;
-      var left = Math.max(0, o.box[0] / w * 100);
-      var top = Math.max(0, o.box[1] / h * 100);
-      var width = Math.min(100 - left, (o.box[2] - o.box[0]) / w * 100);
-      var height = Math.min(100 - top, (o.box[3] - o.box[1]) / h * 100);
+    var taps = [];
+    avail.forEach(function (o) {
+      var list = (o.boxes && o.boxes.length) ? o.boxes : [o.box];
+      list.forEach(function (bx) {
+        if (bx) taps.push({ id: o.id, box: bx, size: o.size });
+      });
+    });
+    taps.sort(function (a, b) { return boxArea(b) - boxArea(a); });
+    var tags = taps.map(function (tp) {
+      var w = (tp.size && tp.size[0]) || 1;
+      var h = (tp.size && tp.size[1]) || 1;
+      var left = Math.max(0, tp.box[0] / w * 100);
+      var top = Math.max(0, tp.box[1] / h * 100);
+      var width = Math.min(100 - left, (tp.box[2] - tp.box[0]) / w * 100);
+      var height = Math.min(100 - top, (tp.box[3] - tp.box[1]) / h * 100);
       return '<button type="button" class="ol-chat-tap' +
-        (state.selectedTarget === o.id ? " sel" : "") +
-        '" data-outline="' + esc(o.id) + '" style="left:' +
+        (state.selectedTarget === tp.id ? " sel" : "") +
+        '" data-outline="' + esc(tp.id) + '" style="left:' +
         left.toFixed(1) + "%;top:" + top.toFixed(1) + "%;width:" +
         Math.max(6, width).toFixed(1) + "%;height:" +
         Math.max(6, height).toFixed(1) + '%" aria-label="' +
-        esc(targetLabel(o.id)) + '"><span>' + esc(targetLabel(o.id)) +
+        esc(targetLabel(tp.id)) + '"><span>' + esc(targetLabel(tp.id)) +
         "</span></button>";
     }).join("");
     var div = document.createElement("div");

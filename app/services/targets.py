@@ -199,6 +199,69 @@ def masks_for(image_path, types, api_key=None):
     return masks
 
 
+def _component_boxes(mask, min_area_frac=0.005, max_boxes=8):
+    """Tight boxes, one per white blob, largest first.
+
+    SAM masks often carry stray edge specks that blow a plain getbbox
+    up to the full image. Blobs below min_area_frac of the pixels are
+    ignored as noise; the rest become tappable regions in mask pixels.
+    """
+    from collections import deque
+    w0, h0 = mask.size
+    small = mask.convert("L").copy()
+    small.thumbnail((160, 160))
+    w, h = small.size
+    sx, sy = w0 / w, h0 / h
+    px = small.load()
+    seen = bytearray(w * h)
+    min_area = max(1, int(w * h * min_area_frac))
+    found = []
+    for y in range(h):
+        row = y * w
+        for x in range(w):
+            idx = row + x
+            if seen[idx] or px[x, y] < 128:
+                continue
+            area = 0
+            x1, y1, x2, y2 = x, y, x, y
+            queue = deque([idx])
+            seen[idx] = 1
+            while queue:
+                cur = queue.popleft()
+                cx, cy = cur % w, cur // w
+                area += 1
+                if cx < x1:
+                    x1 = cx
+                elif cx > x2:
+                    x2 = cx
+                if cy < y1:
+                    y1 = cy
+                elif cy > y2:
+                    y2 = cy
+                if cx > 0 and not seen[cur - 1] \
+                        and px[cx - 1, cy] >= 128:
+                    seen[cur - 1] = 1
+                    queue.append(cur - 1)
+                if cx + 1 < w and not seen[cur + 1] \
+                        and px[cx + 1, cy] >= 128:
+                    seen[cur + 1] = 1
+                    queue.append(cur + 1)
+                if cy > 0 and not seen[cur - w] \
+                        and px[cx, cy - 1] >= 128:
+                    seen[cur - w] = 1
+                    queue.append(cur - w)
+                if cy + 1 < h and not seen[cur + w] \
+                        and px[cx, cy + 1] >= 128:
+                    seen[cur + w] = 1
+                    queue.append(cur + w)
+            if area >= min_area:
+                found.append((area, [int(x1 * sx), int(y1 * sy),
+                                     int((x2 + 1) * sx),
+                                     int((y2 + 1) * sy)]))
+    found.sort(key=lambda item: item[0], reverse=True)
+    return [box for _, box in found[:max_boxes]]
+
+
 def detect_targets(image_path, api_key=None):
     """List + segment + persist masks. Returns target dicts for the API."""
     types = list_types(image_path)
@@ -217,9 +280,11 @@ def detect_targets(image_path, api_key=None):
         mask.save(os.path.join(out_dir, name))
         box = mask.getbbox() or (0, 0, mask.size[0], mask.size[1])
         label_en, label_ar = TARGET_LABELS[target]
+        boxes = _component_boxes(mask) or [list(box)]
         targets.append({"id": target, "type": target,
                         "label_en": label_en, "label_ar": label_ar,
                         "mask_url": os.path.join("uploads", "masks", name),
                         "box": list(box),
+                        "boxes": boxes,
                         "size": [mask.size[0], mask.size[1]]})
     return targets

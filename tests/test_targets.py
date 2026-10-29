@@ -68,6 +68,8 @@ def test_masks_subtract_cushions_from_sofa(monkeypatch, tmp_path):
     assert set(by_id) == {"sofa", "cushions"}
     assert by_id["sofa"]["box"] == [0, 0, 40, 30]
     assert by_id["cushions"]["box"] == [10, 10, 20, 20]
+    assert by_id["sofa"]["boxes"] == [[0, 0, 40, 30]]
+    assert by_id["cushions"]["boxes"] == [[10, 10, 20, 20]]
     assert by_id["sofa"]["label_ar"] == "الكنبة"
     # Room pixel size rides along so the chat can place % taps.
     assert by_id["sofa"]["size"] == [40, 30]
@@ -78,6 +80,21 @@ def test_masks_subtract_cushions_from_sofa(monkeypatch, tmp_path):
     # Cushion area was subtracted from the sofa mask.
     assert sofa_mask.getpixel((15, 15)) == 0
     assert sofa_mask.getpixel((0, 0)) == 255
+
+
+def test_component_boxes_ignore_specks():
+    from PIL import Image
+    mask = Image.new("L", (100, 80), 0)
+    for x in range(20, 60):
+        for y in range(20, 50):
+            mask.putpixel((x, y), 255)
+    for x in range(70, 90):
+        for y in range(60, 75):
+            mask.putpixel((x, y), 255)
+    mask.putpixel((0, 0), 255)
+    mask.putpixel((99, 79), 255)
+    boxes = t._component_boxes(mask)
+    assert boxes == [[20, 20, 60, 50], [70, 60, 90, 75]]
 
 
 def test_targets_endpoint_caches_per_session(monkeypatch):
