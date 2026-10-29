@@ -1494,11 +1494,6 @@ body.modal-open { overflow: hidden; }
     min-width: 0;
   }
   .recs-body { min-width: 0; }
-  .few-qualify {
-    font-size: var(--rc-fs-xs);
-    color: var(--rc-ink-muted);
-    margin: 0 0 6px;
-  }
   .mini-recs {
     scroll-snap-type: x mandatory;
     padding: 6px 10px 10px;
@@ -1518,11 +1513,6 @@ body.modal-open { overflow: hidden; }
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-  }
-  .receipt-line {
-    font-size: var(--rc-fs-sm);
-    color: var(--rc-ink-muted);
-    margin: 6px 0 0;
   }
   .chat-outline { min-width: 0; }
   .chat-outline-photo { position: relative; }
@@ -1586,4 +1576,22 @@ body.modal-open { overflow: hidden; }
     padding: 8px 12px calc(12px + env(safe-area-inset-bottom, 0px));
     margin-top: 0;
   }
+}
+
+/* Shared by mobile and desktop: one-line receipts, qualify notes,
+   skipped-item notes. */
+.few-qualify {
+  font-size: var(--rc-fs-xs);
+  color: var(--rc-ink-muted);
+  margin: 0 0 6px;
+}
+.receipt-line {
+  font-size: var(--rc-fs-sm);
+  color: var(--rc-ink-muted);
+  margin: 6px 0 0;
+}
+.sum-skip {
+  font-size: var(--rc-fs-sm);
+  color: var(--rc-ink-muted);
+  margin: 6px 0 0;
 }

@@ -408,15 +408,25 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
             job["cache"] = (img_path, mask_path, meta_path)
         else:
             job["cache"] = None
+    # One failing item must not kill the whole room: segmentation or
+    # edit failures are collected as skips; the rest still swap.
     infos = {}
+    skipped = []
     for target in sorted({j["target"] for j in jobs
                           if j["cache"] is None}):
         concept = TARGET_CONCEPTS[target]
         step("segment")
-        records = segment(room_bytes, concept, key)
+        try:
+            records = segment(room_bytes, concept, key)
+        except SwapError as exc:
+            skipped.append({"target": target, "code": None,
+                            "reason": str(exc)})
+            continue
         if not records:
-            raise SwapError("could not find the %s in this photo"
-                            % concept)
+            skipped.append({"target": target, "code": None,
+                            "reason": "could not find the %s in this "
+                            "photo" % concept})
+            continue
         union = _union_of(records, (width, height))
         area = max(0, union[2] - union[0]) * max(0, union[3] - union[1])
         infos[target] = {"concept": concept, "union": union,
@@ -424,13 +434,23 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                          "area": area}
     for job in jobs:
         if job["cache"] is None:
-            job["area"] = infos[job["target"]]["area"]
+            if job["target"] in infos:
+                job["area"] = infos[job["target"]]["area"]
+            else:
+                for skip in skipped:
+                    if skip["target"] == job["target"] \
+                            and skip["code"] is None:
+                        skip["code"] = job["code"]
+                        break
+                job["area"] = -1
     jobs.sort(key=lambda j: j["area"], reverse=True)
 
     working = room.copy()
     results = []
     for job in jobs:
         target, fabric = job["target"], job["fabric"]
+        if job["area"] < 0:
+            continue
         info = infos.get(target)
         swatch_path = os.path.join(BASE_DIR, fabric.get("image", ""))
         with open(swatch_path, "rb") as f:
@@ -454,37 +474,43 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
             buf = io.BytesIO()
             working.save(buf, "JPEG", quality=90)
             current_bytes = buf.getvalue()
-            best = None
-            attempts = 0
-            for round_no in range(2):
-                corrective = None
-                if best is not None:
-                    corrective = _corrective(best["scores"],
-                                             info["concept"])
-                    step("retry")
-                step("edit")
-                edited = edit_room(current_bytes, swatch_bytes,
-                                   fabric, info["concept"], key,
-                                   corrective).resize(
-                                       (width, height), Image.BILINEAR)
-                step("composite")
-                mask = paste_mask(working, edited, info["union"])
-                cand_img = working.copy()
-                cand_img.paste(edited, (0, 0), mask)
-                step("verify")
-                scores = verify(swatch_bytes, cand_img, fabric,
-                                info["concept"], key)
-                attempts = round_no + 1
-                cand = {"result": cand_img, "mask": mask,
-                        "scores": scores}
-                if best is None or (
-                        min(scores.values()),
-                        sum(scores.values())) > (
-                        min(best["scores"].values()),
-                        sum(best["scores"].values())):
-                    best = cand
-                if min(scores.values()) >= 7:
-                    break
+            try:
+                best = None
+                attempts = 0
+                for round_no in range(2):
+                    corrective = None
+                    if best is not None:
+                        corrective = _corrective(best["scores"],
+                                                 info["concept"])
+                        step("retry")
+                    step("edit")
+                    edited = edit_room(current_bytes, swatch_bytes,
+                                       fabric, info["concept"], key,
+                                       corrective).resize(
+                                           (width, height),
+                                           Image.BILINEAR)
+                    step("composite")
+                    mask = paste_mask(working, edited, info["union"])
+                    cand_img = working.copy()
+                    cand_img.paste(edited, (0, 0), mask)
+                    step("verify")
+                    scores = verify(swatch_bytes, cand_img, fabric,
+                                    info["concept"], key)
+                    attempts = round_no + 1
+                    cand = {"result": cand_img, "mask": mask,
+                            "scores": scores}
+                    if best is None or (
+                            min(scores.values()),
+                            sum(scores.values())) > (
+                            min(best["scores"].values()),
+                            sum(best["scores"].values())):
+                        best = cand
+                    if min(scores.values()) >= 7:
+                        break
+            except SwapError as exc:
+                skipped.append({"target": target, "code": job["code"],
+                                "reason": str(exc)})
+                continue
             working = best["result"]
             item_mask = best["mask"]
             scores = best["scores"]
@@ -501,8 +527,11 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
             "mask_url": os.path.join(
                 base, os.path.basename(mask_path)),
             "scores": scores, "attempts": attempts, "cached": cached})
+    if not results:
+        reason = skipped[0]["reason"] if skipped else "no assignments"
+        raise SwapError("multi-swap failed: %s" % reason)
     final_name = "swapmulti-%s-final.jpg" % uuid.uuid4().hex
     working.save(os.path.join(out_dir, final_name), "JPEG", quality=90)
     base = os.path.relpath(out_dir, BASE_DIR)
-    return {"results": results,
+    return {"results": results, "skipped": skipped,
             "final_url": os.path.join(base, final_name)}

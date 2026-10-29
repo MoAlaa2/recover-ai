@@ -27,6 +27,7 @@
       roomSub: "Your room",
       takePhoto: "Take or upload a photo",
       tryOn: "Try on my photo",
+      skipNote: "Couldn't change %s — left as is",
       tryOnTarget: "Try on the %s",
       tryWord: { sofa: "sofa", armchair: "armchair", curtains: "curtains", cushions: "cushions" },
       tapToChange: "Tap what you'd like to change",
@@ -122,6 +123,7 @@
       roomSub: "غرفتك",
       takePhoto: "صوّر أو ارفع صورة",
       tryOn: "جرّبه على صورتي",
+      skipNote: "ما قدرنا نغيّر %s — خلّيناه زي ما هو",
       tryOnTarget: "جرّبه على %s",
       tryWord: { sofa: "الكنبة", armchair: "الكرسي", curtains: "الستائر", cushions: "المخدات" },
       tapToChange: "اضغط على اللي ودك تغّيره",
@@ -1399,7 +1401,8 @@
     return lines.join("\n");
   }
 
-  function postSummaryCard(results) {
+  function postSummaryCard(results, skipped) {
+    skipped = skipped || [];
     return Promise.all(results.map(function (r) {
       return metaFor(r.code);
     })).then(function (metas) {
@@ -1438,6 +1441,12 @@
               esc(name) + '" data-code="' + esc(r.code) + '">' +
               "<div><div><b>" + esc(targetLabel(r.target)) + "</b> → " +
               esc(name) + "</div><div>" + bits + "</div></div></div>";
+          }).join("");
+          var skipHtml = skipped.map(function (s) {
+            var what = s.code ? s.code : targetLabel(s.target);
+            return '<p class="sum-skip" dir="auto">' +
+              esc((t("skipNote") || "Skipped %s").replace(
+                "%s", targetLabel(s.target) + " · " + what)) + "</p>";
           }).join("");
           var extra = "";
           var co2txt = "";
@@ -1484,7 +1493,8 @@
             div.className = "msg them";
             div.innerHTML = AVATAR +
               '<div dir="auto"><div class="sum-card">' +
-              "<b>" + esc(t("summaryTitle")) + "</b>" + rows + extra +
+              "<b>" + esc(t("summaryTitle")) + "</b>" + rows +
+              skipHtml + extra +
               (waText ?
                 '<div class="sum-actions"><a class="seeit" ' +
                 'target="_blank" rel="noopener" ' +
@@ -1552,7 +1562,7 @@
       if (last) last.meta = meta;
       renderStrip();
     });
-    postSummaryCard(results).then(function () {
+    postSummaryCard(results, res.skipped || []).then(function () {
       var last = state.swaps[results[results.length - 1].code];
       if (last) {
         if (!last.meta) {

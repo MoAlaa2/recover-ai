@@ -111,6 +111,70 @@ def test_multi_retry_once_on_low_scores(tmp_path, monkeypatch):
     assert res["results"][0]["scores"]["color"] == 8
 
 
+def test_multi_skips_failed_item_keeps_rest(tmp_path, monkeypatch):
+    room = make_room(tmp_path)
+
+    def fake_segment(room_bytes, concept, key=None):
+        if concept == "cushions":
+            return []
+        return [{"box": (0, 0, 90, 90), "frame_size": (100, 100)}]
+
+    monkeypatch.setattr(s, "segment", fake_segment)
+    monkeypatch.setattr(s, "sam_mask",
+                        lambda records, size: Image.new("L", size, 255))
+    monkeypatch.setattr(s, "edit_room",
+                        lambda *a, **k: solid((9, 9, 9)))
+    monkeypatch.setattr(s, "verify",
+                        lambda *a, **k: {"color": 8, "pattern": 8,
+                                         "scale": 8, "isolation": 8})
+    res = s.swap_multi(room, [{"target": "sofa", "code": "FA-AC-01"},
+                              {"target": "cushions",
+                               "code": "FA-AC-02"}],
+                       api_key="k", out_dir=str(tmp_path / "o"))
+    assert [r["target"] for r in res["results"]] == ["sofa"]
+    assert res["skipped"][0]["target"] == "cushions"
+    assert "could not find" in res["skipped"][0]["reason"]
+    assert os.path.exists(os.path.join(
+        str(tmp_path / "o"), os.path.basename(res["final_url"])))
+
+
+def test_multi_skips_edit_failure(tmp_path, monkeypatch):
+    room = make_room(tmp_path)
+
+    def fake_segment(room_bytes, concept, key=None):
+        return [{"box": (0, 0, 90, 90), "frame_size": (100, 100)}]
+
+    def fake_edit(room_bytes, swatch_bytes, fabric, concept, key=None,
+                  corrective=None):
+        if concept == "cushions":
+            raise s.SwapError("fabric edit failed: boom")
+        return solid((9, 9, 9))
+
+    monkeypatch.setattr(s, "segment", fake_segment)
+    monkeypatch.setattr(s, "sam_mask",
+                        lambda records, size: Image.new("L", size, 255))
+    monkeypatch.setattr(s, "edit_room", fake_edit)
+    monkeypatch.setattr(s, "verify",
+                        lambda *a, **k: {"color": 8, "pattern": 8,
+                                         "scale": 8, "isolation": 8})
+    res = s.swap_multi(room, [{"target": "sofa", "code": "FA-AC-01"},
+                              {"target": "cushions",
+                               "code": "FA-AC-02"}],
+                       api_key="k", out_dir=str(tmp_path / "o"))
+    assert [r["target"] for r in res["results"]] == ["sofa"]
+    assert res["skipped"][0]["code"] == "FA-AC-02"
+
+
+def test_multi_all_fail_still_raises(tmp_path, monkeypatch):
+    room = make_room(tmp_path)
+    monkeypatch.setattr(s, "segment", lambda *a, **k: [])
+    res_before = None
+    with pytest.raises(s.SwapError):
+        s.swap_multi(room, [{"target": "sofa", "code": "FA-AC-01"}],
+                     api_key="k", out_dir=str(tmp_path / "o"))
+    assert res_before is None
+
+
 def test_multi_rejects_bad_input(tmp_path):
     room = make_room(tmp_path)
     with pytest.raises(s.SwapError):
