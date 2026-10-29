@@ -149,6 +149,74 @@ answer naturally in one or two lines and steer back to fabrics with a \
 question."""
 
 
+# Muse Spark Open on Baseten: optional fallback + scope classifier.
+# Behind SPARK_OPEN_FALLBACK=1 (off by default) and only when
+# BASETEN_API_KEY exists. Never logged, never committed.
+BASEN_CHAT_URL = "https://inference.baseten.co/v1/chat/completions"
+BASEN_MODEL = "meta-models/muse-spark-open-1026"
+
+
+def _spark_open_enabled():
+    """True only when the flag is on AND a key exists."""
+    return os.environ.get("SPARK_OPEN_FALLBACK", "") == "1" and bool(
+        os.environ.get("BASETEN_API_KEY", ""))
+
+
+def _baseten_key():
+    return os.environ.get("BASETEN_API_KEY", "")
+
+
+def _is_timeout(exc):
+    """True for socket/URL timeouts (the only errors that fail over)."""
+    import socket
+    if isinstance(exc, TimeoutError):
+        return True
+    return isinstance(getattr(exc, "reason", None),
+                      (TimeoutError, socket.timeout))
+
+
+def _post_baseten(payload):
+    """One non-streaming Baseten attempt. Returns the response body."""
+    body = dict(payload)
+    body["model"] = BASEN_MODEL
+    data = json.dumps(body).encode("utf-8")
+    req = urllib.request.Request(
+        BASEN_CHAT_URL, data=data,
+        headers={"Authorization": "Bearer " + _baseten_key(),
+                 "Content-Type": "application/json"},
+        method="POST")
+    t0 = time.time()
+    with urllib.request.urlopen(req, timeout=CHAT_TIMEOUT) as resp:
+        out = json.loads(resp.read().decode("utf-8"))
+    _perf({"kind": "model", "via": "baseten",
+           "seconds": round(time.time() - t0, 2)})
+    return out
+
+
+def baseten_scope_allows(text):
+    """Second opinion on scope via Spark Open. Fail closed.
+
+    Only consulted when the flag is on; any failure means declined.
+    """
+    if not _spark_open_enabled() or not (text or "").strip():
+        return False
+    prompt = ("You guard scope for ReCover, a home-furnishing fabric "
+              "consultant. Reply with exactly one word, yes or no: is "
+              "the user's message about home interiors, furniture, "
+              "fabrics, curtains, upholstery, room photos, or ordinary "
+              "session small talk (greetings, thanks, language "
+              "questions)? Answer no for math, coding, news, personal "
+              "advice, general knowledge, or sports. Message: %s"
+              % (text or "")[:500])
+    try:
+        out = _post_baseten({"messages": [{"role": "user",
+                                           "content": prompt}]})
+        ans = out["choices"][0]["message"]["content"] or ""
+        return ans.strip().lower().startswith("yes")
+    except Exception:  # noqa: BLE001 - fail closed, regex decides
+        return False
+
+
 def _call_chat(messages, tools=None):
     """Low-level chat call. Monkeypatch this in tests."""
     payload = {"model": SPARK_MODEL, "messages": messages}
@@ -156,6 +224,7 @@ def _call_chat(messages, tools=None):
         payload["tools"] = tools
         payload["tool_choice"] = "auto"
     last_err = None
+    timeouts = 0
     for attempt in range(MAX_RETRIES + 1):
         try:
             data = json.dumps(payload).encode("utf-8")
@@ -183,7 +252,16 @@ def _call_chat(messages, tools=None):
             return body
         except Exception as exc:  # noqa: BLE001 - retry then raise
             last_err = exc
+            if _is_timeout(exc):
+                timeouts += 1
             time.sleep(2 * (attempt + 1))
+    if timeouts > MAX_RETRIES and _spark_open_enabled():
+        try:
+            return _post_baseten(payload)
+        except Exception as bexc:  # noqa: BLE001 - report both legs
+            raise RuntimeError(
+                "chat call failed: %s; baseten fallback failed: %s"
+                % (last_err, bexc))
     raise RuntimeError("chat call failed: %s" % last_err)
 
 
@@ -228,98 +306,115 @@ class FenceFilter:
         return tail
 
 
+def _stream_once(url, api_key, model, messages, tools, on_token):
+    """One streaming attempt. Returns (full_text, tool_calls, usage)."""
+    payload = {"model": model, "messages": messages, "stream": True}
+    if tools:
+        payload["tools"] = tools
+        payload["tool_choice"] = "auto"
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url, data=data,
+        headers={"Authorization": "Bearer " + api_key,
+                 "Content-Type": "application/json"},
+        method="POST")
+    t0 = time.time()
+    parts = []
+    calls = {}
+    usage = {}
+    with urllib.request.urlopen(req,
+                                timeout=CHAT_TIMEOUT) as resp:
+        buf = b""
+        for chunk in resp:
+            buf += chunk
+            while b"\n\n" in buf:
+                raw, buf = buf.split(b"\n\n", 1)
+                for line in raw.decode("utf-8",
+                                       "ignore").splitlines():
+                    line = line.strip()
+                    if not line.startswith("data:"):
+                        continue
+                    data_s = line[5:].strip()
+                    if data_s == "[DONE]":
+                        break
+                    try:
+                        evt = json.loads(data_s)
+                    except ValueError:
+                        continue
+                    if "usage" in evt and isinstance(
+                            evt["usage"], dict):
+                        usage = evt["usage"]
+                    for choice in evt.get("choices", []):
+                        delta = choice.get("delta", {})
+                        text = delta.get("content")
+                        if text:
+                            parts.append(text)
+                            on_token(text)
+                        for tc in delta.get("tool_calls",
+                                            []) or []:
+                            idx = tc.get("index", 0)
+                            slot = calls.setdefault(
+                                idx, {"id": "", "name": "",
+                                      "args": ""})
+                            if tc.get("id"):
+                                slot["id"] = tc["id"]
+                            fn = tc.get("function", {})
+                            if fn.get("name"):
+                                slot["name"] = fn["name"]
+                            if fn.get("arguments"):
+                                slot["args"] += fn["arguments"]
+    tool_calls = []
+    for idx in sorted(calls):
+        slot = calls[idx]
+        try:
+            args = json.loads(slot["args"] or "{}")
+        except ValueError:
+            args = {}
+        tool_calls.append(
+            {"id": slot["id"] or "call-%d" % idx,
+             "type": "function",
+             "function": {"name": slot["name"],
+                          "arguments": json.dumps(args)}})
+    chars = 0
+    for m in messages:
+        c = m.get("content", "")
+        chars += len(c) if isinstance(c, str) else len(
+            json.dumps(c, ensure_ascii=False))
+    _perf({"kind": "model", "stream": True,
+           "seconds": round(time.time() - t0, 2),
+           "prompt_tokens": (usage or {}).get("prompt_tokens"),
+           "completion_tokens": (usage or {}).get(
+               "completion_tokens"),
+           "n_messages": len(messages), "prompt_chars": chars,
+           "with_tools": bool(tools), "via": url})
+    return "".join(parts), tool_calls, usage
+
+
 def _call_chat_stream(messages, tools, on_token):
     """Streaming chat call. Yields content live via on_token.
 
     Returns (full_text, tool_calls, usage). tool_calls has the same
     shape as a non-streaming reply's message["tool_calls"].
     """
-    payload = {"model": SPARK_MODEL, "messages": messages, "stream": True}
-    if tools:
-        payload["tools"] = tools
-        payload["tool_choice"] = "auto"
     last_err = None
+    timeouts = 0
     for attempt in range(MAX_RETRIES + 1):
         try:
-            data = json.dumps(payload).encode("utf-8")
-            req = urllib.request.Request(
-                CHAT_URL, data=data,
-                headers={"Authorization": "Bearer " + require_api_key(),
-                         "Content-Type": "application/json"},
-                method="POST")
-            t0 = time.time()
-            parts = []
-            calls = {}
-            usage = {}
-            with urllib.request.urlopen(req,
-                                        timeout=CHAT_TIMEOUT) as resp:
-                buf = b""
-                for chunk in resp:
-                    buf += chunk
-                    while b"\n\n" in buf:
-                        raw, buf = buf.split(b"\n\n", 1)
-                        for line in raw.decode("utf-8",
-                                               "ignore").splitlines():
-                            line = line.strip()
-                            if not line.startswith("data:"):
-                                continue
-                            data_s = line[5:].strip()
-                            if data_s == "[DONE]":
-                                break
-                            try:
-                                evt = json.loads(data_s)
-                            except ValueError:
-                                continue
-                            if "usage" in evt and isinstance(
-                                    evt["usage"], dict):
-                                usage = evt["usage"]
-                            for choice in evt.get("choices", []):
-                                delta = choice.get("delta", {})
-                                text = delta.get("content")
-                                if text:
-                                    parts.append(text)
-                                    on_token(text)
-                                for tc in delta.get("tool_calls",
-                                                    []) or []:
-                                    idx = tc.get("index", 0)
-                                    slot = calls.setdefault(
-                                        idx, {"id": "", "name": "",
-                                              "args": ""})
-                                    if tc.get("id"):
-                                        slot["id"] = tc["id"]
-                                    fn = tc.get("function", {})
-                                    if fn.get("name"):
-                                        slot["name"] = fn["name"]
-                                    if fn.get("arguments"):
-                                        slot["args"] += fn["arguments"]
-            tool_calls = []
-            for idx in sorted(calls):
-                slot = calls[idx]
-                try:
-                    args = json.loads(slot["args"] or "{}")
-                except ValueError:
-                    args = {}
-                tool_calls.append(
-                    {"id": slot["id"] or "call-%d" % idx,
-                     "type": "function",
-                     "function": {"name": slot["name"],
-                                  "arguments": json.dumps(args)}})
-            chars = 0
-            for m in messages:
-                c = m.get("content", "")
-                chars += len(c) if isinstance(c, str) else len(
-                    json.dumps(c, ensure_ascii=False))
-            _perf({"kind": "model", "stream": True,
-                   "seconds": round(time.time() - t0, 2),
-                   "prompt_tokens": (usage or {}).get("prompt_tokens"),
-                   "completion_tokens": (usage or {}).get(
-                       "completion_tokens"),
-                   "n_messages": len(messages), "prompt_chars": chars,
-                   "with_tools": bool(tools), "attempt": attempt})
-            return "".join(parts), tool_calls, usage
+            return _stream_once(CHAT_URL, require_api_key(),
+                                SPARK_MODEL, messages, tools, on_token)
         except Exception as exc:  # noqa: BLE001 - retry then raise
             last_err = exc
+            if _is_timeout(exc):
+                timeouts += 1
             time.sleep(2 * (attempt + 1))
+    if timeouts > MAX_RETRIES and _spark_open_enabled():
+        try:
+            return _stream_once(BASEN_CHAT_URL, _baseten_key(),
+                                BASEN_MODEL, messages, tools, on_token)
+        except Exception as bexc:  # noqa: BLE001 - report both legs
+            raise RuntimeError(
+                "chat call failed: %s; baseten fallback failed: %s"
+                % (last_err, bexc))
     raise RuntimeError("chat call failed: %s" % last_err)
 
 
@@ -1515,7 +1610,8 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     trim_history(history)
     if lang in LANG_NAMES:
         session["lang"] = lang
-    if not image_path and not is_in_scope(message):
+    if not image_path and not is_in_scope(message) and not (
+            _spark_open_enabled() and baseten_scope_allows(message)):
         arabic = is_arabic(message)
         reply = decline_reply(session.get("topic"), arabic)
         history.append({"role": "user", "content": message or ""})
