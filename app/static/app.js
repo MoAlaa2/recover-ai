@@ -1726,8 +1726,12 @@
           '<button class="ghost rephoto" type="button" data-code="' + esc(r.code) + '"><span>' + esc(t("rephoto")) + "</span></button>" +
           "</div></div>";
       } else {
-        action = '<button class="seeit" type="button" data-code="' + esc(r.code) + '">' +
-          '<i data-lucide="wand-sparkles" aria-hidden="true"></i><span>' + esc(t("seeIt")) + "</span></button>";
+        var tgt = r.target || state.selectedTarget || "";
+        var label = tgt && SWAP_TARGETS.indexOf(tgt) >= 0 ?
+          tryOnLabel(tgt) : t("seeIt");
+        action = '<button class="seeit" type="button" data-code="' + esc(r.code) + '"' +
+          (tgt ? ' data-target="' + esc(tgt) + '"' : "") + ">" +
+          '<i data-lucide="wand-sparkles" aria-hidden="true"></i><span>' + esc(label) + "</span></button>";
       }
       card.innerHTML =
         '<div class="swatch"><img src="/' + esc(r.image) + '" alt="' + esc(name) + '" loading="lazy">' +
@@ -2906,7 +2910,11 @@
         return;
       }
       var btn = e.target.closest(".seeit");
-      if (btn && btn.dataset.code) openSwap(btn.dataset.code);
+      if (btn && btn.dataset.code) {
+        openSwap(btn.dataset.code,
+                 btn.dataset.target ? { target: btn.dataset.target }
+                                    : undefined);
+      }
     });
     messagesEl.addEventListener("click", function (e) {
       if (!e.target.closest) return;

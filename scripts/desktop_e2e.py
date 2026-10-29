@@ -37,6 +37,12 @@ def desktop_asserts(pg, tag, errors):
             "n => document.querySelectorAll('#messages .msg.me').length > n",
             arg=me_before, timeout=30000)
         print("DESK %s canvas tap selects (me-message posted)" % tag)
+    # Desktop Try buttons name the target like mobile ones.
+    btn = pg.eval_on_selector(
+        "#recs .card .seeit >> nth=0",
+        "e => ({text: e.innerText, target: e.dataset.target || ''})")
+    print("DESK %s try-button=%r" % (tag, btn))
+    assert btn["text"].strip(), "desktop Try button has no label"
     # No duplicate assistant bubbles with identical text.
     texts = pg.eval_on_selector_all(
         "#messages .msg.them", "e => e.map(x => x.innerText)")

@@ -184,15 +184,19 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
                     texts[0])
         pg.click("#chips button:has-text('%s')" % pick[:14])
         pg.wait_for_timeout(2500)
-        if pg.eval_on_selector_all("#messages .mini-card",
-                                   "e => e.length") > 0:
+        if pg.eval_on_selector_all(
+                "#recs .card" if desktop else "#messages .mini-card",
+                "e => e.length") > 0:
             break
-    if pg.eval_on_selector_all("#messages .mini-card",
-                               "e => e.length") == 0:
+    if pg.eval_on_selector_all(
+            "#recs .card" if desktop else "#messages .mini-card",
+            "e => e.length") == 0:
         pg.fill("#composerInput", fallback_text)
         pg.eval_on_selector("#composer", "f => f.requestSubmit()")
         try:
-            pg.wait_for_selector("#messages .mini-card", timeout=180000)
+            pg.wait_for_selector(
+                "#recs .card" if desktop else "#messages .mini-card",
+                timeout=180000)
         except Exception:
             print("RECS-ERRORS %r" % (errors,))
             dump_state(pg, lang + "-" + tag, "no-recs")
@@ -214,6 +218,7 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
                             "'sheet-open')")
             pg.wait_for_timeout(500)
         once_try = lambda: pg.click(  # noqa: E731
+            "#recs .card .seeit >> nth=0" if desktop else
             "#messages .mini-try >> nth=0")
         once_try()
         wait_swap(pg, lang + "-" + tag, once_try)
