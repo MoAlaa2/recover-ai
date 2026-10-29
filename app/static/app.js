@@ -1070,19 +1070,29 @@
     }
   }
 
-  function fetchOutlines() {
+  function fetchOutlines(again) {
     var path = state.roomPhoto;
     if (!path) return;
     fetchReq("/api/session/" + encodeURIComponent(state.sessionId) +
              "/targets?image_path=" + encodeURIComponent(path),
-             { method: "GET", timeoutMs: 120000, retries: 0 })
+             { method: "GET", timeoutMs: 180000, retries: 0 })
       .then(function (data) {
         if (path !== state.roomPhoto) return;
         state.outlines = (data && data.targets) || [];
         renderOutlines();
         renderAssignRow();
         postOutlineMessage();
-      }).catch(function () {});
+      }).catch(function () {
+        // One delayed retry: SAM segmentation can outlast the first
+        // budget on a cold container. Never loops.
+        if (!again) {
+          setTimeout(function () {
+            if (path === state.roomPhoto && !state.outlines.length) {
+              fetchOutlines(true);
+            }
+          }, 60000);
+        }
+      });
   }
 
   function renderOutlines() {
