@@ -78,7 +78,7 @@ def main():
                     if attempt == 1:
                         raise
                     pg.reload(wait_until="networkidle", timeout=90000)
-                    pg.wait_for_selector("#welcomeMsg", timeout=30000)
+                    pg.wait_for_selector("#dropzone", timeout=30000)
                     pg.set_input_files("#fileInput", LIVING)
                     continue
             desktop_asserts(pg, tag, t.get("console_errors", []))

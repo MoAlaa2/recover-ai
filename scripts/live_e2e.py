@@ -143,7 +143,12 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
     url = DEPLOYED + "/consult" + ("" if lang == "en"
                                        else "?lang=" + lang)
     pg.goto(url, wait_until="networkidle", timeout=90000)
-    pg.wait_for_selector("#welcomeMsg", timeout=30000)
+    if desktop:
+        # Desktop empty state lives in the canvas pane; the welcome
+        # chat bubble is mobile-only by design.
+        pg.wait_for_selector("#dropzone", timeout=30000)
+    else:
+        pg.wait_for_selector("#welcomeMsg", timeout=30000)
     assert overflow() == 0
 
     t0 = time.perf_counter()
