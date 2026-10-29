@@ -73,7 +73,7 @@ picture the result.
 | `muse-image-1.0` | Catalog swatches, sample rooms, fabric edit in swaps | `scripts/generate_images.py`, `scripts/generate_samples.py`, `app/services/swap.py` |
 | `sam-3.1` | Piece segmentation for swaps (own lossless codec) | `app/services/sam_codec.py`, `app/services/swap.py` |
 | `muse-voice-transcribe-1.0` | Voice input transcription | `app/services/voice.py` |
-| `meta-models/muse-spark-open-1026` (Baseten) | Fallback consultant chat + off-topic scope guard, behind `SPARK_OPEN_FALLBACK=1` (needs `BASETEN_API_KEY`; not in the Modal deploy yet) | `app/services/consultant.py`, `tests/test_baseten.py` |
+| `meta-models/muse-spark-open-1026` (Baseten) | Fallback consultant chat + off-topic scope guard, behind `SPARK_OPEN_FALLBACK=1` (needs `BASETEN_API_KEY` from the `recover-baseten` Modal secret, wired in `deploy/modal_app.py`) | `app/services/consultant.py`, `tests/test_baseten.py` |
 
 ## Architecture
 
