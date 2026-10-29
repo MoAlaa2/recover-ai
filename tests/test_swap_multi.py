@@ -168,6 +168,42 @@ def test_multi_skips_edit_failure(tmp_path, monkeypatch):
     assert res["skipped"][0]["code"] == "FA-AC-02"
 
 
+def test_paste_strict_resizes_mismatched_edit():
+    orig = solid((10, 20, 30), (64, 48))
+    big_edit = solid((200, 100, 50), (128, 96))
+    mask = Image.new("L", (64, 48), 255)
+    out = s.paste_strict(orig, big_edit, mask)
+    assert out.size == (64, 48)
+    assert out.getpixel((5, 5)) == (200, 100, 50)
+
+
+def test_multi_unexpected_error_becomes_skip(tmp_path, monkeypatch):
+    room = make_room(tmp_path)
+
+    def fake_segment(room_bytes, concept, key=None, timeout=120):
+        return [{"box": (0, 0, 90, 90), "frame_size": (100, 100)}]
+
+    def fake_edit(room_bytes, swatch_bytes, fabric, concept, key=None,
+                  corrective=None, timeout=300):
+        if concept == "cushions":
+            raise ValueError("images do not match")
+        return solid((9, 9, 9))
+
+    monkeypatch.setattr(s, "segment", fake_segment)
+    monkeypatch.setattr(s, "sam_mask",
+                        lambda records, size: Image.new("L", size, 255))
+    monkeypatch.setattr(s, "edit_room", fake_edit)
+    monkeypatch.setattr(s, "verify",
+                        lambda *a, **k: {"color": 8, "pattern": 8,
+                                         "scale": 8, "isolation": 8})
+    res = s.swap_multi(room, [{"target": "sofa", "code": "FA-AC-01"},
+                              {"target": "cushions",
+                               "code": "FA-AC-02"}],
+                       api_key="k", out_dir=str(tmp_path / "o2"))
+    assert [r["target"] for r in res["results"]] == ["sofa"]
+    assert res["skipped"][0]["target"] == "cushions"
+
+
 def test_multi_all_fail_still_raises(tmp_path, monkeypatch):
     room = make_room(tmp_path)
     monkeypatch.setattr(s, "segment", lambda *a, **k: [])

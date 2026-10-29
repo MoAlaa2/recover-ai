@@ -202,6 +202,10 @@ def paste_strict(original, edited, mask, feather=6):
     guarantees edited differs from original only where intended. Used
     by the parallel multi engine for the one-pass composite.
     """
+    if edited.size != original.size:
+        edited = edited.resize(original.size, Image.LANCZOS)
+    if mask.size != original.size:
+        mask = mask.resize(original.size, Image.LANCZOS)
     soft = mask.filter(ImageFilter.GaussianBlur(feather))
     out = original.copy()
     out.paste(edited, (0, 0), soft)
@@ -485,8 +489,8 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                             "scores": scores, "area": area}
                 if min(scores.values()) >= 7:
                     break
-            except SwapError as exc:
-                last_err = str(exc)
+            except Exception as exc:  # noqa: BLE001 - one bad item
+                last_err = str(exc)  # must become a skip, never a 500
                 continue
         if best is None:
             return (None,
