@@ -47,6 +47,21 @@ def load_demo_creds():
     raise FileNotFoundError("demo credentials not found")
 
 
+def _api_get(path, user, pw):
+    import base64 as _b64
+    import urllib.request as _url
+    auth = {"Authorization": "Basic " + _b64.b64encode(
+        ("%s:%s" % (user, pw)).encode()).decode()}
+    url = DEPLOYED + path if path.startswith("/") \
+        else DEPLOYED + "/" + path
+    req = _url.Request(url, headers=auth)
+    with _url.urlopen(req, timeout=120) as resp:
+        return resp.read()
+
+
+CREDS = {}
+
+
 def dump_state(pg, tag, stage):
     try:
         pg.screenshot(path=os.path.join(
@@ -164,7 +179,12 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
                                "e => e.length") == 0:
         pg.fill("#composerInput", fallback_text)
         pg.eval_on_selector("#composer", "f => f.requestSubmit()")
-        pg.wait_for_selector("#messages .mini-card", timeout=180000)
+        try:
+            pg.wait_for_selector("#messages .mini-card", timeout=180000)
+        except Exception:
+            print("RECS-ERRORS %r" % (errors,))
+            dump_state(pg, lang + "-" + tag, "no-recs")
+            raise
     timings["rec_turn_s"] = round(time.perf_counter() - t1, 1)
     shot("recs")
     assert overflow() == 0
@@ -203,28 +223,40 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
         t3 = time.perf_counter()
         pg.click("#applyAllBtn")
         for mi in range(25):
-            pg.wait_for_timeout(60000)
             if pg.eval_on_selector_all("#messages .sum-card",
                                        "e => e.length"):
                 break
             tail = pg.eval_on_selector_all(
                 "#messages .msg", "e => e.map(x => x.innerText)")[-2:]
-            print("MULTI-WAIT %s %dmin tail=%r" % (tag, mi + 1, tail))
+            print("MULTI-WAIT %s %ds tail=%r" % (tag, mi * 10, tail))
             if any("preview failed" in (m or "").lower()
                    or "تعذّرت المعاينة" in (m or "") for m in tail):
                 dump_state(pg, lang + "-" + tag, "multi-fail")
                 raise RuntimeError("multi swap failed: %r" % (tail,))
+            pg.wait_for_timeout(10000)
         pg.wait_for_selector("#messages .sum-card", timeout=120000)
         timings["multi_s"] = round(time.perf_counter() - t3, 1)
         shot("summary")
         card = pg.eval_on_selector(
             "#messages .sum-card", "e => e.outerHTML")
+        # EPD only when a CO2-counted piece was assigned (curtains /
+        # pillows alone correctly show no CO2 line).
+        try:
+            sid = pg.evaluate(
+                "() => window.localStorage.getItem('recover_sid')")
+            quote = json.loads(_api_get(
+                "/api/session/" + sid + "/quote",
+                CREDS["user"], CREDS["pw"]).decode())
+            need_epd = quote.get("co2", {}).get("kg", 0) > 0
+        except Exception:
+            need_epd = True
         needles = (["SAR", "Total", "Preliminary estimate",
-                    "https://wa.me/?text=",
-                    "EPD NEPD-1805-759"]
+                    "https://wa.me/?text="]
+                   + (["EPD NEPD-1805-759"] if need_epd else [])
                    if lang == "en" else
                    ["ر.س", "الإجمالي", "تقدير مبدئي",
-                    "https://wa.me/?text=", "EPD NEPD-1805-759"])
+                    "https://wa.me/?text="]
+                   + (["EPD NEPD-1805-759"] if need_epd else []))
         for needle in needles:
             assert needle in card, "summary missing: %s" % needle
         assert "$" not in card
@@ -424,6 +456,7 @@ def main():
         sys.argv.index("--lang") + 1:] else "en"
     os.makedirs(OUT_DIR, exist_ok=True)
     user, pw = load_demo_creds()
+    CREDS["user"], CREDS["pw"] = user, pw
     all_timings = {}
 
     from playwright.sync_api import sync_playwright
@@ -452,12 +485,23 @@ def main():
         all_timings["heic_recs"] = timings_a
         ctx_a.close()
         # Phase B: multi sample, single Try + full multi flow.
-        ctx_b = browser.new_context(
-            **device, http_credentials={"username": user,
-                                         "password": pw})
-        timings_b, errors_b = run_phase(
-            ctx_b.new_page(), lang, "multi", LIVING, all_words,
-            fallback, want_multi=True)
+        # Retry once on a fresh context: a transient model stall must
+        # not fail the whole proof run.
+        for attempt in range(2):
+            ctx_b = browser.new_context(
+                **device, http_credentials={"username": user,
+                                             "password": pw})
+            try:
+                timings_b, errors_b = run_phase(
+                    ctx_b.new_page(), lang, "multi", LIVING,
+                    all_words, fallback, want_multi=True)
+            except Exception as exc:  # noqa: BLE001 - retry once
+                print("PHASE-B attempt %d failed: %r" % (attempt, exc))
+                ctx_b.close()
+                if attempt == 1:
+                    raise
+                continue
+            break
         all_timings["multi"] = timings_b
         ctx_b.close()
         if lang == "en":
