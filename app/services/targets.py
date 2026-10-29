@@ -126,6 +126,51 @@ def list_types(image_path):
     return [t for t in found if t in TARGET_TYPES]
 
 
+def count_components(mask, min_area_frac=0.005):
+    """Count connected blobs in a binary mask (4-connectivity).
+
+    mask is a PIL image or file path (white = foreground). Tiny
+    components below min_area_frac of the pixels are ignored as noise.
+    Used to count throw pillows from the cushions mask.
+    """
+    from collections import deque
+    if isinstance(mask, str):
+        if not os.path.isabs(mask):
+            mask = os.path.join(BASE_DIR, mask.lstrip("/"))
+        mask = Image.open(mask).convert("L")
+    else:
+        mask = mask.convert("L")
+    mask = mask.copy()
+    mask.thumbnail((160, 160))
+    width, height = mask.size
+    px = mask.load()
+    seen = bytearray(width * height)
+    blobs = 0
+    min_area = max(1, int(width * height * min_area_frac))
+    for y in range(height):
+        for x in range(width):
+            idx = y * width + x
+            if seen[idx] or px[x, y] < 128:
+                continue
+            area = 0
+            queue = deque([idx])
+            seen[idx] = 1
+            while queue:
+                cur = queue.popleft()
+                area += 1
+                cx, cy = cur % width, cur // width
+                for nx, ny in ((cx - 1, cy), (cx + 1, cy),
+                               (cx, cy - 1), (cx, cy + 1)):
+                    if 0 <= nx < width and 0 <= ny < height:
+                        nidx = ny * width + nx
+                        if not seen[nidx] and px[nx, ny] >= 128:
+                            seen[nidx] = 1
+                            queue.append(nidx)
+            if area >= min_area:
+                blobs += 1
+    return blobs
+
+
 def masks_for(image_path, types, api_key=None):
     """Segment each type. Returns {type: PIL mask}, sofa minus cushions."""
     key = api_key or require_api_key()

@@ -113,6 +113,38 @@ def test_estimate_cost_tool_curtains_dims():
     assert session["curtain_dims"]["width_m"] == 3
 
 
+def test_estimate_cost_auto_counts_pillows(tmp_path):
+    from PIL import Image, ImageDraw
+    from app.services import consultant as c
+    img = Image.new("L", (200, 200), 0)
+    draw = ImageDraw.Draw(img)
+    draw.ellipse([10, 10, 60, 60], fill=255)
+    draw.ellipse([80, 20, 140, 70], fill=255)
+    mask = tmp_path / "cush.png"
+    img.save(str(mask))
+    session = {"assignments": {"cushions": "FA-AC-02"},
+               "chosen_targets": ["cushions"],
+               "targets": {"image_path": "uploads/r.jpg",
+                           "targets": [{"id": "cushions",
+                                        "mask_url": str(mask)}]}}
+    out = c.execute_tool("estimate_cost", {"target": "cushions"},
+                         {"session": session, "seen": []})
+    assert out["pillows"] == 2
+    assert out["meters"] == 8.0
+    assert "+ 2 throw pillow" in out["note"]
+    fixed = c.execute_tool("estimate_cost",
+                           {"target": "cushions", "pillows": 5},
+                           {"session": session, "seen": []})
+    assert fixed["pillows"] == 5
+    assert session["pillow_counts"] == {"cushions": 5}
+    bare = c.execute_tool("estimate_cost", {"target": "cushions"},
+                          {"session": {"assignments":
+                                       {"cushions": "FA-AC-02"}},
+                           "seen": []})
+    assert bare["pillows"] == 0
+    assert bare["meters"] == 7.0
+
+
 def test_estimate_cost_tool_no_fabric():
     from app.services import consultant as c
     out = c.execute_tool("estimate_cost", {"target": "sofa"},

@@ -131,3 +131,17 @@ def test_match_targets_choice_words():
     assert t.match_targets("something else", avail) == ([], {})
     assert t.match_targets("sofa and curtains", avail) == (
         ["sofa", "curtains"], {})
+
+
+def test_count_components_blobs_and_noise(tmp_path):
+    from PIL import Image, ImageDraw
+    img = Image.new("L", (200, 200), 0)
+    draw = ImageDraw.Draw(img)
+    draw.ellipse([10, 10, 60, 60], fill=255)
+    draw.ellipse([80, 20, 140, 70], fill=255)
+    draw.rectangle([20, 100, 90, 170], fill=255)
+    draw.point((150, 150), fill=255)
+    path = str(tmp_path / "mask.png")
+    img.save(path)
+    assert t.count_components(path) == 3
+    assert t.count_components(Image.new("L", (100, 100), 0)) == 0

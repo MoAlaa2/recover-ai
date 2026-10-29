@@ -94,7 +94,8 @@ prices. For curtains with no window size yet, ask once for the \
 width and height in meters, then call estimate_cost with them. \
 Every quote is preliminary: label it "Preliminary estimate — your \
 upholsterer will measure." ("تقدير مبدئي — المقاس النهائي من المنجّد.") \
-in the user's language.
+in the user's language. For cushions the tool counts the throw \
+pillows it can see: state that number and let the user correct it.
 
 RECOMMENDATIONS: only when you have gathered enough and are ready to \
 recommend, reply normally and end with one fenced block on its own lines:
@@ -1030,6 +1031,11 @@ def _execute_tool(name, args, turn, on_step=None):
             if args.get("pillows") is not None:
                 counts = session.setdefault("pillow_counts", {})
                 counts[target] = max(0, int(args["pillows"] or 0))
+            elif target == "cushions":
+                detected = _count_pillows(session)
+                if detected:
+                    session.setdefault("pillow_counts", {})[target] = \
+                        detected
         extras = {t: n for t, n in
                   (session.get("pillow_counts", {}) or {}).items()}
         pillows = extras.get(target, 0)
@@ -1040,9 +1046,34 @@ def _execute_tool(name, args, turn, on_step=None):
                     "code": code}
         price = fabric.get("price_sar_per_m")
         line = round(meters * price, 2) if price is not None else None
-        return {"target": target, "code": code, "meters": meters,
-                "price_sar_per_m": price, "line_total": line,
-                "currency": "SAR", "preliminary": True, "note": note}
+        result = {"target": target, "code": code, "meters": meters,
+                  "price_sar_per_m": price, "line_total": line,
+                  "currency": "SAR", "preliminary": True, "note": note}
+        if target == "cushions":
+            result["pillows"] = pillows
+        return result
+
+
+def _count_pillows(session):
+    """Throw pillows visible in the cached cushions SAM mask.
+
+    Returns 0 when no mask is cached or it cannot be read. The model
+    states the number and the user can correct it (pillows=...).
+    """
+    try:
+        from app.services import targets as targets_mod
+        cached = (session or {}).get("targets") or {}
+        for item in cached.get("targets", []) or []:
+            if (item or {}).get("id") != "cushions":
+                continue
+            url = (item.get("mask_url") or "")
+            path = url if os.path.isabs(url) else os.path.join(
+                BASE_DIR, url.lstrip("/"))
+            if os.path.isfile(path):
+                return targets_mod.count_components(path)
+    except (OSError, ValueError):
+        pass
+    return 0
     return {"error": "unknown tool " + str(name)}
 
 
