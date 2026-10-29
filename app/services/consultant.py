@@ -1320,6 +1320,16 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
                       "retry_ok" if recommendations else "unresolved",
                       [r["code"] for r in recommendations])
 
+    chosen_targets = session.get("chosen_targets", [])
+    if (recommendations and chosen_targets and image_path
+            and not turn.get("preview")
+            and chosen_targets[0]
+            not in session.get("assignments", {})):
+        top_code = recommendations[0]["code"]
+        session.setdefault("assignments", {})[chosen_targets[0]] = top_code
+        turn["preview"] = {"code": top_code,
+                           "target": chosen_targets[0]}
+
     reply = strip_block(final_text)
     options = extract_options(reply) or []
     reply = strip_options(reply)

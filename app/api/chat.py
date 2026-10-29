@@ -122,6 +122,17 @@ class SwapRequest(BaseModel):
     target: str = ""
 
 
+class AssignmentItem(BaseModel):
+    target: str = ""
+    code: str = ""
+
+
+class SwapMultiRequest(BaseModel):
+    session_id: str = ""
+    image_path: str
+    assignments: list = []
+
+
 @router.post("/swap")
 def swap_fabric(req: SwapRequest):
     target = _swap_target(req)
@@ -134,6 +145,151 @@ def swap_fabric(req: SwapRequest):
     record_preview(req.session_id, req.fabric_code, res,
                          req.image_path or "")
     return res
+
+
+def _check_image(image_path):
+    path = image_path if os.path.isabs(image_path) else os.path.join(
+        BASE_DIR, image_path)
+    if not os.path.exists(path):
+        raise HTTPException(400, "image not found")
+    return path
+
+
+def _check_assignments(raw):
+    from app.services.catalog import get_fabric
+    from app.services.swap import TARGET_CONCEPTS
+    cleaned = []
+    for item in raw or []:
+        target = ((item.get("target") if isinstance(item, dict)
+                   else getattr(item, "target", "")) or "").lower()
+        code = ((item.get("code") if isinstance(item, dict)
+                 else getattr(item, "code", "")) or "")
+        if target not in TARGET_CONCEPTS:
+            raise HTTPException(400, "unknown target: %s" % target)
+        if not get_fabric(code):
+            raise HTTPException(400, "unknown fabric code: %s" % code)
+        cleaned.append({"target": target, "code": code})
+    if not cleaned:
+        raise HTTPException(400, "no assignments")
+    return cleaned
+
+
+@router.post("/swap/multi")
+def swap_multi_fabrics(req: SwapMultiRequest):
+    from app.services.swap import SwapError as _SwapError
+    from app.services.swap import swap_multi
+    _check_image(req.image_path)
+    cleaned = _check_assignments(req.assignments)
+    try:
+        res = swap_multi(req.image_path, cleaned)
+    except _SwapError as exc:
+        raise HTTPException(400, str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(502, str(exc))
+    before = req.image_path or ""
+    for item in res.get("results", []):
+        record_preview(req.session_id, item["code"], item, before)
+        before = item.get("result_url", before)
+    session = consultant.SESSIONS.setdefault(req.session_id,
+                                             {"messages": []})
+    session.setdefault("assignments", {}).update(
+        {i["target"]: i["code"] for i in cleaned})
+    return res
+
+
+@router.post("/swap/multi/stream")
+def swap_multi_stream(req: SwapMultiRequest):
+    """Same as /api/swap/multi but streams backend progress as SSE."""
+    from app.services.swap import SwapError as _SwapError
+    from app.services.swap import swap_multi
+    try:
+        _check_image(req.image_path)
+        cleaned = _check_assignments(req.assignments)
+    except HTTPException as exc:
+        def err_gen():
+            yield "data: %s\n\n" % json.dumps(
+                {"type": "error", "message": exc.detail},
+                ensure_ascii=False)
+        return StreamingResponse(err_gen(),
+                                 media_type="text/event-stream")
+    events = queue.Queue()
+
+    def run():
+        try:
+            res = swap_multi(
+                req.image_path, cleaned,
+                on_step=lambda s: events.put({"type": "step",
+                                              "label": s}))
+            before = req.image_path or ""
+            for item in res.get("results", []):
+                record_preview(req.session_id, item["code"], item,
+                               before)
+                before = item.get("result_url", before)
+            session = consultant.SESSIONS.setdefault(
+                req.session_id, {"messages": []})
+            session.setdefault("assignments", {}).update(
+                {i["target"]: i["code"] for i in cleaned})
+            events.put({"type": "done", "result": res})
+        except _SwapError as exc:
+            events.put({"type": "error", "message": str(exc)})
+        except RuntimeError as exc:
+            events.put({"type": "error", "message": str(exc)})
+        except Exception:  # noqa: BLE001 - never hang the stream
+            events.put({"type": "error",
+                        "message": "multi-swap failed"})
+
+    threading.Thread(target=run, daemon=True).start()
+
+    def gen():
+        while True:
+            evt = events.get()
+            yield "data: %s\n\n" % json.dumps(evt, ensure_ascii=False)
+            if evt["type"] in ("done", "error"):
+                break
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
+
+
+@router.get("/fabrics")
+def fabric_list(suitable_for: str = "", usage: str = "",
+                limit: int = 12):
+    """Browse fabrics, filtered for one item type (Browse-myself panel).
+
+    suitable_for is one of sofa/cushions/curtains; usage is
+    upholstery/curtains. Ranked by the same catalog search.
+    """
+    from app.services import catalog as catalog_mod
+    flt = ([suitable_for] if suitable_for in ("sofa", "cushions",
+                                              "curtains") else None)
+    norm_usage = catalog_mod.normalize_usage(usage) if usage else None
+    fabrics, _ = catalog_mod.search_catalog(
+        usage=norm_usage, suitable_for=flt,
+        limit=max(1, min(limit, 40)))
+    return {"fabrics": fabrics, "suitable_for": suitable_for or "",
+            "usage": norm_usage or ""}
+
+
+@router.post("/session/{session_id}/assignments")
+def set_assignment(session_id: str, item: AssignmentItem):
+    """Pin one fabric to one item (Browse panel / outline tap)."""
+    cleaned = _check_assignments([item])[0]
+    session = consultant.SESSIONS.setdefault(session_id,
+                                             {"messages": []})
+    session.setdefault("assignments", {})[cleaned["target"]] = \
+        cleaned["code"]
+    chosen = session.setdefault("chosen_targets", [])
+    if cleaned["target"] not in chosen:
+        chosen.append(cleaned["target"])
+    return {"assignments": session["assignments"]}
+
+
+@router.delete("/session/{session_id}/assignments")
+def clear_assignments(session_id: str):
+    """Reset all item→fabric picks (Reset button)."""
+    session = consultant.SESSIONS.setdefault(session_id,
+                                             {"messages": []})
+    session["assignments"] = {}
+    return {"assignments": {}}
 
 
 def _swap_target(req: SwapRequest):

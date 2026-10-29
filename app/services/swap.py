@@ -329,3 +329,180 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
     return {"result_url": os.path.join(base, result_name),
             "mask_url": os.path.join(base, mask_name),
             "scores": best["scores"], "attempts": attempts}
+
+
+def _room_tag(room_bytes):
+    import hashlib
+    return hashlib.md5(room_bytes).hexdigest()[:12]
+
+
+def _cache_paths(out_dir, tag, target, code):
+    base = "swapmulti-%s-%s-%s" % (tag, target, code)
+    return (os.path.join(out_dir, base + ".jpg"),
+            os.path.join(out_dir, base + "-mask.png"),
+            os.path.join(out_dir, base + ".json"))
+
+
+def _union_of(records, size):
+    width, height = size
+    boxes = []
+    for record in records:
+        x1, y1, x2, y2 = record["box"]
+        fw, fh = record["frame_size"]
+        boxes.append((int(x1 / fw * width), int(y1 / fh * height),
+                      int(x2 / fw * width), int(y2 / fh * height)))
+    return (min(b[0] for b in boxes), min(b[1] for b in boxes),
+            max(b[2] for b in boxes), max(b[3] for b in boxes))
+
+
+def swap_multi(room_path, assignments, api_key=None, out_dir=None,
+               on_step=None):
+    """Swap several items in one photo, largest item first.
+
+    assignments is a list of {"target": ..., "code": ...}. Each item is
+    edited on the current working image and composited through its own
+    mask, so earlier (larger) items survive later edits. Per-item
+    verify uses the same min-7 rule with one corrective retry.
+
+    Results are cached on disk per (image, target, code): a repeat run
+    pastes the cached item through its own mask without model calls.
+    Returns {"results": [{target, code, result_url, mask_url, scores,
+    attempts, cached}], "final_url": ...}.
+    """
+    def step(label):
+        if on_step:
+            on_step(label)
+    key = api_key or require_api_key()
+    if not assignments:
+        raise SwapError("no assignments")
+    jobs = []
+    for item in assignments:
+        target = ((item or {}).get("target") or "").lower()
+        code = (item or {}).get("code", "")
+        if target not in TARGET_CONCEPTS:
+            raise SwapError("unknown target: %s" % target)
+        fabric = get_fabric(code)
+        if not fabric:
+            raise SwapError("unknown fabric code: %s" % code)
+        jobs.append({"target": target, "code": code, "fabric": fabric})
+    path = room_path if os.path.isabs(room_path) else os.path.join(
+        BASE_DIR, room_path)
+    with open(path, "rb") as f:
+        room_bytes = f.read()
+    room = Image.open(io.BytesIO(room_bytes)).convert("RGB")
+    width, height = room.size
+    rtag = _room_tag(room_bytes)
+
+    out_dir = out_dir or os.path.join(UPLOAD_DIR, "swap")
+    os.makedirs(out_dir, exist_ok=True)
+
+    for job in jobs:
+        img_path, mask_path, meta_path = _cache_paths(
+            out_dir, rtag, job["target"], job["code"])
+        if (os.path.exists(img_path) and os.path.exists(mask_path)
+                and os.path.exists(meta_path)):
+            box = Image.open(mask_path).convert("L").getbbox() or (
+                0, 0, width, height)
+            job["area"] = max(0, box[2] - box[0]) * max(
+                0, box[3] - box[1])
+            job["cache"] = (img_path, mask_path, meta_path)
+        else:
+            job["cache"] = None
+    infos = {}
+    for target in sorted({j["target"] for j in jobs
+                          if j["cache"] is None}):
+        concept = TARGET_CONCEPTS[target]
+        step("segment")
+        records = segment(room_bytes, concept, key)
+        if not records:
+            raise SwapError("could not find the %s in this photo"
+                            % concept)
+        union = _union_of(records, (width, height))
+        area = max(0, union[2] - union[0]) * max(0, union[3] - union[1])
+        infos[target] = {"concept": concept, "union": union,
+                         "mask": sam_mask(records, (width, height)),
+                         "area": area}
+    for job in jobs:
+        if job["cache"] is None:
+            job["area"] = infos[job["target"]]["area"]
+    jobs.sort(key=lambda j: j["area"], reverse=True)
+
+    working = room.copy()
+    results = []
+    for job in jobs:
+        target, fabric = job["target"], job["fabric"]
+        info = infos.get(target)
+        swatch_path = os.path.join(BASE_DIR, fabric.get("image", ""))
+        with open(swatch_path, "rb") as f:
+            swatch_bytes = f.read()
+        if job["cache"] is not None:
+            img_path, mask_path, meta_path = job["cache"]
+            item_img = Image.open(img_path).convert("RGB")
+            item_mask = Image.open(mask_path).convert("L")
+            try:
+                with open(meta_path, encoding="utf-8") as f:
+                    meta = json.load(f)
+                scores = meta.get("scores", {})
+                attempts = int(meta.get("attempts", 0))
+            except (ValueError, TypeError):
+                scores, attempts = {}, 0
+            working.paste(item_img, (0, 0), item_mask)
+            cached = True
+        else:
+            img_path, mask_path, meta_path = _cache_paths(
+                out_dir, rtag, target, job["code"])
+            buf = io.BytesIO()
+            working.save(buf, "JPEG", quality=90)
+            current_bytes = buf.getvalue()
+            best = None
+            attempts = 0
+            for round_no in range(2):
+                corrective = None
+                if best is not None:
+                    corrective = _corrective(best["scores"],
+                                             info["concept"])
+                    step("retry")
+                step("edit")
+                edited = edit_room(current_bytes, swatch_bytes,
+                                   fabric, info["concept"], key,
+                                   corrective).resize(
+                                       (width, height), Image.BILINEAR)
+                step("composite")
+                mask = paste_mask(working, edited, info["union"])
+                cand_img = working.copy()
+                cand_img.paste(edited, (0, 0), mask)
+                step("verify")
+                scores = verify(swatch_bytes, cand_img, fabric,
+                                info["concept"], key)
+                attempts = round_no + 1
+                cand = {"result": cand_img, "mask": mask,
+                        "scores": scores}
+                if best is None or (
+                        min(scores.values()),
+                        sum(scores.values())) > (
+                        min(best["scores"].values()),
+                        sum(best["scores"].values())):
+                    best = cand
+                if min(scores.values()) >= 7:
+                    break
+            working = best["result"]
+            item_mask = best["mask"]
+            scores = best["scores"]
+            best["result"].save(img_path, "JPEG", quality=90)
+            best["mask"].save(mask_path)
+            with open(meta_path, "w", encoding="utf-8") as f:
+                json.dump({"scores": scores, "attempts": attempts}, f)
+            cached = False
+        base = os.path.relpath(out_dir, BASE_DIR)
+        results.append({
+            "target": target, "code": job["code"],
+            "result_url": os.path.join(
+                base, os.path.basename(img_path)),
+            "mask_url": os.path.join(
+                base, os.path.basename(mask_path)),
+            "scores": scores, "attempts": attempts, "cached": cached})
+    final_name = "swapmulti-%s-final.jpg" % uuid.uuid4().hex
+    working.save(os.path.join(out_dir, final_name), "JPEG", quality=90)
+    base = os.path.relpath(out_dir, BASE_DIR)
+    return {"results": results,
+            "final_url": os.path.join(base, final_name)}

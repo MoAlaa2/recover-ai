@@ -942,6 +942,44 @@ def test_chosen_targets_and_curtains_usage(tmp_path, monkeypatch):
     assert search_args and search_args[-1].get("usage") == "curtains"
 
 
+def test_auto_apply_top_pick_multi(tmp_path, monkeypatch):
+    from PIL import Image as PILImage
+    room = tmp_path / "room.jpg"
+    PILImage.new("RGB", (64, 48), (10, 20, 30)).save(str(room))
+    monkeypatch.setattr(c, "analyze_room", lambda *a, **k: {
+        "room_type": "living", "wall_colors": [], "floor": "wood",
+        "furniture": "sofa", "existing_fabrics": "linen",
+        "light_level": "high", "style": "modern"})
+    c.SESSIONS["t-auto"] = {
+        "messages": [], "lang": "en",
+        "available_targets": ["sofa", "cushions"],
+        "chosen_targets": ["sofa", "cushions"]}
+    asked = {"n": 0}
+
+    def fake(messages, tools=None):
+        asked["n"] += 1
+        if asked["n"] == 1:
+            return tool_call("search_catalog", {"usage": "upholstery"})
+        return final_text(
+            "Here are my picks: ```recommendations\n"
+            "[{\"code\": \"FA-AC-01\", \"reason\": \"r1\"}, "
+            "{\"code\": \"FA-AC-02\", \"reason\": \"r2\"}, "
+            "{\"code\": \"FA-AC-03\", \"reason\": \"r3\"}]\n```")
+
+    def spy_search(args, turn):
+        return {"fabrics": [{"code": "FA-AC-01"},
+                            {"code": "FA-AC-02"},
+                            {"code": "FA-AC-03"}],
+                "relaxed": [], "relaxed_constraints": []}
+
+    monkeypatch.setattr(c, "run_search", spy_search)
+    out = c.chat("t-auto", "ok, what do you suggest?",
+                 image_path=str(room), chat_fn=fake)
+    assert len(out["recommendations"]) == 3
+    assert out["preview"] == {"code": "FA-AC-01", "target": "sofa"}
+    assert out["targets"]["assignments"] == {"sofa": "FA-AC-01"}
+
+
 def test_analysis_cached_per_image_hash(tmp_path, monkeypatch):
     room = tmp_path / "room.jpg"
     from PIL import Image as PILImage
