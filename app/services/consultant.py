@@ -73,6 +73,11 @@ NEEDS MAPPING: pets -> pet-friendly and scratch-resistant; kids -> \
 easy-clean, stain-resistant and antibacterial; hotel or restaurant -> \
 fire-resistant; bedroom curtains -> blackout.
 
+PREVIEW: when the user asks to see, try or preview a fabric on \
+their photo, call preview_fabric with a real code from your tool results \
+— never describe an imaginary preview. If no photo has been shared yet, \
+ask for one and mention the sample rooms.
+
 RECOMMENDATIONS: only when you have gathered enough and are ready to \
 recommend, reply normally and end with one fenced block on its own lines:
 ```recommendations
@@ -330,7 +335,27 @@ TOOLS = [
         "parameters": {"type": "object",
                        "properties": {"image_path": {"type": "string"}},
                        "required": ["image_path"]}}},
+    {"type": "function", "function": {
+        "name": "preview_fabric",
+        "description": "Run a real fabric preview (swap) for one fabric "
+                       "code on the user's photo. Call this when the user "
+                       "asks to see, try or preview a fabric — never "
+                       "describe an imaginary preview.",
+        "parameters": {"type": "object",
+                       "properties": {"code": {"type": "string"},
+                                      "target": {"type": "string"}},
+                       "required": ["code"]}}},
 ]
+
+
+def similar_reply(a, b):
+    """Rough identity (0-1) of two replies. Guards repeated questions."""
+    import difflib
+    na = re.sub(r"\s+", " ", (a or "").lower()).strip()
+    nb = re.sub(r"\s+", " ", (b or "").lower()).strip()
+    if not na or not nb or len(na) < 20 or len(nb) < 20:
+        return 0.0
+    return difflib.SequenceMatcher(None, na, nb).ratio()
 
 
 def _as_list(value):
@@ -411,16 +436,46 @@ def run_search(args, turn):
             "relaxed_constraints": relaxed}
 
 
+ANALYSES = {}
+MAX_ANALYSES = 50
+
+
+def _image_hash(path):
+    import hashlib
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def vision_jpeg_bytes(path, max_side=1024):
+    """Downscaled JPEG bytes for vision calls. Full file stays for swaps."""
+    from PIL import Image
+    import io as _io
+    try:
+        import pillow_heif  # noqa: F401 - registers HEIF opener
+        pillow_heif.register_heif_opener()
+    except ImportError:
+        pass
+    im = Image.open(path).convert("RGB")
+    if max(im.size) > max_side:
+        im.thumbnail((max_side, max_side), Image.BILINEAR)
+    buf = _io.BytesIO()
+    im.save(buf, "JPEG", quality=88)
+    return buf.getvalue()
+
+
 def analyze_room(image_path, lang=None):
     """Vision analysis of a room photo. Returns a JSON dict.
 
     When lang is a known language code, values come back in that
-    language so the room card can render localized.
+    language so the room card can render localized. Results are cached
+    per image hash: re-uploads and sample rooms never pay twice.
     """
     path = image_path if os.path.isabs(image_path) else \
         os.path.join(BASE_DIR, image_path)
-    with open(path, "rb") as f:
-        b64 = base64.b64encode(f.read()).decode("ascii")
+    key = (_image_hash(path), lang)
+    if key in ANALYSES:
+        return ANALYSES[key]
+    b64 = base64.b64encode(vision_jpeg_bytes(path)).decode("ascii")
     ask = ("Analyze this room photo for an upholstery consultant. Reply "
            "with JSON only: {\"room_type\": \"...\", \"wall_colors\": "
            "[{\"name\": \"...\", \"hex\": \"#...\"}] (5 entries), "
@@ -436,9 +491,13 @@ def analyze_room(image_path, lang=None):
     body = _call_chat(messages)
     text = body["choices"][0]["message"]["content"] or ""
     try:
-        return json.loads(text[text.find("{"):text.rfind("}") + 1])
+        result = json.loads(text[text.find("{"):text.rfind("}") + 1])
     except (ValueError, IndexError):
-        return {"raw": text[:1000]}
+        result = {"raw": text[:1000]}
+    if len(ANALYSES) >= MAX_ANALYSES:
+        ANALYSES.pop(next(iter(ANALYSES)))
+    ANALYSES[key] = result
+    return result
 
 
 RECO_RE = re.compile(r"```recommendations\s*(\[.*?\])\s*```", re.DOTALL)
@@ -463,8 +522,39 @@ def strip_block(text):
     return RECO_RE.sub("", text or "").strip()
 
 
+def budget_tiers():
+    """Budget chip bounds (SAR/m) derived from catalog price quartiles."""
+    from statistics import quantiles
+    from app.services.catalog import load_specs
+    prices = sorted(s["price_sar_per_m"] for s in load_specs())
+    q1, _, q3 = quantiles(prices, n=4)
+    low = int(q1 // 10 * 10) - 10
+    high = int(q3 // 10 * 10)
+    return max(low, 10), high
+
+
+BUDGET_TIERS = budget_tiers()
+
+SYSTEM_PROMPT += (
+    "\n\nBUDGET: when you ask about budget, offer exactly these four "
+    "chips: Under %d SAR, %d-%d SAR, over %d SAR, No limit. "
+    "State every price in SAR, never with $."
+    % (BUDGET_TIERS[0], BUDGET_TIERS[0], BUDGET_TIERS[1],
+       BUDGET_TIERS[1]))
+
+
+def sar_option(option):
+    """Rewrite model $ amounts into catalog SAR ("$80" -> "80 SAR")."""
+    text = re.sub(r"\$\s*([\d,]+(?:\.\d+)?)", r"\1 SAR", str(option))
+    return text.replace("$", "SAR").strip()
+
+
 def extract_options(text):
-    """Parse the options block. Returns a list of strings or None."""
+    """Parse the options block. Returns a list of strings or None.
+
+    Amounts are normalized to SAR: the model sometimes prices chips
+    in dollars even though the catalog is SAR-only.
+    """
     match = OPTIONS_RE.search(text or "")
     if not match:
         return None
@@ -474,7 +564,7 @@ def extract_options(text):
         return None
     if not isinstance(data, list):
         return None
-    return [str(o) for o in data[:4] if str(o).strip()]
+    return [sar_option(o) for o in data[:4] if str(o).strip()]
 
 
 def strip_options(text):
@@ -827,6 +917,18 @@ def _execute_tool(name, args, turn, on_step=None):
             on_step("room")
         return analyze_room((args or {}).get("image_path", ""),
                             turn.get("lang"))
+    if name == "preview_fabric":
+        code = (args or {}).get("code", "")
+        if not turn.get("image"):
+            return {"error": "no_photo",
+                    "hint": "ask for a room photo or a sample room first"}
+        if not get_fabric(code) or code not in (turn.get("seen") or []):
+            return {"error": "unknown code",
+                    "seen": [c for c in turn.get("seen", [])
+                             if get_fabric(c)][:12]}
+        turn["preview"] = {"code": code,
+                           "target": (args or {}).get("target") or ""}
+        return {"ok": True, "code": code}
     return {"error": "unknown tool " + str(name)}
 
 
@@ -1080,6 +1182,9 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
                       "question in short, plain words.]")
     turn = accumulate_context(session, turn_for(message))
     turn["lang"] = session.get("lang")
+    if image_path:
+        session["image_path"] = image_path
+    turn["image"] = image_path or session.get("image_path")
     confirm = ""
     if image_path:
         path = image_path if os.path.isabs(image_path) else \
@@ -1176,6 +1281,24 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
                 bool(options), bool(recommendations),
                 turn.get("lang") or session.get("lang"))
     reply = reply.strip()
+    prev_assistant = next((m.get("content") or ""
+                           for m in reversed(history)
+                           if m.get("role") == "assistant"), "")
+    if prev_assistant and similar_reply(reply, prev_assistant) >= 0.9:
+        nudge = ("[System: the user already answered your last question "
+                 "('%s'). Move forward — ask the next missing thing, "
+                 "do not repeat it.]" % (message or "")[:200])
+        retry_text2, _ = agent_turn(
+            list(history) + [{"role": "user", "content": nudge}],
+            chat_fn, turn, on_token=on_token, on_step=on_step)
+        retry_reply2, retry_options2, retry_recs2 = split_final(
+            retry_text2, turn)
+        if retry_reply2 and similar_reply(retry_reply2, prev_assistant) < 0.9:
+            reply = retry_reply2
+            options = retry_options2 or options
+            if retry_recs2:
+                recommendations = retry_recs2
+            final_text = retry_text2
     if confirm:
         reply = (reply + "\n\n" + confirm).strip()
     enriched_early = enrich(recommendations, turn)
@@ -1209,6 +1332,7 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     result = {"reply": reply,
               "recommendations": enriched_early,
               "options": options,
+              "preview": turn.get("preview"),
               "detected_lang": session.get("lang")}
     if room_analysis is not None:
         result["room_analysis"] = room_analysis

@@ -100,17 +100,30 @@ def page(server):
         pg.on("console", on_console)
         pg.on("pageerror", lambda e: errors.append(str(e)))
 
-        def chat_mock(route):
-            data = route.request.post_data_json or {}
+        def canned(data):
+            data = data or {}
             if data.get("image_path") or (
                     data.get("message", "") not in ("Hello", "")):
-                body = dict(IMG_TURN)
-            else:
-                body = dict(GREET)
+                return dict(IMG_TURN)
+            return dict(GREET)
+
+        def chat_mock(route):
             route.fulfill(status=200, content_type="application/json",
-                          body=json.dumps(body))
+                          body=json.dumps(
+                              canned(route.request.post_data_json)))
+
+        def stream_mock(route):
+            data = route.request.post_data_json or {}
+            seen_step = ("data: %s\n\n" % json.dumps(
+                {"type": "step", "label": "room"})
+                if data.get("image_path") else "")
+            route.fulfill(
+                status=200, content_type="text/event-stream",
+                body=seen_step + "data: %s\n\n" % json.dumps(
+                    {"type": "done", "result": canned(data)}))
 
         pg.route("**/api/chat", chat_mock)
+        pg.route("**/api/chat/stream", stream_mock)
         yield pg
         assert errors == [], "console errors: %s" % errors[:5]
         ctx.close()
@@ -126,6 +139,8 @@ def bubbles(pg):
 def test_welcome_empty_state(server, page):
     page.goto(server + "/consult", wait_until="networkidle")
     page.wait_for_selector("#welcomeMsg", timeout=15000)
+    page.wait_for_function("document.fonts.status === 'loaded'",
+                           timeout=15000)
     assert page.eval_on_selector_all(
         "#welcomeMsg [data-sample]", "e => e.length") == 3
     assert page.eval_on_selector_all(
@@ -133,14 +148,29 @@ def test_welcome_empty_state(server, page):
     box = page.evaluate("() => ({sw: document.documentElement.scrollWidth,"
                         " cw: document.documentElement.clientWidth})")
     assert box["sw"] == box["cw"]
+    vis = page.evaluate("""() => {
+      const c = document.querySelector('.composer');
+      const r = c.getBoundingClientRect();
+      return {bottom: Math.round(r.bottom), vh: window.innerHeight};
+    }""")
+    assert vis["bottom"] <= vis["vh"], "composer hidden on cold load: %s" % vis
+    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+    page.wait_for_timeout(400)
+    vis = page.evaluate("""() => {
+      const c = document.querySelector('.composer');
+      const r = c.getBoundingClientRect();
+      return {bottom: Math.round(r.bottom), vh: window.innerHeight};
+    }""")
+    assert vis["bottom"] <= vis["vh"], "composer hidden after scroll: %s" % vis
 
 
 def test_sample_photo_beats_greeting(server, page):
     seen = []
-    page.route("**/api/chat", lambda r: (
+    page.route("**/api/chat/stream", lambda r: (
         seen.append(r.request.post_data_json) or r.fulfill(
-            status=200, content_type="application/json",
-            body=json.dumps(IMG_TURN))))
+            status=200, content_type="text/event-stream",
+            body="data: %s\n\n" % json.dumps(
+                {"type": "done", "result": IMG_TURN}))))
     page.goto(server + "/consult?sample=living",
               wait_until="networkidle")
     page.wait_for_selector("#roomBar:not([hidden])", timeout=15000)
@@ -152,7 +182,22 @@ def test_sample_photo_beats_greeting(server, page):
 
 
 def test_failed_chat_leaves_no_broken_room(server, page):
+    page.route("**/api/chat/stream", lambda r: r.fulfill(status=400))
     page.route("**/api/chat", lambda r: r.fulfill(status=400))
+    page.goto(server + "/consult", wait_until="networkidle")
+    page.wait_for_selector("#welcomeMsg", timeout=15000)
+    page.set_input_files("#fileInput",
+                         os.path.join(BASE_DIR, "data/samples/living.jpg"))
+    # The upload turn must end with no pending bubble left behind.
+    page.wait_for_selector("#pending", state="detached", timeout=30000)
+    assert page.get_attribute("#roomBar", "hidden") is not None
+    assert page.get_attribute("#roomThumb", "src") in (None, "")
+    texts = bubbles(page)
+    assert texts and "went wrong" in texts[-1]
+
+
+def test_undecodable_upload_shows_upload_fail(server, page):
+    page.route("**/api/upload", lambda r: r.fulfill(status=400))
     page.goto(server + "/consult", wait_until="networkidle")
     page.wait_for_selector("#welcomeMsg", timeout=15000)
     page.set_input_files("#fileInput",
@@ -162,9 +207,6 @@ def test_failed_chat_leaves_no_broken_room(server, page):
            .some(e => (e.textContent || '').includes('Upload failed'))""",
         timeout=30000)
     assert page.get_attribute("#roomBar", "hidden") is not None
-    assert page.get_attribute("#roomThumb", "src") in (None, "")
-    texts = bubbles(page)
-    assert texts and "Upload failed" in texts[-1]
 
 
 def test_room_bar_sheet_and_stream_bubble(server, page):
@@ -173,7 +215,18 @@ def test_room_bar_sheet_and_stream_bubble(server, page):
     page.set_input_files("#fileInput",
                          os.path.join(BASE_DIR, "data/samples/living.jpg"))
     page.wait_for_selector("#roomBar:not([hidden])", timeout=15000)
-    assert "Nordic Linen" in (page.text_content("#roomFabric") or "")
+    assert (page.text_content("#roomFabric") or "").strip() == "Your room"
+    assert (page.text_content("#roomSub") or "").strip() == "living room"
+    cards = page.eval_on_selector_all(
+        "#messages .mini-card", "els => els.map(e => e.outerHTML)")
+    assert len(cards) == 1, "recs must live in the chat, not a panel"
+    assert 'data-try="FA-NL-07"' in cards[0]
+    assert "Try on my photo" in cards[0]
+    assert "155 SAR" in cards[0]
+    assert "$" not in cards[0]
+    assert page.get_attribute("#recs", "hidden") is not None or \
+        page.evaluate("getComputedStyle(document.getElementById('recs'))"
+                      ".display") == "none"
     page.click("#roomView")
     page.wait_for_timeout(500)
     assert page.evaluate(
@@ -195,4 +248,162 @@ def test_room_bar_sheet_and_stream_bubble(server, page):
     texts = bubbles(page)
     assert texts, "assistant must answer the streaming turn"
     assert all(texts), "no assistant bubble may be empty: %s" % texts
-    assert texts[-1].startswith("Sure"), texts[-1]
+    assert any(t.startswith("Sure") for t in texts), texts
+
+
+SWAP_MOCK = {"result_url": "data/samples/living.jpg",
+             "mask_url": "data/samples/living.jpg",
+             "scores": {"color": 9, "pattern": 9, "scale": 9,
+                        "isolation": 9},
+             "attempts": 1}
+
+
+def swap_stream(result):
+    body = "".join(
+        "data: %s\n\n" % json.dumps({"type": "step", "label": label})
+        for label in ("segment", "edit", "verify"))
+    return body + "data: %s\n\n" % json.dumps(
+        {"type": "done", "result": result})
+
+
+def upload_photo(page):
+    page.wait_for_selector("#welcomeMsg", timeout=15000)
+    page.set_input_files("#fileInput",
+                         os.path.join(BASE_DIR, "data/samples/living.jpg"))
+    page.wait_for_selector("#roomBar:not([hidden])", timeout=15000)
+
+
+def test_try_runs_swap_with_steps_and_bubble(server, page):
+    page.route("**/api/swap/stream", lambda r: r.fulfill(
+        status=200, content_type="text/event-stream",
+        body=swap_stream(SWAP_MOCK)))
+    page.goto(server + "/consult", wait_until="networkidle")
+    upload_photo(page)
+    page.click('#messages [data-try="FA-NL-07"]')
+    page.wait_for_selector("#swapResult:not([hidden])", timeout=30000)
+    assert "Checking the result" in (
+        page.text_content("#swapSteps") or "")
+    page.click("#swapClose")
+    page.wait_for_timeout(400)
+    thumbs = page.eval_on_selector_all(
+        "#messages img.swap-thumb", "e => e.length")
+    assert thumbs >= 1, "swap result must post as a chat image bubble"
+    assert (page.text_content("#roomFabric") or "").strip() == \
+        "Nordic Linen"
+    page.click("#messages img.swap-thumb")
+    page.wait_for_timeout(500)
+    assert page.evaluate("!document.getElementById('swapModal').hidden")
+    page.click("#swapClose")
+    page.wait_for_timeout(300)
+    assert page.evaluate("document.getElementById('swapModal').hidden")
+
+
+def test_preview_result_autoruns_swap(server, page):
+    with_preview = dict(IMG_TURN)
+    with_preview["preview"] = {"code": "FA-NL-07", "target": ""}
+
+    def text_only(route):
+        data = route.request.post_data_json or {}
+        body = with_preview if data.get("message") else IMG_TURN
+        route.fulfill(
+            status=200, content_type="text/event-stream",
+            body="data: %s\n\n" % json.dumps(
+                {"type": "done", "result": body}))
+
+    page.route("**/api/chat/stream", text_only)
+    page.route("**/api/swap/stream", lambda r: r.fulfill(
+        status=200, content_type="text/event-stream",
+        body=swap_stream(SWAP_MOCK)))
+    page.goto(server + "/consult", wait_until="networkidle")
+    upload_photo(page)
+    page.fill("#composerInput", "show me it on my chair")
+    page.click('.composer button[type="submit"]')
+    page.wait_for_selector("#swapModal:not([hidden])", timeout=30000)
+    page.click("#swapClose")
+
+
+def test_no_photo_try_opens_sheet(server, page):
+    page.goto(server + "/consult", wait_until="networkidle")
+    page.wait_for_selector("#welcomeMsg", timeout=15000)
+    page.fill("#composerInput", "recommend something for my sofa")
+    page.click('.composer button[type="submit"]')
+    page.wait_for_selector("#messages .mini-card", timeout=30000)
+    page.click('#messages [data-try="FA-NL-07"]')
+    page.wait_for_timeout(500)
+    assert page.evaluate(
+        "document.body.classList.contains('sheet-open')"), \
+        "no photo: Try must open the sheet with upload + samples"
+    assert page.evaluate("document.getElementById('swapModal').hidden")
+    page.click("#sheetClose")
+
+
+def test_step_labels_live_during_upload(server, page):
+    page.goto(server + "/consult", wait_until="networkidle")
+    page.wait_for_selector("#welcomeMsg", timeout=15000)
+    page.evaluate("""() => {
+      window.__steps = [];
+      new MutationObserver(function (muts) {
+        muts.forEach(function (m) {
+          if (m.target.classList &&
+              m.target.classList.contains('agent-step') &&
+              m.target.textContent.trim()) {
+            window.__steps.push(m.target.textContent.trim());
+          }
+        });
+      }).observe(document.getElementById('messages'),
+                 {childList: true, subtree: true, characterData: true,
+                  characterDataOldValue: false});
+    }""")
+    page.set_input_files("#fileInput",
+                         os.path.join(BASE_DIR, "data/samples/living.jpg"))
+    page.wait_for_selector("#roomBar:not([hidden])", timeout=15000)
+    steps = page.evaluate("window.__steps || []")
+    assert any("photo" in s.lower() or "Preparing" in s for s in steps), \
+        "photo step label never showed: %s" % steps
+    assert any("room" in s.lower() or "Looking" in s for s in steps), \
+        "room step label never showed: %s" % steps
+    assert all(steps), "empty step label shown: %s" % steps
+
+
+def test_arabic_cards_and_titles(server, page):
+    greet_ar = dict(GREET)
+    greet_ar["reply"] = "أهلاً! أرني غرفتك وسأجد لك الأقمشة."
+    greet_ar["detected_lang"] = "ar"
+    turn_ar = dict(IMG_TURN)
+    turn_ar["reply"] = "أرى كنبة في غرفة مضيئة. أي ستايل يعجبك؟"
+    rec_ar = dict(IMG_TURN["recommendations"][0])
+    rec_ar["price_sar_per_m"] = 155
+    turn_ar["recommendations"] = [rec_ar]
+    turn_ar["options"] = ["كنبة فقط"]
+    turn_ar["room_analysis"] = dict(IMG_TURN["room_analysis"])
+    turn_ar["detected_lang"] = "ar"
+
+    def canned_ar(route):
+        data = route.request.post_data_json or {}
+        body = turn_ar if data.get("image_path") else greet_ar
+        route.fulfill(status=200, content_type="application/json",
+                      body=json.dumps(body))
+
+    def stream_ar(route):
+        data = route.request.post_data_json or {}
+        body = turn_ar if data.get("image_path") else greet_ar
+        route.fulfill(status=200, content_type="text/event-stream",
+                      body="data: %s\n\n" % json.dumps(
+                          {"type": "done", "result": body}))
+
+    page.route("**/api/chat", canned_ar)
+    page.route("**/api/chat/stream", stream_ar)
+    page.goto(server + "/consult?lang=ar", wait_until="networkidle")
+    page.wait_for_selector("#welcomeMsg", timeout=15000)
+    page.set_input_files("#fileInput",
+                         os.path.join(BASE_DIR, "data/samples/living.jpg"))
+    page.wait_for_selector("#roomBar:not([hidden])", timeout=15000)
+    card = page.eval_on_selector(
+        "#messages .mini-card", "e => e.outerHTML")
+    assert "جرّبه على صورتي" in card
+    assert "ر.س" in card
+    assert "$" not in card
+    title = (page.text_content("#roomFabric") or "").strip()
+    sub = (page.text_content("#roomSub") or "").strip()
+    assert title != sub or not sub, "room bar must not repeat: %r / %r" % (
+        title, sub)

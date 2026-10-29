@@ -54,10 +54,10 @@ def _call_vision(messages):
 
 def list_types(image_path):
     """Which of sofa/cushions/curtains are clearly visible. Returns list."""
+    from app.services.consultant import vision_jpeg_bytes
     path = image_path if os.path.isabs(image_path) else \
         os.path.join(BASE_DIR, image_path)
-    with open(path, "rb") as f:
-        b64 = base64.b64encode(f.read()).decode("ascii")
+    b64 = base64.b64encode(vision_jpeg_bytes(path)).decode("ascii")
     ask = ("Which of these are clearly visible in this room photo: "
            "sofa, cushions (pillows on a sofa or chairs), curtains? "
            'Reply with JSON only: {"items": ["sofa", ...]}.')

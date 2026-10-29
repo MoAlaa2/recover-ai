@@ -20,6 +20,22 @@ def test_list_types_keeps_known_types(monkeypatch):
     assert t.list_types("data/samples/living.jpg") == ["sofa", "curtains"]
 
 
+def test_list_types_downscales_vision(monkeypatch):
+    import base64
+    import io as _io
+    seen = {}
+
+    def fake(messages):
+        url = messages[0]["content"][1]["image_url"]["url"]
+        seen["b64"] = url.split(",", 1)[1]
+        return {"choices": [{"message": {"content": '{"items": []}'}}]}
+
+    monkeypatch.setattr(t, "_call_vision", fake)
+    assert t.list_types("data/samples/living.jpg") == []
+    im = Image.open(_io.BytesIO(base64.b64decode(seen["b64"])))
+    assert max(im.size) <= 1024
+
+
 def test_list_types_empty_on_garbage(monkeypatch):
     monkeypatch.setattr(t, "_call_vision", lambda m: {
         "choices": [{"message": {"content": "no json here"}}]})

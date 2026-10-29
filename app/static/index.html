@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/switcher.css">
 </head>
-<body>
+<body class="consult-page">
 <header class="topbar consult-bar">
   <a class="brand" dir="ltr" href="/" aria-label="ReCover home">
     <img class="brand-logo logo-light" src="/brand/logo.svg" alt="ReCover" width="220" height="48">
@@ -138,6 +138,16 @@
       </div>
     </div>
     <div id="swapCompare" class="swap-compare" hidden></div>
+  </div>
+</div>
+
+<div id="fabricSheet" class="modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <div id="fabricSheetBody"></div>
+    <div class="ba-meta">
+      <button id="fabricTry" class="seeit" type="button"><span></span></button>
+      <button id="fabricClose" class="ghost-btn" type="button" data-i18n="closeLabel">Close</button>
+    </div>
   </div>
 </div>
 

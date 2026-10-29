@@ -20,14 +20,16 @@
       uploadFail: "Upload failed. Please try a JPG or PNG photo.",
       voiceFail: "Sorry, I couldn't hear that. Please try again.",
       micLabel: "Voice input",
-      steps: { search: "Searching 80 fabrics…", claw: "Checking claw safety…", details: "Comparing details…", room: "Reading your room's colors…" },
+      steps: { photo: "Preparing your photo…", search: "Checking 80 fabrics…", claw: "Checking pet and kid safety…", details: "Picking the best 3…", room: "Looking at your room…" },
       needPhoto: "Please upload a room photo first, then tap “See it in my space” again.",
       uploadRetry: "Upload didn't go through — check your connection and try again.",
       roomView: "View",
       roomSub: "Your room",
       takePhoto: "Take or upload a photo",
+      tryOn: "Try on my photo",
+      thinking: "Thinking…",
       pieceYou: { sofa: "sofa", armchair: "armchair", curtains: "curtains", cushions: "cushions" },
-      stepRetry: "Retrying with corrections",
+      stepRetry: "Refining the fit",
       tryAgain: "Try again",
       followSwap: "Looks lovely in your space. Want to see the next fabric on it, or should I estimate the meters?",
       emptyLeadOptions: "Sure — which of these works for you?",
@@ -52,9 +54,9 @@
       previewsHint: "Tap one to view, two to compare",
       tailoring: "Tailoring your %s…",
       pieceWord: { sofa: "sofa", armchair: "armchair", curtains: "curtains", cushions: "cushions" },
-      stepDetect: "Detecting piece",
-      stepApply: "Applying fabric",
-      stepCheck: "Checking match",
+      stepDetect: "Mapping the fabric area",
+      stepApply: "Tailoring the fabric",
+      stepCheck: "Checking the result",
       stillWorking: "Still working — complex rooms take a few minutes.",
       matchBadge: "Fabric match %d/10",
       downloadLabel: "Download",
@@ -89,17 +91,19 @@
       uploadFail: "فشل الرفع. جرب صورة JPG أو PNG.",
       voiceFail: "عذراً، ما سمعتك زين. حاول مرة ثانية.",
       micLabel: "إدخال صوتي",
-      steps: { search: "أدوّر في ٨٠ قماش…", claw: "أتأكد إنها آمنة من الخدش…", details: "أقارن التفاصيل…", room: "أقرأ ألوان مساحتك…" },
+      steps: { photo: "أجهز صورتك…", search: "أدوّر بين الثمانين قماش…", claw: "أتأكد من الأمان للحيوانات والأطفال…", details: "أختار لك أفضل 3…", room: "أطالع غرفتك…" },
       needPhoto: "ارفع صورة غرفتك أول، بعدين اضغط “شاهدها في مساحتك”.",
       uploadRetry: "ما تم الرفع — تأكد من الاتصال وحاول مرة ثانية.",
       roomView: "عرض",
       roomSub: "غرفتك",
       takePhoto: "صوّر أو ارفع صورة",
+      tryOn: "جرّبه على صورتي",
+      thinking: "لحظة…",
       tailoring: "نفصّل %s بقماشك…",
       pieceWord: { sofa: "الكنبة", armchair: "الكرسي", curtains: "الستائر", cushions: "الوسائد" },
-      stepDetect: "نحدد القطعة",
-      stepApply: "نركّب القماش",
-      stepCheck: "نتأكد من التطابق",
+      stepDetect: "أحدد مكان القماش",
+      stepApply: "ألبّس قطعتك القماش",
+      stepCheck: "أشيّك على النتيجة",
       stillWorking: "لسه شغالين — الغرف المعقدة تأخذ كم دقيقة.",
       matchBadge: "تطابق القماش %d/10",
       downloadLabel: "تحميل",
@@ -112,7 +116,7 @@
       piece: "القطعة",
       palette: "ألوان الجدران",
       pieceYou: { sofa: "كنبتك", armchair: "كرسيك", curtains: "ستارتك", cushions: "وسايدك" },
-      stepRetry: "أعيد المحاولة بتعديل",
+      stepRetry: "أضبط المقاس",
       tryAgain: "حاول مرة ثانية",
       followSwap: "شكلها حلو في مجلسك. تبي أجرب القماش الثاني، ولا أحسب لك الأمتار؟",
       emptyLeadOptions: "تمام — أي واحد يناسبك؟",
@@ -162,11 +166,13 @@
       roomView: "देखें",
       roomSub: "आपका कमरा",
       takePhoto: "फोटो लें या अपलोड करें",
+      tryOn: "मेरी फोटो पर देखें",
+      thinking: "सोच रहा हूँ…",
       tailoring: "%s सजा रहा हूँ…",
       pieceWord: { sofa: "सोफ़ा", armchair: "कुर्सी", curtains: "पर्दे", cushions: "कुशन" },
-      stepDetect: "टुकड़ा पहचान रहा हूँ",
-      stepApply: "कपड़ा लगा रहा हूँ",
-      stepCheck: "मिलान जाँच रहा हूँ",
+      stepDetect: "कपड़े की जगह तय कर रहा हूँ",
+      stepApply: "कपड़ा चढ़ा रहा हूँ",
+      stepCheck: "नतीजा जाँच रहा हूँ",
       stillWorking: "अभी चल रहा है — मुश्किल कमरों में कुछ मिनट लगते हैं।",
       matchBadge: "कपड़ा मिलान %d/10",
       downloadLabel: "डाउनलोड",
@@ -179,11 +185,11 @@
       piece: "टुकड़ा",
       palette: "दीवार के रंग",
       chips: ["अपहोल्स्ट्री", "पर्दे", "कुशन", "मिक्स"],
-      steps: { search: "80 कपड़े खोज रहा हूँ…", claw: "पंजों से सुरक्षा जाँच रहा हूँ…", details: "विवरण मिला रहा हूँ…", room: "आपके कमरे के रंग पढ़ रहा हूँ…" },
+      steps: { photo: "आपकी फोटो तैयार कर रहा हूँ…", search: "80 कपड़े देख रहा हूँ…", claw: "पेट और बच्चों की सुरक्षा जाँच रहा हूँ…", details: "सबसे अच्छे 3 चुन रहा हूँ…", room: "आपका कमरा देख रहा हूँ…" },
       thinkingNote: "सोच रहा हूँ…",
       snag: { low: "पंजा-सुरक्षित", medium: "मध्यम जोखिम", high: "ज्यादा जोखिम", unknown: "अज्ञात" },
       pieceYou: { sofa: "आपका सोफ़ा", armchair: "आपकी कुर्सी", curtains: "आपके पर्दे", cushions: "आपके कुशन" },
-      stepRetry: "सुधार के साथ पुनः प्रयास",
+      stepRetry: "फिट ठीक कर रहा हूँ",
       tryAgain: "फिर से कोशिश करें",
       followSwap: "आपके स्थान पर सुंदर लग रहा है। अगला कपड़ा देखना चाहेंगे, या मीटर का अनुमान लगाऊँ?",
       emptyLeadOptions: "बताइए — इनमें से कौन सा चलेगा?",
@@ -231,11 +237,13 @@
       roomView: "Voir",
       roomSub: "Votre pièce",
       takePhoto: "Prendre ou envoyer une photo",
+      tryOn: "Voir sur ma photo",
+      thinking: "Je réfléchis…",
       tailoring: "J'habille votre %s…",
       pieceWord: { sofa: "canapé", armchair: "fauteuil", curtains: "rideaux", cushions: "coussins" },
-      stepDetect: "Je détecte la pièce",
-      stepApply: "J'applique le tissu",
-      stepCheck: "Je vérifie l'harmonie",
+      stepDetect: "Je délimite la zone du tissu",
+      stepApply: "J'habille votre meuble",
+      stepCheck: "Je vérifie le résultat",
       stillWorking: "Je travaille encore — les pièces complexes prennent quelques minutes.",
       matchBadge: "Tissu assorti %d/10",
       downloadLabel: "Télécharger",
@@ -248,11 +256,11 @@
       piece: "Pièce",
       palette: "Palette des murs",
       chips: ["Tapisserie", "Rideaux", "Coussins", "Mixte"],
-      steps: { search: "Je parcours 80 tissus…", claw: "Je vérifie la résistance aux griffes…", details: "Je compare les détails…", room: "Je lis les couleurs de votre pièce…" },
+      steps: { photo: "Je prépare votre photo…", search: "J'examine les 80 tissus…", claw: "Je vérifie la sécurité enfants et animaux…", details: "Je choisis les 3 meilleurs…", room: "J'observe votre pièce…" },
       thinkingNote: "Je réfléchis…",
       snag: { low: "Résistant aux griffes", medium: "Risque moyen", high: "Risque élevé", unknown: "N/A" },
       pieceYou: { sofa: "canapé", armchair: "fauteuil", curtains: "rideaux", cushions: "coussins" },
-      stepRetry: "Nouvel essai corrigé",
+      stepRetry: "J'ajuste l'application",
       tryAgain: "Réessayer",
       followSwap: "C'est ravissant chez vous. Voir le tissu suivant, ou estimer le métrage ?",
       emptyLeadOptions: "Dites-moi — lequel vous convient ?",
@@ -300,11 +308,13 @@
       roomView: "Ver",
       roomSub: "Tu espacio",
       takePhoto: "Toma o sube una foto",
+      tryOn: "Ver en mi foto",
+      thinking: "Pensando…",
       tailoring: "Vistiendo tu %s…",
       pieceWord: { sofa: "sofá", armchair: "sillón", curtains: "cortinas", cushions: "cojines" },
-      stepDetect: "Detecto la pieza",
-      stepApply: "Aplico la tela",
-      stepCheck: "Compruebo la armonía",
+      stepDetect: "Delimito la zona de la tela",
+      stepApply: "Visto tu mueble",
+      stepCheck: "Compruebo el resultado",
       stillWorking: "Sigo trabajando — las habitaciones complejas tardan unos minutos.",
       matchBadge: "Tela compatible %d/10",
       downloadLabel: "Descargar",
@@ -317,11 +327,11 @@
       piece: "Pieza",
       palette: "Paleta de paredes",
       chips: ["Tapicería", "Cortinas", "Cojines", "Mixto"],
-      steps: { search: "Busco entre 80 telas…", claw: "Compruebo la resistencia a las garras…", details: "Comparo los detalles…", room: "Leo los colores de tu espacio…" },
+      steps: { photo: "Preparando tu foto…", search: "Reviso las 80 telas…", claw: "Compruebo la seguridad para niños y mascotas…", details: "Elijo las 3 mejores…", room: "Miro tu espacio…" },
       thinkingNote: "Estoy pensando…",
       snag: { low: "Resistente a garras", medium: "Riesgo medio", high: "Riesgo alto", unknown: "N/D" },
       pieceYou: { sofa: "sofá", armchair: "sillón", curtains: "cortinas", cushions: "cojines" },
-      stepRetry: "Reintento con correcciones",
+      stepRetry: "Ajusto la aplicación",
       tryAgain: "Reintentar",
       followSwap: "Se ve precioso en tu espacio. ¿Vemos la siguiente tela o calculo los metros?",
       emptyLeadOptions: "Dime — ¿cuál te conviene?",
@@ -645,12 +655,17 @@
   function stepLabel(key) {
     var map = t("steps") || {};
     if (map[key] !== undefined) return map[key];
-    if (key === "thinking") return t("thinkingNote");
+    if (key === "thinking") return t("thinking");
     return key;
   }
 
+  function pendingScope() {
+    return document.getElementById("pending");
+  }
+
   function showStep(key) {
-    var el = document.getElementById("agentStep");
+    var scope = pendingScope();
+    var el = scope && scope.querySelector(".agent-step");
     if (!el) return;
     el.textContent = stepLabel(key);
     el.classList.remove("swap");
@@ -664,11 +679,12 @@
     div.className = "msg them";
     div.id = "pending";
     div.innerHTML = AVATAR +
-      '<div dir="auto"><div class="agent-step" id="agentStep"></div>' +
-      '<span class="typing" id="pDots"><span></span><span></span><span></span></span>' +
-      '<span class="ptext" id="pText"></span></div>';
+      '<div dir="auto"><div class="agent-step"></div>' +
+      '<span class="typing pdots"><span></span><span></span><span></span></span>' +
+      '<span class="ptext"></span></div>';
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
+    showStep("thinking");
     return div;
   }
 
@@ -682,13 +698,13 @@
   }
 
   function finalizePending(reply) {
-    var pending = document.getElementById("pending");
+    var pending = pendingScope();
     if (!pending) return null;
-    var step = document.getElementById("agentStep");
+    var step = pending.querySelector(".agent-step");
     if (step) step.remove();
-    var dots = document.getElementById("pDots");
+    var dots = pending.querySelector(".pdots");
     if (dots) dots.remove();
-    var body = document.getElementById("pText");
+    var body = pending.querySelector(".ptext");
     var fellBack = false;
     var text = (reply && reply.trim()) ? reply :
       (body && body.textContent && body.textContent.trim() ?
@@ -714,7 +730,7 @@
     if (!empty && !last.hasAttribute("data-fell-back")) return;
     last.removeAttribute("data-fell-back");
     var html = formatReply(leadIn(res));
-    var p = last.querySelector("#pText") || last.querySelector(".ptext");
+    var p = last.querySelector(".ptext");
     if (p) {
       p.innerHTML = html;
     } else {
@@ -860,20 +876,30 @@
     if ($("roomThumb").getAttribute("src") !== thumb) {
       $("roomThumb").src = thumb;
     }
-    var fabric = "";
+    var roomType = (state.lastRoom && (state.lastRoom.room_type || "")) ||
+      state.detectedPiece || "";
+    var title, sub;
     if (state.lastSwap && state.lastSwap.meta) {
       var m = state.lastSwap.meta;
-      fabric = state.lang === "ar" ? (m.name_ar || m.code)
-                                   : (m.name_en || m.code);
-    } else if (state.lastRecs && state.lastRecs.length) {
-      var r = state.lastRecs[0];
-      fabric = state.lang === "ar" ? r.name_ar : r.name_en;
+      title = state.lang === "ar" ? (m.name_ar || m.code)
+                                  : (m.name_en || m.code);
+      sub = roomType;
+    } else {
+      title = t("roomSub");
+      sub = roomType;
     }
-    $("roomFabric").textContent = fabric || t("roomSub");
+    $("roomFabric").textContent = title;
+    var subEl = $("roomSub");
+    if (sub && sub !== title) {
+      subEl.textContent = sub;
+      subEl.hidden = false;
+    } else {
+      subEl.hidden = true;
+    }
   }
 
   function openSheet() {
-    if (!state.roomPhoto || !isNarrow()) return;
+    if (!isNarrow()) return;
     document.body.classList.add("sheet-open");
     renderCanvas();
     var sc = $("sheetClose");
@@ -1018,6 +1044,47 @@
     icons();
   }
 
+  function miniRecsHTML(recs) {
+    return '<div class="mini-recs">' + recs.map(function (r) {
+      var name = state.lang === "ar" ? r.name_ar : r.name_en;
+      return '<div class="mini-card" data-fabric="' + esc(r.code) +
+        '" role="button" tabindex="0">' +
+        '<img src="/' + esc(r.image) + '" alt="' + esc(name) +
+        '" loading="lazy">' +
+        '<div class="mini-n" dir="auto">' + esc(name) + "</div>" +
+        '<div class="mini-m">' + esc(r.code) + " · " +
+        esc(formatPrice(r.price_sar_per_m)) + "</div>" +
+        '<button type="button" class="seeit mini-try" data-try="' +
+        esc(r.code) + '"><span>' + esc(t("tryOn")) + "</span></button>" +
+        "</div>";
+    }).join("") + "</div>";
+  }
+
+  function appendRecsToChat(recs) {
+    var div = document.createElement("div");
+    div.className = "msg them recs-msg";
+    div.innerHTML = AVATAR + '<div dir="auto">' + miniRecsHTML(recs) +
+      "</div>";
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    icons();
+    return div;
+  }
+
+  function showRecs(recs) {
+    if (!recs || !recs.length) return;
+    if (isNarrow()) appendRecsToChat(recs);
+    else renderRecs(recs);
+  }
+
+  function maybeAutoPreview(res) {
+    if (res && res.preview && res.preview.code) {
+      var opts = {};
+      if (res.preview.target) opts.target = res.preview.target;
+      openSwap(res.preview.code, opts);
+    }
+  }
+
   function handleResult(res) {
     autoLang(res);
     if (res.detected_piece) state.detectedPiece = res.detected_piece;
@@ -1030,8 +1097,9 @@
     renderRoomCard(state.lastRoom, state.lastDetected);
     renderCanvas();
     addMsg(leadIn(res), "them");
-    if (state.lastRecs && state.lastRecs.length) renderRecs(state.lastRecs);
+    if (state.lastRecs && state.lastRecs.length) showRecs(state.lastRecs);
     if (state.lastOptions && state.lastOptions.length) renderOptions(state.lastOptions);
+    maybeAutoPreview(res);
   }
 
   function swapTarget() {
@@ -1074,19 +1142,92 @@
     return { code: code };
   }
 
+  var SWAP_TARGETS = ["sofa", "armchair", "curtains", "cushions"];
+
+  function tryFabric(code) {
+    if (!state.roomPhoto) {
+      if (isNarrow()) {
+        openSheet();
+      } else {
+        addMsg(t("needPhoto"), "them");
+        var dz = $("dropzone");
+        dz.scrollIntoView({ behavior: "smooth", block: "center" });
+        dz.classList.add("flash");
+        setTimeout(function () { dz.classList.remove("flash"); }, 1600);
+      }
+      return;
+    }
+    openSwap(code);
+  }
+
+  function fabricSheetRec(code) {
+    var list = state.lastRecs || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].code === code) return list[i];
+    }
+    return null;
+  }
+
+  function openFabricSheet(code) {
+    var r = fabricSheetRec(code);
+    if (!r) return;
+    var name = state.lang === "ar" ? r.name_ar : r.name_en;
+    var feats = (r.features || []).map(function (f) {
+      return '<span class="feat"><i data-lucide="' +
+        (FEATURE_ICONS[f] || "sparkles") +
+        '" aria-hidden="true"></i> ' + esc(featLabel(f)) + "</span>";
+    }).join("");
+    var matched = (r.matched || []).map(function (m) {
+      return '<li class="yes"><span>✓</span> ' + esc(featLabel(m)) + "</li>";
+    }).join("");
+    var relaxed = (r.relaxed || []).map(function (m) {
+      return '<li class="warn"><span>⚠</span> ' + esc(relaxLabel(m)) + "</li>";
+    }).join("");
+    var relaxedFeats = (r.relaxed_features || []).map(function (f) {
+      return '<li class="warn"><span>⚠</span> ' + esc(notFeatureLabel(f)) + "</li>";
+    }).join("");
+    if (r.relaxed_budget) {
+      relaxed += '<li class="warn"><span>⚠</span> ' + esc(budgetPill(r.relaxed_budget)) + "</li>";
+    }
+    var receipts = "";
+    if (matched || relaxed || relaxedFeats) {
+      receipts = '<ul class="receipts">' + matched + relaxed + relaxedFeats + "</ul>";
+    }
+    $("fabricSheetBody").innerHTML =
+      '<div class="swatch big"><img src="/' + esc(r.image) + '" alt="' +
+      esc(name) + '"><span class="code-pill">' + esc(r.code) + "</span></div>" +
+      '<div class="body" dir="auto"><div class="name">' + esc(name) + "</div>" +
+      '<div class="meta"><i data-lucide="ruler" aria-hidden="true"></i><span>' +
+      esc(formatPrice(r.price_sar_per_m)) + "</span></div>" +
+      (r.reason ? '<p class="why">' + esc(r.reason) + "</p>" : "") +
+      '<div class="featrow">' + feats +
+      '<span class="' + snagClass(r.snag_risk) + '">' +
+      esc(t("snag")[r.snag_risk] || r.snag_risk) + "</span></div>" +
+      receipts + "</div>";
+    var btn = $("fabricTry");
+    btn.setAttribute("data-try", r.code);
+    btn.querySelector("span").textContent = t("tryOn");
+    $("fabricSheet").hidden = false;
+    document.body.classList.add("modal-open");
+    icons();
+  }
+
+  function closeFabricSheet() {
+    $("fabricSheet").hidden = true;
+    if ($("swapModal").hidden) document.body.classList.remove("modal-open");
+  }
+
   function openSwap(code, opts) {
     opts = opts || {};
+    closeFabricSheet();
     if (!state.roomPhoto && !opts.review) {
-      addMsg(t("needPhoto"), "them");
-      var dz = $("dropzone");
-      dz.scrollIntoView({ behavior: "smooth", block: "center" });
-      dz.classList.add("flash");
-      setTimeout(function () { dz.classList.remove("flash"); }, 1600);
+      tryFabric(code);
       return;
     }
     state.swapCode = code;
     state.swapRetried = !!opts.noRetry;
-    var target = swapTarget();
+    var target = SWAP_TARGETS.indexOf(opts.target) >= 0 ?
+      opts.target : swapTarget();
     var words = t("pieceYou") || {};
     $("swapTitle").textContent =
       t("tailoring").replace("%s", words[target] || target);
@@ -1425,8 +1566,9 @@
             showStep(evt.label);
           } else if (evt.type === "token") {
             gotToken = true;
-            var pText = document.getElementById("pText");
-            var pDots = document.getElementById("pDots");
+            var scope = pendingScope();
+            var pText = scope && scope.querySelector(".ptext");
+            var pDots = scope && scope.querySelector(".pdots");
             if (pDots) pDots.remove();
             if (pText) {
               pText.textContent += evt.text;
@@ -1481,7 +1623,8 @@
     if (!silent) addMsg(text || "", "me", photoPreview);
     pendingBubble();
     var thinkingTimer = setTimeout(function () {
-      var body = document.getElementById("pText");
+      var scope = pendingScope();
+      var body = scope && scope.querySelector(".ptext");
       if (body && !body.textContent) showStep("thinking");
     }, 8000);
     function finish() {
@@ -1511,13 +1654,14 @@
     if (res.detected_piece) state.lastDetected = res.detected_piece;
     renderRoomCard(state.lastRoom, state.lastDetected);
     renderCanvas();
+    ensureBubbleText(res);
     if (state.lastRecs && state.lastRecs.length) {
-      renderRecs(state.lastRecs);
+      showRecs(state.lastRecs);
     }
     if (state.lastOptions && state.lastOptions.length) {
       renderOptions(state.lastOptions);
     }
-    ensureBubbleText(res);
+    maybeAutoPreview(res);
   }
 
   function preparePhoto(file) {
@@ -1585,7 +1729,10 @@
     addMsg("", "me", usePreview);
     chipsEl.hidden = true;
     state.booted = true;
-    var note = addMsg(t("analyzing"), "them");
+    // One live bubble for the whole photo turn: every backend stage
+    // reports into it via SSE step events, then tokens stream in.
+    pendingBubble();
+    showStep("photo");
     var savedPath = null;
     preparePhoto(file).then(function (ready) {
       fd.append("file", ready,
@@ -1597,20 +1744,23 @@
         // Room state only commits once the follow-up chat confirms the
         // photo: a chat failure must never leave a broken canvas behind.
         savedPath = data.image_path;
-        note.remove();
-        typingOn();
-        return postJSON("/api/chat", {
-          session_id: state.sessionId,
-          message: "",
-          image_path: savedPath,
-          lang: state.pinned ? state.lang : null
-        }, 120000, 1);
+        // Warm the item targets while the chat runs: detection and SAM
+        // are independent of the conversation, so the sheet opens ready.
+        fetchReq("/api/session/" + encodeURIComponent(state.sessionId) +
+                 "/targets?image_path=" + encodeURIComponent(savedPath),
+                 { method: "GET", timeoutMs: 120000, retries: 0 })
+          .catch(function () {});
+        return streamChat("", savedPath);
       })
       .then(function (res) {
-        typingOff();
+        if (!res) {
+          dropPending();
+          return;
+        }
+        if (res.fallback && res.reply) finalizePending(res.reply);
         state.roomPhoto = savedPath;
         state.canvasView = null;
-        handleResult(res);
+        handleStreamResult(res);
         if (state.expectFirst === "sample") {
           state.expectFirst = null;
           chipsEl.hidden = false;
@@ -1622,8 +1772,7 @@
         }
       })
       .catch(function (err) {
-        typingOff();
-        note.remove();
+        dropPending();
         state.expectFirst = null;
         state.roomPhoto = null;
         state.canvasView = null;
@@ -1632,8 +1781,9 @@
           console.error("upload failed",
                         err && (err.status || err.message));
         }
-        addMsg(t(err && err.status === 400 ? "uploadFail" : "uploadRetry"),
-               "them");
+        var key = savedPath ? "sendFail"
+          : (err && err.status === 400 ? "uploadFail" : "uploadRetry");
+        addMsg(t(key), "them");
       });
   }
 
@@ -1762,6 +1912,15 @@
       var up = e.target && e.target.closest ?
         e.target.closest("[data-upload]") : null;
       if (up) fi.click();
+      var tryBtn = e.target && e.target.closest ?
+        e.target.closest("[data-try]") : null;
+      if (tryBtn && tryBtn.dataset.try) {
+        tryFabric(tryBtn.dataset.try);
+        return;
+      }
+      var fab = e.target && e.target.closest ?
+        e.target.closest("[data-fabric]") : null;
+      if (fab && fab.dataset.fabric) openFabricSheet(fab.dataset.fabric);
       var card = e.target && e.target.closest ?
         e.target.closest("#canvasRow .ccard") : null;
       if (card && card.dataset.code) openSwap(card.dataset.code);
@@ -1855,11 +2014,39 @@
     $("swapModal").addEventListener("click", function (e) {
       if (e.target === $("swapModal")) closeSwap();
     });
+    $("fabricClose").addEventListener("click", closeFabricSheet);
+    $("fabricSheet").addEventListener("click", function (e) {
+      if (e.target === $("fabricSheet")) closeFabricSheet();
+    });
+    document.addEventListener("keydown", function (e) {
+      if ((e.key === "Enter" || e.key === " ") && e.target &&
+          e.target.closest) {
+        var kf = e.target.closest("[data-fabric]");
+        if (kf && kf.dataset.fabric && !e.target.closest("[data-try]")) {
+          e.preventDefault();
+          openFabricSheet(kf.dataset.fabric);
+        }
+      }
+    });
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && !$("swapModal").hidden) closeSwap();
+      else if (e.key === "Escape" && !$("fabricSheet").hidden) closeFabricSheet();
       else if (e.key === "Escape" &&
         document.body.classList.contains("sheet-open")) closeSheet();
     });
+    function fitAppHeight() {
+      var h = (window.visualViewport && window.visualViewport.height) ||
+        window.innerHeight;
+      document.documentElement.style.setProperty(
+        "--app-height", Math.round(h) + "px");
+    }
+    fitAppHeight();
+    window.addEventListener("resize", fitAppHeight);
+    window.addEventListener("orientationchange", fitAppHeight);
+    document.addEventListener("scroll", fitAppHeight, { passive: true });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", fitAppHeight);
+    }
     $("roomView").addEventListener("click", openSheet);
     $("roomThumbBtn").addEventListener("click", openSheet);
     $("roomThumb").addEventListener("error", function () {
@@ -1881,14 +2068,6 @@
         if (dy > 90 && e.changedTouches[0].clientY < 220) closeSheet();
       });
     })();
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", function () {
-        var kb = window.innerHeight - window.visualViewport.height -
-          window.visualViewport.offsetTop;
-        document.documentElement.style.setProperty(
-          "--kb", Math.max(0, Math.round(kb)) + "px");
-      });
-    }
 
     renderCanvas();
     var sample = new URLSearchParams(location.search).get("sample");

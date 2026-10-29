@@ -817,3 +817,107 @@ def test_greeting_collapses_model_stutter():
     out = c.chat("test-greet-dupe", "Hello", chat_fn=fake)
     assert "curtains, curtains" not in out["reply"]
     assert "curtains, cushions" in out["reply"]
+
+
+def test_budget_tiers_derive_from_catalog():
+    lo, hi = c.budget_tiers()
+    assert (lo, hi) == (80, 150)
+    assert "Under 80 SAR" in c.SYSTEM_PROMPT
+    assert "never with $" in c.SYSTEM_PROMPT
+
+
+def test_sar_option_rewrites_dollars():
+    assert c.sar_option("Under $80") == "Under 80 SAR"
+    assert c.sar_option("80–150") == "80–150"
+    assert c.sar_option("No limit") == "No limit"
+    block = "Pick one.\n```options\n%s\n```" % json.dumps(
+        ["Under $80", "No limit"])
+    assert c.extract_options(block) == ["Under 80 SAR", "No limit"]
+
+
+def test_preview_fabric_needs_seen_code_and_photo(tmp_path, monkeypatch):
+    room = tmp_path / "room.jpg"
+    from PIL import Image as PILImage
+    PILImage.new("RGB", (64, 48), (10, 20, 30)).save(str(room))
+    monkeypatch.setattr(c, "analyze_room", lambda *a, **k: {
+        "room_type": "living", "wall_colors": [], "floor": "wood",
+        "furniture": "a fabric sofa", "existing_fabrics": "linen",
+        "light_level": "high", "style": "modern"})
+    calls = {"n": 0}
+
+    def fake(messages, tools=None):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return tool_call("search_catalog", {"usage": "upholstery"})
+        if calls["n"] == 2:
+            return tool_call("preview_fabric", {"code": "FA-NL-07"})
+        return final_text("Here it is on your sofa.")
+
+    out = c.chat("test-preview-ok", "show me it on my chair",
+                 image_path=str(room), chat_fn=fake)
+    assert out["preview"] == {"code": "FA-NL-07", "target": ""}
+    out2 = c.chat("test-preview-nophoto", "show me it", chat_fn=fake)
+    assert not out2.get("preview")
+    no_photo = c.execute_tool("preview_fabric", {"code": "FA-NL-07"},
+                              {"seen": ["FA-NL-07"], "image": None})
+    assert no_photo["error"] == "no_photo"
+
+
+def test_no_repeat_question_regenerates_once():
+    question = ("Perfect for refreshing your dining chairs! Tell me — "
+                "warm, cool, or neutral?")
+    calls = {"n": 0}
+
+    def fake(messages, tools=None):
+        calls["n"] += 1
+        if calls["n"] <= 2:
+            return final_text(question)
+        last_user = [m for m in messages
+                     if m.get("role") == "user"][-1]["content"]
+        assert "already answered" in last_user
+        return final_text("Got it — warm it is. What is your budget?")
+
+    out = c.chat("test-norepeat", "hello", chat_fn=fake)
+    assert "warm, cool" in out["reply"].lower()
+    out = c.chat("test-norepeat", "warm", chat_fn=fake)
+    assert calls["n"] == 3
+    assert "budget" in out["reply"].lower()
+    assert "warm, cool, or neutral" not in out["reply"].lower()
+
+
+def test_similar_reply_threshold():
+    assert c.similar_reply("Warm, cool, or neutral?", "Warm, cool, or neutral?") >= 0.9
+    assert c.similar_reply("Warm, cool, or neutral?", "What is your budget?") < 0.9
+    assert c.similar_reply("short", "short") == 0.0
+
+
+def test_analysis_cached_per_image_hash(tmp_path, monkeypatch):
+    room = tmp_path / "room.jpg"
+    from PIL import Image as PILImage
+    PILImage.new("RGB", (64, 48), (10, 20, 30)).save(str(room))
+    calls = {"n": 0}
+
+    def fake(messages, tools=None):
+        calls["n"] += 1
+        return {"choices": [{"message": {"content": (
+            '{"room_type": "living", "wall_colors": [], '
+            '"floor": "wood", "furniture": "sofa", '
+            '"existing_fabrics": "linen", "light_level": "high", '
+            '"style": "modern"}')}}]}
+
+    monkeypatch.setattr(c, "_call_chat", fake)
+    c.ANALYSES.clear()
+    first = c.analyze_room(str(room))
+    second = c.analyze_room(str(room))
+    assert calls["n"] == 1
+    assert first == second
+    assert first["room_type"] == "living"
+
+
+def test_vision_bytes_capped(tmp_path):
+    from PIL import Image as PILImage
+    big = tmp_path / "big.jpg"
+    PILImage.new("RGB", (4000, 3000), (10, 20, 30)).save(str(big))
+    small = c.vision_jpeg_bytes(str(big))
+    assert max(PILImage.open(__import__("io").BytesIO(small)).size) <= 1024
+    assert len(small) < 4000 * 3000
