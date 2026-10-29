@@ -28,9 +28,9 @@ MAX_RETRIES = 1
 CHAT_TIMEOUT = 60
 
 # Temporary latency instrumentation. Active only with CHAT_PERF=1 in the
-# environment; writes one JSON line per model/tool/turn event to /tmp.
+# environment; one JSON line per model/tool/turn event, under the
+# Volume-backed runtime logs dir (survives redeploys on Modal).
 PERF = os.environ.get("CHAT_PERF") == "1"
-PERF_LOG = "/tmp/chat_perf.jsonl"
 
 
 def _perf(event):
@@ -38,8 +38,13 @@ def _perf(event):
         return
     event = dict(event)
     event["ts"] = time.time()
-    with open(PERF_LOG, "a") as f:
-        f.write(json.dumps(event) + "\n")
+    try:
+        from app.core.config import runtime_logs_dir
+        with open(os.path.join(runtime_logs_dir(),
+                               "chat_perf.jsonl"), "a") as f:
+            f.write(json.dumps(event) + "\n")
+    except OSError:
+        pass
 
 SYSTEM_PROMPT = """You are the ReCover consultant, a luxury fabric and \
 upholstery advisor for a premium Saudi showroom.
@@ -653,7 +658,16 @@ def empty_fallback(has_options, has_recs, lang):
     return pack.get(lang) or pack["en"]
 
 
-GROUNDING_LOG = os.path.join(BASE_DIR, "data", "grounding_log.json")
+# Overridden with a tmp path in unit tests; None means the
+# Volume-backed runtime logs dir.
+GROUNDING_LOG = None
+
+
+def _grounding_log_path():
+    if GROUNDING_LOG:
+        return GROUNDING_LOG
+    from app.core.config import runtime_logs_dir
+    return os.path.join(runtime_logs_dir(), "grounding_log.json")
 
 
 def log_grounding(session_id, bad, path, codes):
@@ -662,11 +676,12 @@ def log_grounding(session_id, bad, path, codes):
              "bad": bad or "", "path": path, "final_codes": codes or []}
     try:
         log = []
-        if os.path.exists(GROUNDING_LOG):
-            with open(GROUNDING_LOG, encoding="utf-8") as f:
+        dest = _grounding_log_path()
+        if os.path.exists(dest):
+            with open(dest, encoding="utf-8") as f:
                 log = json.load(f)
         log.append(entry)
-        with open(GROUNDING_LOG, "w", encoding="utf-8") as f:
+        with open(dest, "w", encoding="utf-8") as f:
             json.dump(log, f, ensure_ascii=False, indent=1)
     except (OSError, ValueError):
         pass

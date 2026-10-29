@@ -20,6 +20,17 @@ UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 REPORT_PATH = os.path.join(BASE_DIR, "data", "verify_report.json")
 
 
+def runtime_logs_dir():
+    """Volume-backed dir for logs written while serving.
+
+    UPLOAD_DIR is the Modal Volume mount in production, so anything
+    here survives redeploys; locally it is the gitignored uploads/.
+    """
+    path = os.path.join(UPLOAD_DIR, "logs")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
 def require_api_key():
     if not MODEL_API_KEY:
         raise RuntimeError("MODEL_API_KEY is not set in .env")
