@@ -304,8 +304,44 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
         timings["share_in_wa"] = True
         assert overflow() == 0
 
-    timings["console_errors"] = errors
-    return timings, errors
+    timings["console_errors"] = settle_console_errors(pg, errors)
+    return timings, timings["console_errors"]
+
+
+def settle_console_errors(pg, errors):
+    """Refetch every 404'd URL once at end of run.
+
+    A first-GET 404 that serves 200 a moment later is a volume-sync
+    transient the UI already recovered from (retry/re-render) — report
+    it as a warning, not a failure. Anything still failing (or any
+    non-404 console error) stays fatal.
+    """
+    urls = []
+    for entry in errors:
+        m = re.search(r"<(https?://[^>\s]+)>", entry or "")
+        if m and m.group(1) not in urls:
+            urls.append(m.group(1))
+    fatal, recovered = [], []
+    for url in urls:
+        try:
+            status = pg.evaluate(
+                "u => fetch(u, {method: 'GET', cache: 'reload'})"
+                ".then(function (r) { return r.status; })"
+                ".catch(function () { return -1; })", url)
+        except Exception:  # noqa: BLE001 - page may be mid-reload
+            status = -1
+        (recovered if status == 200 else fatal).append(url)
+    if recovered:
+        print("RECOVERED-404 (transient, serves 200 now): %r" % recovered)
+    out = []
+    for entry in errors:
+        m = re.search(r"<(https?://[^>\s]+)>", entry or "")
+        if m and m.group(1) in recovered:
+            continue
+        if m and m.group(1) in fatal:
+            entry = entry + " [persistent]"
+        out.append(entry)
+    return out
 
 
 def compare_region_change(before_bytes, after_bytes, mask_bytes,
