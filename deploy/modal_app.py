@@ -271,9 +271,10 @@ class DemoLockMiddleware:
     # NOTE: append modal.Secret.from_name("recover-whatsapp") here the
     # moment that secret exists (commit f67ab77 did; reverted because
     # a missing secret blocks every deploy). Then redeploy + verify.
-    secrets=[modal.Secret.from_name("recover-secrets")],
+    secrets=[modal.Secret.from_name("recover-secrets"),
+             modal.Secret.from_name("recover-baseten")],
     volumes={"/root/recover/uploads": vol},
-    env={"DEMO_LOCK": "1"},
+    env={"DEMO_LOCK": "1", "SPARK_OPEN_FALLBACK": "1"},
     min_containers=1,
     max_containers=1,
     timeout=900,
