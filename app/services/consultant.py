@@ -88,6 +88,13 @@ curtains, search with usage curtains so every pick is curtain-suitable. \
 After 3 recommendations for a chosen target, the top pick is applied \
 automatically; record every pick with assign_fabric. When fabrics are \
 assigned to two or more items, offer once to coordinate them.
+COST: when the user asks how many meters, how much fabric or how \
+much it will cost, call estimate_cost — never guess meters or \
+prices. For curtains with no window size yet, ask once for the \
+width and height in meters, then call estimate_cost with them. \
+Every quote is preliminary: label it "Preliminary estimate — your \
+upholsterer will measure." ("تقدير مبدئي — المقاس النهائي من المنجّد.") \
+in the user's language.
 
 RECOMMENDATIONS: only when you have gathered enough and are ready to \
 recommend, reply normally and end with one fenced block on its own lines:
@@ -366,6 +373,22 @@ TOOLS = [
                        "properties": {"target": {"type": "string"},
                                       "code": {"type": "string"}},
                        "required": ["target", "code"]}}},
+    {"type": "function", "function": {
+        "name": "estimate_cost",
+        "description": "Meters and price for an assigned fabric. Call "
+                       "this whenever the user asks how many meters, how "
+                       "much fabric, or how much it will cost — never "
+                       "guess meters or prices. For curtains, pass width_m "
+                       "and height_m when the user gives them.",
+        "parameters": {"type": "object",
+                       "properties": {
+                           "target": {"type": "string"},
+                           "code": {"type": "string"},
+                           "width_m": {"type": "number"},
+                           "height_m": {"type": "number"},
+                           "drops": {"type": "integer"},
+                           "pillows": {"type": "integer"}},
+                       "required": []}}},
 ]
 
 
@@ -970,6 +993,56 @@ def _execute_tool(name, args, turn, on_step=None):
         if target not in chosen:
             chosen.append(target)
         return {"ok": True, "target": target, "code": code}
+    if name == "estimate_cost":
+        from app.services import meterage as meterage_mod
+        session = turn.get("session")
+        if session is None:
+            session = {}
+        args = args or {}
+        target = (args.get("target") or "").lower()
+        code = args.get("code", "")
+        if not target:
+            chosen = session.get("chosen_targets", [])
+            target = chosen[0] if chosen else ""
+        if not code:
+            code = (session.get("assignments", {}) or {}).get(target, "")
+        if not code:
+            seen = [c for c in turn.get("seen", []) if get_fabric(c)]
+            code = seen[0] if seen else ""
+        fabric = get_fabric(code) if code else None
+        if not target or not fabric:
+            return {"error": "no assigned fabric yet",
+                    "hint": "recommend or assign a fabric first"}
+        if target == "curtains":
+            dims = session.setdefault("curtain_dims", {})
+            if args.get("width_m"):
+                dims["width_m"] = float(args["width_m"])
+            if args.get("height_m"):
+                dims["height_m"] = float(args["height_m"])
+            if args.get("drops"):
+                dims["drops"] = int(args["drops"])
+            if not dims.get("width_m") or not dims.get("height_m"):
+                return {"error": "needs measurements",
+                        "hint": "ask once for the window width and "
+                                "height in meters"}
+        else:
+            dims = None
+            if args.get("pillows") is not None:
+                counts = session.setdefault("pillow_counts", {})
+                counts[target] = max(0, int(args["pillows"] or 0))
+        extras = {t: n for t, n in
+                  (session.get("pillow_counts", {}) or {}).items()}
+        pillows = extras.get(target, 0)
+        meters, note = meterage_mod.estimate_item(
+            target, fabric, dims, pillow_count=pillows)
+        if meters is None:
+            return {"error": "needs measurements", "target": target,
+                    "code": code}
+        price = fabric.get("price_sar_per_m")
+        line = round(meters * price, 2) if price is not None else None
+        return {"target": target, "code": code, "meters": meters,
+                "price_sar_per_m": price, "line_total": line,
+                "currency": "SAR", "preliminary": True, "note": note}
     return {"error": "unknown tool " + str(name)}
 
 

@@ -520,5 +520,81 @@
         "type": "no_egyptian"
       }
     ]
+  },
+  {
+    "id": "cost-sofa-estimate",
+    "turns": [
+      {
+        "message": "",
+        "image": "data/samples/living.jpg"
+      },
+      {
+        "message": "the sofa please"
+      },
+      {
+        "message": "Warm beige tones, I have kids, budget 150 per meter. Recommend 3 fabrics now."
+      },
+      {
+        "message": "How many meters will I need and how much will it cost for the sofa?"
+      }
+    ],
+    "checks": [
+      {
+        "type": "recs_min_count",
+        "value": 3,
+        "turn": 2
+      },
+      {
+        "type": "reply_contains_any",
+        "values": [
+          "meter",
+          "16.5",
+          "19",
+          "SAR"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cost-sofa-estimate-ar",
+    "turns": [
+      {
+        "message": "",
+        "image": "data/samples/living.jpg"
+      },
+      {
+        "message": "الكنبة لو سمحت"
+      },
+      {
+        "message": "درجات بيج دافية، عندي أطفال، الميزانية ١٥٠ للمتر. رشّح لي ٣ أقمشة الحين."
+      },
+      {
+        "message": "كم متر أحتاج وكم بيكلف للكنبة؟"
+      }
+    ],
+    "checks": [
+      {
+        "type": "recs_min_count",
+        "value": 3,
+        "turn": 2
+      },
+      {
+        "type": "reply_contains_any",
+        "values": [
+          "متر",
+          "أمتار",
+          "16.5",
+          "١٦",
+          "ر.س"
+        ]
+      },
+      {
+        "type": "reply_lang",
+        "lang": "ar"
+      },
+      {
+        "type": "no_egyptian"
+      }
+    ]
   }
 ]

@@ -521,7 +521,16 @@ def test_multi_assign_flow(server, page):
     assert "FA-" in card
     assert "SAR" in card
     assert "$" not in card
-    assert "Meterage estimate" in card
+    assert "Preliminary estimate" in card
+    assert "Total" in card
+    assert "https://wa.me/?text=" in card
+    assert "Send to upholsterer" in card
+    assert "Copy summary" in card
+    page.click("#sheetClose")
+    page.wait_for_timeout(400)
+    page.click("#messages .sum-copy")
+    page.wait_for_timeout(500)
+    assert "Copied" in (page.text_content("#messages .sum-copy") or "")
     box = page.evaluate("() => ({sw: document.documentElement.scrollWidth,"
                         " cw: document.documentElement.clientWidth})")
     assert box["sw"] == box["cw"]
@@ -599,6 +608,10 @@ def test_multi_assign_flow_ar(server, page):
     assert "اختياراتك" in card
     assert "ر.س" in card
     assert "$" not in card
+    assert "تقدير مبدئي" in card
+    assert "الإجمالي" in card
+    assert "https://wa.me/?text=" in card
+    assert "أرسل للمنجّد" in card
     box = page.evaluate("() => ({sw: document.documentElement.scrollWidth,"
                         " cw: document.documentElement.clientWidth})")
     assert box["sw"] == box["cw"]

@@ -292,6 +292,25 @@ def clear_assignments(session_id: str):
     return {"assignments": {}}
 
 
+@router.get("/session/{session_id}/quote")
+def session_quote(session_id: str):
+    """Meterage + price for the session's assignments (LOOP 4)."""
+    from app.services import catalog as catalog_mod
+    from app.services import meterage as meterage_mod
+    session = consultant.SESSIONS.get(session_id, {})
+    assignments = session.get("assignments", {})
+    fabrics = {}
+    for code in set(assignments.values()):
+        item = catalog_mod.get_fabric(code)
+        if item:
+            fabrics[code] = item
+    res = meterage_mod.quote(assignments, fabrics,
+                             session.get("curtain_dims"),
+                             session.get("pillow_counts", {}))
+    res["preliminary"] = True
+    return res
+
+
 def _swap_target(req: SwapRequest):
     target = (req.target or "").lower()
     if target not in ("sofa", "armchair", "curtains", "cushions"):

@@ -46,6 +46,14 @@
       summaryTitle: "Your picks",
       summaryNote: "Meterage estimate and send-to-upholsterer arrive in the next update.",
       closeBrowse: "Close",
+      meterUnit: "m",
+      sarUnit: "SAR",
+      totalLabel: "Total",
+      sendUpholsterer: "Send to upholsterer",
+      copySummary: "Copy summary",
+      copiedTick: "Copied",
+      needsMeasure: "needs measurements",
+      preliminaryNote: "Preliminary estimate — your upholsterer will measure.",
       previewsTitle: "Your previews",
       crumbHome: "Home",
       crumbConsult: "Consultation",
@@ -142,6 +150,14 @@
       summaryTitle: "اختياراتك",
       summaryNote: "حساب الأمتار وإرسالها للمنجّد جايين في التحديث الجاي.",
       closeBrowse: "إغلاق",
+      meterUnit: "م",
+      sarUnit: "ر.س",
+      totalLabel: "الإجمالي",
+      sendUpholsterer: "أرسل للمنجّد",
+      copySummary: "انسخ الملخص",
+      copiedTick: "تم النسخ",
+      needsMeasure: "يحتاج مقاسات",
+      preliminaryNote: "تقدير مبدئي — المقاس النهائي من المنجّد.",
       previewsTitle: "معايناتك",
       crumbHome: "الرئيسية",
       crumbConsult: "استشارة",
@@ -1309,31 +1325,120 @@
       }).catch(function () { return { code: code }; });
   }
 
+  function fmtMeters(n) {
+    if (n === undefined || n === null) return "";
+    if (state.lang === "ar") return toArabicDigits(n) + " " + t("meterUnit");
+    return n + " " + t("meterUnit");
+  }
+
+  function fmtMoney(n) {
+    if (n === undefined || n === null) return "";
+    if (state.lang === "ar") return toArabicDigits(n) + " " + t("sarUnit");
+    return n + " " + t("sarUnit");
+  }
+
+  function waSummaryText(rows, total) {
+    var lines = rows.map(function (r) {
+      return "• " + r.target + " → " + r.name + " (" + r.code + "): " +
+        (r.meters !== undefined && r.meters !== null ?
+          r.meters + " m × " + r.price + " = " + r.line :
+          t("needsMeasure"));
+    });
+    lines.push(t("totalLabel") + " (" + t("preliminaryNote") + "): " +
+               total);
+    lines.push(t("preliminaryNote"));
+    var view = state.canvasView || "";
+    if (view) {
+      var origin = "";
+      try { origin = window.location.origin; } catch (e) {}
+      lines.push(origin + "/" + view.replace(/^\/+/, ""));
+    }
+    return lines.join("\n");
+  }
+
   function postSummaryCard(results) {
     return Promise.all(results.map(function (r) {
       return metaFor(r.code);
     })).then(function (metas) {
-      var rows = results.map(function (r, i) {
-        var meta = metas[i] || { code: r.code };
-        var name = state.lang === "ar" ? (meta.name_ar || meta.code)
-                                       : (meta.name_en || meta.code);
-        return '<div class="sum-row"><img class="swap-thumb" src="/' +
-          esc((r.result_url || "").replace(/^\/+/, "")) + '" alt="' +
-          esc(name) + '" data-code="' + esc(r.code) + '">' +
-          "<div><div><b>" + esc(targetLabel(r.target)) + "</b> → " +
-          esc(name) + "</div><div>" + esc(r.code) +
-          (meta.price !== undefined ? " · " + esc(formatPrice(meta.price))
-                                    : "") + "</div></div></div>";
-      }).join("");
-      var div = document.createElement("div");
-      div.className = "msg them";
-      div.innerHTML = AVATAR + '<div dir="auto"><div class="sum-card">' +
-        "<b>" + esc(t("summaryTitle")) + "</b>" + rows +
-        '<p class="coming">' + esc(t("summaryNote")) + "</p>" +
-        "</div></div>";
-      messagesEl.appendChild(div);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-      icons();
+      return fetchReq("/api/session/" +
+                       encodeURIComponent(state.sessionId) + "/quote",
+                       { method: "GET", timeoutMs: 30000, retries: 1 })
+        .catch(function () { return null; })
+        .then(function (quote) {
+          var byTarget = {};
+          (quote && quote.items || []).forEach(function (it) {
+            byTarget[it.target] = it;
+          });
+          var waRows = [];
+          var rows = results.map(function (r, i) {
+            var meta = metas[i] || { code: r.code };
+            var name = state.lang === "ar" ? (meta.name_ar || meta.code)
+                                           : (meta.name_en || meta.code);
+            var q = byTarget[r.target] || {};
+            var bits = esc(r.code) +
+              (meta.price !== undefined ?
+                " · " + esc(formatPrice(meta.price)) : "");
+            if (q.meters !== undefined && q.meters !== null) {
+              bits += " · " + esc(fmtMeters(q.meters));
+              if (q.line_total !== undefined && q.line_total !== null) {
+                bits += " · " + esc(fmtMoney(q.line_total));
+              }
+            } else if (quote) {
+              bits += " · " + esc(t("needsMeasure"));
+            }
+            waRows.push({ target: targetLabel(r.target), name: name,
+                          code: r.code,
+                          meters: q.meters, price: meta.price,
+                          line: q.line_total });
+            return '<div class="sum-row"><img class="swap-thumb" src="/' +
+              esc((r.result_url || "").replace(/^\/+/, "")) + '" alt="' +
+              esc(name) + '" data-code="' + esc(r.code) + '">' +
+              "<div><div><b>" + esc(targetLabel(r.target)) + "</b> → " +
+              esc(name) + "</div><div>" + bits + "</div></div></div>";
+          }).join("");
+          var extra = "";
+          var waText = "";
+          if (quote && quote.items && quote.items.length) {
+            extra = '<div class="sum-total"><b>' + esc(t("totalLabel")) +
+              "</b> " + esc(fmtMoney(quote.total)) + "</div>" +
+              '<p class="coming">' + esc(t("preliminaryNote")) + "</p>";
+            waText = waSummaryText(waRows, fmtMoney(quote.total));
+          }
+          var div = document.createElement("div");
+          div.className = "msg them";
+          div.innerHTML = AVATAR + '<div dir="auto"><div class="sum-card">' +
+            "<b>" + esc(t("summaryTitle")) + "</b>" + rows + extra +
+            (waText ?
+              '<div class="sum-actions"><a class="seeit" target="_blank" ' +
+              'rel="noopener" href="https://wa.me/?text=' +
+              encodeURIComponent(waText) + '"><span>' +
+              esc(t("sendUpholsterer")) + "</span></a>" +
+              '<button type="button" class="ghost-btn sum-copy"><span>' +
+              esc(t("copySummary")) + "</span></button></div>" : "") +
+            "</div></div>";
+          messagesEl.appendChild(div);
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+          var copyBtn = div.querySelector(".sum-copy");
+          if (copyBtn) {
+            copyBtn.addEventListener("click", function () {
+              var done = function () {
+                copyBtn.querySelector("span").textContent = t("copiedTick");
+              };
+              if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(waText).then(done, done);
+              } else {
+                var ta = document.createElement("textarea");
+                ta.value = waText;
+                document.body.appendChild(ta);
+                try { ta.select(); document.execCommand("copy"); }
+                catch (e) {}
+                document.body.removeChild(ta);
+                done();
+              }
+            });
+          }
+          icons();
+        });
     });
   }
 
