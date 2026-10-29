@@ -176,6 +176,23 @@
         "reply_lang PASS (got ar)",
         "no_egyptian PASS (saudi dialect)"
       ]
+    },
+    {
+      "id": "curtains-only-photo",
+      "pass": true,
+      "detail": [
+        "reply_nonempty PASS (reply has prose)",
+        "targets_chosen PASS (chosen ['curtains'])",
+        "recs_min_count PASS (3 recs)"
+      ]
+    },
+    {
+      "id": "undecodable-photo",
+      "pass": true,
+      "detail": [
+        "reply_nonempty PASS (reply has prose)",
+        "recs_max_count PASS (0 recs (max 0))"
+      ]
     }
   ]
 }
