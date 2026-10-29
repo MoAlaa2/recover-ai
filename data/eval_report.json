@@ -138,6 +138,44 @@
         "declined PASS (declined)",
         "not_declined PASS (continued)"
       ]
+    },
+    {
+      "id": "multi-sofa-cushions",
+      "pass": true,
+      "detail": [
+        "reply_nonempty PASS (reply has prose)",
+        "targets_chosen PASS (chosen ['curtains', 'cushions', 'sofa'])",
+        "recs_min_count PASS (3 recs)"
+      ]
+    },
+    {
+      "id": "multi-sofa-cushions-ar",
+      "pass": true,
+      "detail": [
+        "reply_nonempty PASS (reply has prose)",
+        "targets_chosen PASS (chosen ['curtains', 'cushions', 'sofa'])",
+        "recs_min_count PASS (3 recs)",
+        "reply_lang PASS (got ar)",
+        "no_egyptian PASS (saudi dialect)"
+      ]
+    },
+    {
+      "id": "cost-sofa-estimate",
+      "pass": true,
+      "detail": [
+        "recs_min_count PASS (3 recs)",
+        "reply_contains_any PASS (mentioned)"
+      ]
+    },
+    {
+      "id": "cost-sofa-estimate-ar",
+      "pass": true,
+      "detail": [
+        "recs_min_count PASS (3 recs)",
+        "reply_contains_any PASS (mentioned)",
+        "reply_lang PASS (got ar)",
+        "no_egyptian PASS (saudi dialect)"
+      ]
     }
   ]
 }

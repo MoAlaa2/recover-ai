@@ -81,11 +81,15 @@ Streaming chat and swap progress run over SSE.
 
 ## Quality
 
-- **Unit tests** — 80 tests (`tests/`), covering grounding fallback,
-  receipts honesty, streaming fences, swap composite/codec and voice.
+- **Unit tests** — 180 tests (`tests/`): grounding fallback,
+  receipts honesty, streaming fences, swap composite/codec, voice,
+  multi-object assignment, meterage/quote, sourced CO₂, WhatsApp
+  mapping, plus headless WebKit (iPhone 15 Pro, EN+AR) chat and
+  overflow suites.
 - **Scenario eval** — `scripts/eval_scenarios.py` + `data/scenarios.json`
-  (16 scripted multi-turn scenarios incl. Arabic/Hindi/French/Spanish
-  replies and off-topic guarding). Last full run: **16/16**.
+  (20 scripted multi-turn scenarios incl. Arabic/Hindi/French/Spanish
+  replies, off-topic guarding, multi-object photo turns and meterage
+  questions in EN+AR). Last full run: **20/20**.
 - **Self-correcting catalog loop** — every swatch is vision-scored
   against its spec; weak prompts are rewritten and regenerated
   automatically (`scripts/fix_catalog.py`, log in `data/fix_log.json`).

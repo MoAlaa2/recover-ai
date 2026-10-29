@@ -225,3 +225,6 @@ results/
 data/grounding_log.json
 data/eval_report_partial.json
 docs/HANDOFF.md
+
+# Overnight-run morning report (local only)
+docs/MORNING_REPORT.md
