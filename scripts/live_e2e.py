@@ -198,6 +198,16 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
 
     if try_single:
         t2 = time.perf_counter()
+        # A stray open sheet (fixed overlay) would cover the chat card
+        # button for real taps too; close it before trying.
+        if pg.evaluate("() => document.body.classList.contains("
+                       "'sheet-open')"):
+            try:
+                pg.click("#sheetClose", timeout=5000)
+            except Exception:
+                pg.evaluate("() => document.body.classList.remove("
+                            "'sheet-open')")
+            pg.wait_for_timeout(500)
         once_try = lambda: pg.click(  # noqa: E731
             "#messages .mini-try >> nth=0")
         once_try()
@@ -210,8 +220,13 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
     if want_multi:
         if not desktop:
             pg.click("#roomView")
-        pg.wait_for_selector("#assignRow:not([hidden])",
-                             timeout=60000)
+        try:
+            pg.wait_for_selector("#assignRow:not([hidden])",
+                                 timeout=60000)
+        except Exception:
+            print("ASSIGN-ERRORS %r" % (errors,))
+            dump_state(pg, lang + "-" + tag, "no-assign")
+            raise
         assert pg.eval_on_selector_all(
             "#assignRow .assign-chip", "e => e.length") >= 1
         at = pg.eval_on_selector(
