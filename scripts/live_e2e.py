@@ -104,8 +104,12 @@ def wait_swap(pg, tag, trigger, timeout=300000):
 
 
 def run_phase(pg, lang, tag, photo, all_words, fallback_text,
-              want_multi, try_single=True):
-    """One photo session. Returns timings dict."""
+              want_multi, try_single=True, needles=None):
+    """One photo session. Returns timings dict.
+
+    lang doubles as the ?lang= code (en has no suffix). needles
+    overrides the summary-card assertions for other languages.
+    """
     timings = {}
     errors = []
     def _console(m):
@@ -134,7 +138,8 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
             "() => document.documentElement.scrollWidth - "
             "document.documentElement.clientWidth")
 
-    url = DEPLOYED + "/consult" + ("?lang=ar" if lang == "ar" else "")
+    url = DEPLOYED + "/consult" + ("" if lang == "en"
+                                       else "?lang=" + lang)
     pg.goto(url, wait_until="networkidle", timeout=90000)
     pg.wait_for_selector("#welcomeMsg", timeout=30000)
     assert overflow() == 0
@@ -250,13 +255,14 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
             need_epd = quote.get("co2", {}).get("kg", 0) > 0
         except Exception:
             need_epd = True
-        needles = (["SAR", "Total", "Preliminary estimate",
-                    "https://wa.me/?text="]
-                   + (["EPD NEPD-1805-759"] if need_epd else [])
-                   if lang == "en" else
-                   ["ر.س", "الإجمالي", "تقدير مبدئي",
-                    "https://wa.me/?text="]
-                   + (["EPD NEPD-1805-759"] if need_epd else []))
+        if needles is None:
+            needles = (["SAR", "Total", "Preliminary estimate",
+                        "https://wa.me/?text="]
+                       if lang == "en" else
+                       ["ر.س", "الإجمالي", "تقدير مبدئي",
+                        "https://wa.me/?text="])
+        if need_epd and "EPD NEPD-1805-759" not in needles:
+            needles = needles + ["EPD NEPD-1805-759"]
         for needle in needles:
             assert needle in card, "summary missing: %s" % needle
         assert "$" not in card
