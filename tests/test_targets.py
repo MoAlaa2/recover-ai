@@ -53,7 +53,8 @@ def test_masks_subtract_cushions_from_sofa(monkeypatch, tmp_path):
         return [{"concept": concept}]
 
     def fake_sam(records, size):
-        if records[0]["concept"] == "cushions":
+        if "cushion" in records[0]["concept"] \
+                or "pillow" in records[0]["concept"]:
             mask = Image.new("L", size, 0)
             for x in range(10, 20):
                 for y in range(10, 20):
@@ -80,6 +81,29 @@ def test_masks_subtract_cushions_from_sofa(monkeypatch, tmp_path):
     # Cushion area was subtracted from the sofa mask.
     assert sofa_mask.getpixel((15, 15)) == 0
     assert sofa_mask.getpixel((0, 0)) == 255
+
+
+def test_masks_fall_back_to_raw_concept(monkeypatch, tmp_path):
+    room = tmp_path / "room.jpg"
+    Image.new("RGB", (40, 30), (200, 180, 160)).save(str(room))
+    monkeypatch.setattr(t, "require_api_key", lambda: "k")
+    monkeypatch.setattr(t, "UPLOAD_DIR", str(tmp_path))
+    monkeypatch.setattr(t, "list_types", lambda path: ["cushions"])
+    calls = []
+
+    def fake_segment(room_bytes, concept, key):
+        calls.append(concept)
+        if concept == "cushions":
+            return [{"concept": concept}]
+        return []
+
+    monkeypatch.setattr(t, "segment", fake_segment)
+    monkeypatch.setattr(
+        t, "sam_mask", lambda records, size: Image.new("L", size, 255))
+    by_id = {item["id"]: item
+             for item in t.detect_targets(str(room))}
+    assert set(by_id) == {"cushions"}
+    assert calls == ["throw pillows on the sofa", "cushions"]
 
 
 def test_component_boxes_ignore_specks():

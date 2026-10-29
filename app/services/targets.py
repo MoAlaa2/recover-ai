@@ -171,6 +171,19 @@ def count_components(mask, min_area_frac=0.005):
     return blobs
 
 
+# SAM text prompts for the taps/counting path. Bare words ("cushions")
+# let SAM flood the whole room on slipcovered/sample photos; naming the
+# object precisely segments the item instead. The swap pipeline keeps
+# the raw concept (its change-map intersection already pastes only
+# what the edit changed), so tap masks and swap masks may differ
+# slightly by design.
+CONCEPT_PROMPTS = {
+    "sofa": "sofa",
+    "cushions": "throw pillows on the sofa",
+    "curtains": "window curtains",
+}
+
+
 def masks_for(image_path, types, api_key=None):
     """Segment each type. Returns {type: PIL mask}, sofa minus cushions."""
     key = api_key or require_api_key()
@@ -183,10 +196,17 @@ def masks_for(image_path, types, api_key=None):
     for target in types:
         if target not in TARGET_TYPES:
             continue
+        records = []
         try:
-            records = segment(room_bytes, target, key)
-        except Exception:  # noqa: BLE001 - one missing item skips
-            continue
+            records = segment(room_bytes,
+                              CONCEPT_PROMPTS.get(target, target), key)
+        except Exception:  # noqa: BLE001 - fallback below
+            records = []
+        if not records and CONCEPT_PROMPTS.get(target) != target:
+            try:
+                records = segment(room_bytes, target, key)
+            except Exception:  # noqa: BLE001 - one missing item skips
+                records = []
         if not records:
             continue
         try:
