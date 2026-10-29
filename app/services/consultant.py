@@ -78,6 +78,17 @@ their photo, call preview_fabric with a real code from your tool results \
 — never describe an imaginary preview. If no photo has been shared yet, \
 ask for one and mention the sample rooms.
 
+MULTI-ITEM: when a photo turn lists several changeable items (sofa, \
+cushions, curtains), first ask which to change — "I can see a sofa, \
+cushions and curtains — what would you like to change?" — with one \
+option per item plus All and Just show me. A tap, a chip and a voice \
+answer mean the same thing. Ask only the missing needs for the chosen \
+type; if they say Just show me, skip the questions. When the user picks \
+curtains, search with usage curtains so every pick is curtain-suitable. \
+After 3 recommendations for a chosen target, the top pick is applied \
+automatically; record every pick with assign_fabric. When fabrics are \
+assigned to two or more items, offer once to coordinate them.
+
 RECOMMENDATIONS: only when you have gathered enough and are ready to \
 recommend, reply normally and end with one fenced block on its own lines:
 ```recommendations
@@ -345,6 +356,16 @@ TOOLS = [
                        "properties": {"code": {"type": "string"},
                                       "target": {"type": "string"}},
                        "required": ["code"]}}},
+    {"type": "function", "function": {
+        "name": "assign_fabric",
+        "description": "Record which fabric goes on which item "
+                       "(sofa, cushions or curtains). Call it for every "
+                       "pick the user confirms, including the auto-applied "
+                       "top pick.",
+        "parameters": {"type": "object",
+                       "properties": {"target": {"type": "string"},
+                                      "code": {"type": "string"}},
+                       "required": ["target", "code"]}}},
 ]
 
 
@@ -893,6 +914,9 @@ def execute_tool(name, args, turn, on_step=None):
 def _execute_tool(name, args, turn, on_step=None):
     if name == "search_catalog":
         turn["searched"] = True
+        if turn.get("curtains_only"):
+            args = dict(args or {})
+            args["usage"] = "curtains"
         if on_step:
             on_step("search")
             snag = [f for f in _as_list((args or {}).get("snag_levels"))]
@@ -929,6 +953,23 @@ def _execute_tool(name, args, turn, on_step=None):
         turn["preview"] = {"code": code,
                            "target": (args or {}).get("target") or ""}
         return {"ok": True, "code": code}
+    if name == "assign_fabric":
+        from app.services import targets as targets_mod
+        target = (args or {}).get("target", "")
+        code = (args or {}).get("code", "")
+        if target not in targets_mod.TARGET_TYPES:
+            return {"error": "unknown target",
+                    "targets": list(targets_mod.TARGET_TYPES)}
+        if not get_fabric(code):
+            return {"error": "unknown code"}
+        session = turn.get("session")
+        if session is None:
+            session = {}
+        session.setdefault("assignments", {})[target] = code
+        chosen = session.setdefault("chosen_targets", [])
+        if target not in chosen:
+            chosen.append(target)
+        return {"ok": True, "target": target, "code": code}
     return {"error": "unknown tool " + str(name)}
 
 
@@ -1185,6 +1226,29 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     if image_path:
         session["image_path"] = image_path
     turn["image"] = image_path or session.get("image_path")
+    turn["session"] = session
+    from app.services import targets as targets_mod
+    available = session.get("available_targets", [])
+    if image_path and not available:
+        try:
+            available = targets_mod.available_types(image_path)
+        except Exception:  # noqa: BLE001 - detection must not break chat
+            available = []
+        session["available_targets"] = available
+    chosen, choice_flags = targets_mod.match_targets(
+        message, available) if available else ([], {})
+    if chosen:
+        session["chosen_targets"] = chosen
+    turn["chosen_targets"] = session.get("chosen_targets", [])
+    turn["skip_needs"] = bool(choice_flags.get("skip"))
+    turn["curtains_only"] = (session.get("chosen_targets", [])
+                             == ["curtains"])
+    if available and not session.get("chosen_targets"):
+        user_text += ("\n[Visible changeable items: %s. Ask which to "
+                      "change first.]" % ", ".join(available))
+    elif session.get("chosen_targets"):
+        user_text += ("\n[Chosen items: %s.]" % ", ".join(
+            session["chosen_targets"]))
     confirm = ""
     if image_path:
         path = image_path if os.path.isabs(image_path) else \
@@ -1333,6 +1397,10 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
               "recommendations": enriched_early,
               "options": options,
               "preview": turn.get("preview"),
+              "targets": {"available": session.get("available_targets",
+                                                    []),
+                          "chosen": session.get("chosen_targets", []),
+                          "assignments": session.get("assignments", {})},
               "detected_lang": session.get("lang")}
     if room_analysis is not None:
         result["room_analysis"] = room_analysis

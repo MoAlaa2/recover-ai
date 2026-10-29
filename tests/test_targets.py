@@ -108,3 +108,16 @@ def test_targets_endpoint_missing_image():
     resp = client.get("/api/session/t-sess-2/targets",
                       params={"image_path": "uploads/nope.jpg"})
     assert resp.status_code == 400
+
+
+def test_match_targets_choice_words():
+    avail = ["sofa", "cushions", "curtains"]
+    assert t.match_targets("the curtains please", avail) == (
+        ["curtains"], {})
+    assert t.match_targets("الكنبة", avail) == (["sofa"], {})
+    assert t.match_targets("all of them", avail) == (avail, {"all": True})
+    chosen, flags = t.match_targets("just show me", avail)
+    assert chosen == avail and flags == {"skip": True}
+    assert t.match_targets("something else", avail) == ([], {})
+    assert t.match_targets("sofa and curtains", avail) == (
+        ["sofa", "curtains"], {})

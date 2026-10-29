@@ -843,6 +843,8 @@ def test_preview_fabric_needs_seen_code_and_photo(tmp_path, monkeypatch):
         "room_type": "living", "wall_colors": [], "floor": "wood",
         "furniture": "a fabric sofa", "existing_fabrics": "linen",
         "light_level": "high", "style": "modern"})
+    monkeypatch.setattr("app.services.targets.available_types",
+                        lambda *a, **k: ["sofa", "curtains"])
     calls = {"n": 0}
 
     def fake(messages, tools=None):
@@ -889,6 +891,55 @@ def test_similar_reply_threshold():
     assert c.similar_reply("Warm, cool, or neutral?", "Warm, cool, or neutral?") >= 0.9
     assert c.similar_reply("Warm, cool, or neutral?", "What is your budget?") < 0.9
     assert c.similar_reply("short", "short") == 0.0
+
+
+def test_assign_fabric_records_choice():
+    session = {}
+    out = c.execute_tool("assign_fabric",
+                         {"target": "sofa", "code": "FA-AC-01"},
+                         {"session": session, "seen": []})
+    assert out == {"ok": True, "target": "sofa", "code": "FA-AC-01"}
+    assert session["assignments"] == {"sofa": "FA-AC-01"}
+    assert session["chosen_targets"] == ["sofa"]
+    bad = c.execute_tool("assign_fabric",
+                         {"target": "lamp", "code": "FA-AC-01"},
+                         {"session": {}, "seen": []})
+    assert bad["error"] == "unknown target"
+    bad2 = c.execute_tool("assign_fabric",
+                         {"target": "sofa", "code": "NOPE"},
+                         {"session": {}, "seen": []})
+    assert bad2["error"] == "unknown code"
+
+
+def test_chosen_targets_and_curtains_usage(tmp_path, monkeypatch):
+    room = tmp_path / "room.jpg"
+    from PIL import Image as PILImage
+    PILImage.new("RGB", (64, 48), (10, 20, 30)).save(str(room))
+    monkeypatch.setattr(c, "analyze_room", lambda *a, **k: {
+        "room_type": "living", "wall_colors": [], "floor": "wood",
+        "furniture": "curtains", "existing_fabrics": "linen",
+        "light_level": "high", "style": "modern"})
+    monkeypatch.setattr("app.services.targets.available_types",
+                        lambda *a, **k: ["sofa", "curtains"])
+    search_args = []
+    asked = {"n": 0}
+
+    def fake(messages, tools=None):
+        asked["n"] += 1
+        if asked["n"] == 1:
+            return tool_call("search_catalog", {"usage": "upholstery"})
+        return final_text("Here are curtain picks.")
+
+    def spy_search(args, turn):
+        search_args.append(dict(args))
+        return {"fabrics": [{"code": "FA-AC-01"}], "relaxed": [],
+                "relaxed_constraints": []}
+
+    monkeypatch.setattr(c, "run_search", spy_search)
+    out = c.chat("test-curtains-only", "curtains please",
+                 image_path=str(room), chat_fn=fake)
+    assert out["targets"]["chosen"] == ["curtains"]
+    assert search_args and search_args[-1].get("usage") == "curtains"
 
 
 def test_analysis_cached_per_image_hash(tmp_path, monkeypatch):

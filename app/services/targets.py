@@ -28,6 +28,57 @@ TARGET_LABELS = {
     "curtains": ("Curtains", "الستائر"),
 }
 
+CHOICE_WORDS = {
+    "sofa": ("sofa", "كنبة", "كنبه", "sofas"),
+    "cushions": ("cushion", "cushions", "pillow", "pillows", "وسائد",
+                 "وساده", "مخدات", "مخدة"),
+    "curtains": ("curtain", "curtains", "drape", "drapes", "ستائر",
+                 "ستاره", "ستارة", "sheer", "blackout"),
+}
+ALL_WORDS = ("all", "everything", "كل", "كلهم", "both", "الكل")
+SKIP_WORDS = ("just show me", "skip", "show me", "وريني", "تخط",
+              "بدون أسئلة", "no questions")
+
+
+def match_targets(message, available):
+    """Map a choice reply onto available targets.
+
+    Returns (chosen list, flags). "All" expands to every available
+    target; "Just show me" sets the skip flag. No match → ([], {}).
+    """
+    text = (message or "").lower()
+    if any(w in text for w in SKIP_WORDS):
+        return list(available), {"skip": True}
+    if any(w in text for w in ALL_WORDS):
+        return list(available), {"all": True}
+    chosen = [t for t in available
+              if any(w in text for w in CHOICE_WORDS.get(t, ()))]
+    if chosen:
+        return chosen, {}
+    return [], {}
+
+
+TARGETS_CACHE = {}
+MAX_TARGETS_CACHE = 50
+
+
+def _image_key(path):
+    import hashlib
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def available_types(image_path, api_key=None):
+    """Cached list_types: which targets are visible in this photo."""
+    path = image_path if os.path.isabs(image_path) else \
+        os.path.join(BASE_DIR, image_path)
+    key = _image_key(path)
+    if key not in TARGETS_CACHE:
+        if len(TARGETS_CACHE) >= MAX_TARGETS_CACHE:
+            TARGETS_CACHE.pop(next(iter(TARGETS_CACHE)))
+        TARGETS_CACHE[key] = list_types(image_path, api_key)
+    return TARGETS_CACHE[key]
+
 LIST_TIMEOUT = 60
 
 
