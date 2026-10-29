@@ -90,3 +90,37 @@ def test_declined_and_coordinated():
         {"type": "coordinated", "scope": "all"},
         turns("", ["FA-NL-02"]) + turns("", ["FA-LA-01"]), None)
     assert ok
+
+
+def test_hypo_receipt_discloses():
+    t = [{"reply": "Here are 3 picks.", "codes": ["FA-NL-01"],
+          "receipts": ["Eased: hypoallergenic"]}]
+    ok, info = ev.check({"type": "hypo_or_disclosed"}, t, None)
+    assert ok and info == "receipt disclosed"
+
+
+def test_hypo_silent_everywhere_fails():
+    t = [{"reply": "Here are 3 picks.", "codes": ["FA-NL-01"],
+          "receipts": ["Matches: budget"]}]
+    ok, info = ev.check({"type": "hypo_or_disclosed"}, t, None)
+    assert not ok and info == "not disclosed"
+
+
+def test_hypo_reply_disclosure_still_passes():
+    t = [{"reply": "I eased the requirements.", "codes": ["FA-NL-01"],
+          "receipts": []}]
+    ok, _ = ev.check({"type": "hypo_or_disclosed"}, t, None)
+    assert ok
+
+
+def test_receipt_contains_any():
+    t = [{"reply": "Here are picks.", "codes": ["FA-VL-06"],
+          "receipts": ["Eased: budget (+85 SAR)"]}]
+    ok, _ = ev.check({"type": "receipt_contains_any",
+                      "values": ["budget", "الميزانية"]}, t, None)
+    assert ok
+    t2 = [{"reply": "Here are picks.", "codes": ["FA-VL-06"],
+           "receipts": ["Matches: tone"]}]
+    ok, info = ev.check({"type": "receipt_contains_any",
+                         "values": ["budget", "الميزانية"]}, t2, None)
+    assert not ok and info == "not on cards"

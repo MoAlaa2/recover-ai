@@ -107,6 +107,14 @@ def check(check, turns, specs):
     if ctype == "reply_contains_any":
         ok = any(v in reply for v in check["values"])
         return ok, "none mentioned" if not ok else "mentioned"
+    if ctype == "receipt_contains_any":
+        # Budget/need disclosure lives on the card receipt by design
+        # (prose must not repeat it on rec turns).
+        recs = turns[idx].get("receipts", []) \
+            if idx < len(turns) else []
+        joined = " ".join(r for r in recs if r)
+        ok = any(v in joined for v in check["values"])
+        return ok, "not on cards" if not ok else "on cards"
     if ctype == "reply_lang":
         got = detect_lang(reply)
         return got == check["lang"], "got %s" % got
@@ -149,6 +157,13 @@ def check(check, turns, specs):
         low = reply.lower()
         if any(w in low or w in reply for w in DISCLOSURE_WORDS):
             return True, "relaxation disclosed"
+        # Cards carry the one-line receipt on rec turns (prose must
+        # not repeat it), so a receipt naming the need discloses too.
+        recs = turns[idx].get("receipts", []) \
+            if idx < len(turns) else []
+        joined = " ".join(r for r in recs if r).lower()
+        if "hypoallergenic" in joined or "للحساسية" in joined:
+            return True, "receipt disclosed"
         return False, "not disclosed"
     if ctype == "lux_or_jacquard":
         bad = [i["code"] for i in items
@@ -186,6 +201,8 @@ def run_turns(sid, messages):
         turns.append({"reply": out["reply"],
                       "codes": [r["code"] for r in
                                 out["recommendations"]],
+                      "receipts": [r.get("receipt", "") for r in
+                                   out["recommendations"]],
                       "targets": out.get("targets", {})})
     return turns
 

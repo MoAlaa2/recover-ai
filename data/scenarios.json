@@ -279,11 +279,10 @@
     ],
     "checks": [
       {
-        "type": "reply_contains_any",
+        "type": "receipt_contains_any",
         "values": [
           "budget",
-          "الميزانية",
-          "60"
+          "الميزانية"
         ]
       }
     ]
