@@ -1100,7 +1100,11 @@
     var dw = rw * scale, dh = rh * scale;
     var ox = (ew - dw) / 2, oy = (eh - dh) / 2;
     function pct(x, base) { return (x / base * 100) + "%"; }
-    state.outlines.forEach(function (o) {
+    // Largest first so the smallest tap region stays clickable.
+    var ordered = state.outlines.slice().sort(function (a, b) {
+      return boxArea(b) - boxArea(a);
+    });
+    ordered.forEach(function (o) {
       var box = o.box || [0, 0, rw, rh];
       var fill = document.createElement("div");
       fill.className = "ol-fill" +
@@ -2348,12 +2352,18 @@
     maybeAutoPreview(res);
   }
 
+  function boxArea(o) {
+    var box = o.box || [0, 0, 0, 0];
+    return Math.max(0, (box[2] - box[0]) * (box[3] - box[1]));
+  }
+
   function postOutlineMessage() {
     // After the photo is analyzed, post the photo itself into the chat
-    // with tappable item regions, once per image.
+    // with tappable item regions, once per image. Largest first so the
+    // smallest region stays on top where boxes overlap.
     var avail = (state.outlines || []).filter(function (o) {
       return o && o.id && o.box && o.size;
-    });
+    }).sort(function (a, b) { return boxArea(b) - boxArea(a); });
     if (!avail.length || !state.roomPhoto) return;
     if (state.outlinePostedFor === state.roomPhoto) return;
     var src = "/" + String(state.roomPhoto).replace(/^\/+/, "");
