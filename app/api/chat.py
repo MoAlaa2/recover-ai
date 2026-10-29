@@ -182,12 +182,39 @@ def _wait_for_image(path, tries=4):
     return os.path.exists(path)
 
 
-def _check_image(image_path):
-    path = image_path if os.path.isabs(image_path) else os.path.join(
-        BASE_DIR, image_path)
-    if not _wait_for_image(path):
+IMAGE_MAX_BYTES = 20 * 1024 * 1024
+SAMPLES_DIR = os.path.join(BASE_DIR, "data", "samples")
+
+
+def resolve_client_image(image_path):
+    """Allow-listed, size-capped resolution of a client image_path.
+
+    Real path must sit under the uploads dir or the samples dir, and
+    the file must exist within the size cap. Absolute paths, `..`
+    escapes and special files (/dev/zero would OOM a naive reader)
+    all fail closed with the same generic 400. Nothing is read here.
+    """
+    raw = (image_path or "").strip()
+    if not raw:
         raise HTTPException(400, "image not found")
-    return path
+    joined = raw if os.path.isabs(raw) else os.path.join(BASE_DIR, raw)
+    real = os.path.realpath(joined)
+    allowed = (os.path.realpath(UPLOAD_DIR), os.path.realpath(SAMPLES_DIR))
+    if not any(real == base or real.startswith(base + os.sep)
+               for base in allowed):
+        raise HTTPException(400, "image not found")
+    if not _wait_for_image(real):
+        raise HTTPException(400, "image not found")
+    try:
+        if os.path.getsize(real) > IMAGE_MAX_BYTES:
+            raise HTTPException(400, "image not found")
+    except OSError:
+        raise HTTPException(400, "image not found")
+    return real
+
+
+def _check_image(image_path):
+    return resolve_client_image(image_path)
 
 
 def _check_assignments(raw):
@@ -457,10 +484,7 @@ def session_targets(session_id: str, image_path: str = ""):
         return cached
     if not image_path:
         raise HTTPException(400, "image_path is required")
-    path = image_path if os.path.isabs(image_path) else \
-        os.path.join(BASE_DIR, image_path)
-    if not _wait_for_image(path):
-        raise HTTPException(400, "image not found")
+    resolve_client_image(image_path)
     try:
         items = targets_mod.detect_targets(image_path)
     except RuntimeError as exc:
@@ -563,10 +587,7 @@ def swap_stream(req: SwapRequest):
 @router.post("/chat")
 def chat(req: ChatRequest):
     if req.image_path:
-        path = req.image_path if os.path.isabs(req.image_path) else \
-            os.path.join(BASE_DIR, req.image_path)
-        if not _wait_for_image(path):
-            raise HTTPException(400, "image not found")
+        resolve_client_image(req.image_path)
     try:
         return consultant.chat(req.session_id, req.message,
                                req.image_path, lang=req.lang)
@@ -586,10 +607,7 @@ def chat_stream(req: ChatRequest):
     or {"type": "error", ...} on failure.
     """
     if req.image_path:
-        path = req.image_path if os.path.isabs(req.image_path) else \
-            os.path.join(BASE_DIR, req.image_path)
-        if not _wait_for_image(path):
-            raise HTTPException(400, "image not found")
+        resolve_client_image(req.image_path)
     events = queue.Queue()
 
     def run():

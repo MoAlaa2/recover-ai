@@ -615,6 +615,8 @@
     pendingSwapCode: null,
     pendingSwap: null,
     pendingSwapLabel: null,
+    swapSeq: 0,
+    swapController: null,
     canvasView: null,
     lastSwap: null,
     outlines: [],
@@ -1380,7 +1382,7 @@
         renderAssignRow();
         renderOutlines();
       }).catch(function () {});
-    openSwap(code, { target: tg });
+    tryFabric(code, tg);
   }
 
   function showSwapStep(label, model) {
@@ -1394,6 +1396,8 @@
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
+  var MULTI_DEADLINE_MS = 115000;
+
   function runMultiSwap() {
     var list = Object.keys(state.assignments).map(function (k) {
       return { target: k, code: state.assignments[k] };
@@ -1402,36 +1406,62 @@
     state.multiRunning = true;
     pendingBubble();
     showSwapStep("segment");
-    var reader = null;
+    var reader = null, settled = false, gotDone = false;
+    var ctrl = null, watchdog = null;
+    function multiFail(timedOut) {
+      if (settled) return;
+      settled = true;
+      if (watchdog) clearTimeout(watchdog);
+      state.multiRunning = false;
+      try { if (reader) reader.cancel(); } catch (e) {}
+      try { if (ctrl) ctrl.abort(); } catch (e) {}
+      dropPending();
+      addMsg(timedOut ? t("swapTimeout") : t("swapFail"), "them");
+    }
+    function multiDone(result) {
+      if (settled) return;
+      settled = true;
+      gotDone = true;
+      if (watchdog) clearTimeout(watchdog);
+      try { if (reader) reader.cancel(); } catch (e) {}
+      finalizeMulti(result || {});
+    }
     try {
-      fetch("/api/swap/multi/stream", {
+      if (typeof AbortController !== "undefined") {
+        ctrl = new AbortController();
+        watchdog = setTimeout(function () { multiFail(true); },
+                              MULTI_DEADLINE_MS);
+      }
+      var init = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_id: state.sessionId,
                                image_path: state.roomPhoto,
                                assignments: list })
-      }).then(function (r) {
+      };
+      if (ctrl) init.signal = ctrl.signal;
+      fetch("/api/swap/multi/stream", init).then(function (r) {
+        if (settled) return;
         if (!r.ok || !r.body) throw new Error("HTTP " + r.status);
         reader = r.body.getReader();
         var dec = new TextDecoder();
         var buf = "";
         function onEvt(evt) {
+          if (settled) return;
           if (evt.type === "step") {
             showSwapStep(evt.label, evt.model);
           } else if (evt.type === "done") {
-            try { reader.cancel(); } catch (e) {}
-            finalizeMulti(evt.result || {});
+            multiDone(evt.result);
           } else if (evt.type === "error") {
-            try { reader.cancel(); } catch (e) {}
-            state.multiRunning = false;
-            dropPending();
-            addMsg(evt.timeout ? t("swapTimeout") : t("swapFail"),
-                   "them");
+            multiFail(!!evt.timeout);
           }
         }
         function pump() {
           return reader.read().then(function (step) {
-            if (step.done) return;
+            if (settled) return;
+            // EOF without done means the proxy cut the stream: fail
+            // instead of spinning forever with multiRunning stuck.
+            if (step.done) { multiFail(true); return; }
             buf += dec.decode(step.value, { stream: true });
             var parts = buf.split("\n\n");
             buf = parts.pop();
@@ -1443,19 +1473,15 @@
                 catch (e) {}
               });
             });
-            return pump();
+            if (!settled) return pump();
           });
         }
         return pump();
       }).catch(function () {
-        state.multiRunning = false;
-        dropPending();
-        addMsg(t("swapFail"), "them");
+        if (!gotDone) multiFail(false);
       });
     } catch (e) {
-      state.multiRunning = false;
-      dropPending();
-      addMsg(t("swapFail"), "them");
+      multiFail(false);
     }
   }
 
@@ -1847,7 +1873,7 @@
       }
       var opts = { keepMark: true };
       if (res.preview.target) opts.target = res.preview.target;
-      openSwap(res.preview.code, opts);
+      tryFabric(res.preview.code, opts.target, { keepMark: true });
     }
   }
 
@@ -1940,19 +1966,24 @@
 
   var SWAP_TARGETS = ["sofa", "armchair", "curtains", "cushions"];
 
-  function tryFabric(code, target) {
+  function tryFabric(code, target, opts) {
+    opts = opts || {};
+    if (target && SWAP_TARGETS.indexOf(target) < 0) target = "";
+    var resolvedTarget = target ||
+      (SWAP_TARGETS.indexOf(opts.target) >= 0 ? opts.target : "");
     // Same fabric already rendering (auto-preview + manual tap racing,
     // double-click, script retry): ride the in-flight swap instead of
-    // burning a second model run and posting a twin bubble.
-    if (state.pendingSwap && state.pendingSwap === code) {
+    // burning a second model run and posting a twin bubble. A different
+    // explicit target still counts as a new swap.
+    if (state.pendingSwap && state.pendingSwap === code &&
+        (!resolvedTarget || resolvedTarget === state.swapTarget)) {
       if ($("swapModal").hidden) {
         $("swapModal").hidden = false;
         document.body.classList.add("modal-open");
       }
       return;
     }
-    if (target && SWAP_TARGETS.indexOf(target) < 0) target = "";
-    if (target) state.selectedTarget = target;
+    if (resolvedTarget) state.selectedTarget = resolvedTarget;
     if (!state.roomPhoto) {
       if (isNarrow()) {
         openSheet();
@@ -1965,7 +1996,21 @@
       }
       return;
     }
-    openSwap(code, target ? { target: target } : undefined);
+    // New swap supersedes any in-flight one: bump the sequence token
+    // and abort the previous fetch so stale events cannot corrupt this
+    // modal (A's result drawn into B's modal, A's failure closing B).
+    state.swapSeq = (state.swapSeq || 0) + 1;
+    var seq = state.swapSeq;
+    if (state.swapController) {
+      try { state.swapController.abort(); } catch (e) {}
+      state.swapController = null;
+    }
+    var openOpts = { target: resolvedTarget || undefined,
+                     keepMark: opts.keepMark,
+                     noRetry: opts.noRetry,
+                     review: opts.review,
+                     _seq: seq };
+    openSwap(code, openOpts);
   }
 
   function fabricSheetRec(code) {
@@ -2029,6 +2074,13 @@
 
   function openSwap(code, opts) {
     opts = opts || {};
+    // All entry points must ride the sequence token in tryFabric so a
+    // previous swap is aborted and stale events are ignored.
+    if (!opts._seq && !opts.review) {
+      tryFabric(code, opts.target, opts);
+      return;
+    }
+    var seq = opts._seq || state.swapSeq;
     // A new manual swap supersedes any earlier auto-preview mark.
     if (!opts.keepMark) {
       var stale = messagesEl.querySelectorAll('[data-auto="1"]');
@@ -2080,7 +2132,7 @@
       if (!$("swapModal").hidden) $("swapStill").hidden = false;
     }, 60000));
     state.swapAttemptT0 = Date.now();
-    startSwapAttempt(code, target, swapFabricMeta(code), 0);
+    startSwapAttempt(code, target, swapFabricMeta(code), 0, seq);
   }
 
   var SWAP_DEADLINE_MS = 115000;
@@ -2100,17 +2152,21 @@
     b.hidden = false;
   }
 
-  function startSwapAttempt(code, target, meta, attempt) {
+  function startSwapAttempt(code, target, meta, attempt, seq) {
+    var mySeq = seq || state.swapSeq;
+    function isStale() { return mySeq !== state.swapSeq; }
     var remaining = SWAP_DEADLINE_MS -
       (Date.now() - (state.swapAttemptT0 || Date.now()));
     if (remaining <= 0) {
-      showSwapTimeout();
+      if (!isStale()) showSwapTimeout();
       return;
     }
     var ctrl = null, watchdog = null, reader = null, settled = false;
     if (typeof AbortController !== "undefined") {
       ctrl = new AbortController();
+      state.swapController = ctrl;
       watchdog = setTimeout(function () {
+        if (isStale()) return;
         try { ctrl.abort(); } catch (e) {}
         onAttemptFailed(true);
       }, remaining);
@@ -2118,13 +2174,17 @@
     function stopWatch() {
       if (watchdog) clearTimeout(watchdog);
     }
+    function releaseCtrl() {
+      if (state.swapController === ctrl) state.swapController = null;
+    }
     function onAttemptFailed(timedOut) {
-      if (settled) return;
+      if (settled || isStale()) return;
       settled = true;
       stopWatch();
+      releaseCtrl();
       try { if (reader) reader.cancel(); } catch (e) {}
       if (timedOut && attempt < 1) {
-        startSwapAttempt(code, target, meta, attempt + 1);
+        startSwapAttempt(code, target, meta, attempt + 1, mySeq);
         return;
       }
       if (timedOut) {
@@ -2138,6 +2198,7 @@
       addMsg(t("swapFail"), "them");
     }
     function onEvt(evt) {
+      if (isStale()) return;
       if (evt.type === "step") {
         state.pendingSwapLabel = canvasStepLabel(evt.label);
         state.pendingSwapModel = evt.model || null;
@@ -2157,9 +2218,10 @@
           }
         }
       } else if (evt.type === "done") {
-        if (settled) return;
+        if (settled || isStale()) return;
         settled = true;
         stopWatch();
+        releaseCtrl();
         try { if (reader) reader.cancel(); } catch (e) {}
         finalizeSwap(code, meta, evt.result || {});
       } else if (evt.type === "error") {
@@ -2170,7 +2232,7 @@
     var dec = new TextDecoder();
     function pump() {
       return reader.read().then(function (step) {
-        if (settled) return;
+        if (settled || isStale()) return;
         if (step.done) {
           onAttemptFailed(true);
           return;
@@ -2199,12 +2261,12 @@
       };
       if (ctrl) init.signal = ctrl.signal;
       fetch("/api/swap/stream", init).then(function (r) {
-        if (settled) return;
+        if (settled || isStale()) return;
         if (!r.ok || !r.body) { onAttemptFailed(true); return; }
         reader = r.body.getReader();
         return pump();
       }).catch(function () {
-        onAttemptFailed(true);
+        if (!isStale()) onAttemptFailed(true);
       });
     } catch (e) {
       onAttemptFailed(true);
@@ -2851,7 +2913,7 @@
         if (state.pendingSwapCode) {
           var code = state.pendingSwapCode;
           state.pendingSwapCode = null;
-          openSwap(code);
+          tryFabric(code);
         }
       })
       .catch(function (err) {
@@ -3036,7 +3098,7 @@
       if (fab && fab.dataset.fabric) openFabricSheet(fab.dataset.fabric);
       var card = e.target && e.target.closest ?
         e.target.closest("#canvasRow .ccard") : null;
-      if (card && card.dataset.code) openSwap(card.dataset.code);
+      if (card && card.dataset.code) tryFabric(card.dataset.code);
     });
     $("compareBtn").addEventListener("click", function () {
       var list = state.prevList || [];
@@ -3120,9 +3182,7 @@
           openSwapReview(state.swaps[btn.dataset.code]);
           return;
         }
-        openSwap(btn.dataset.code,
-                 btn.dataset.target ? { target: btn.dataset.target }
-                                    : undefined);
+        tryFabric(btn.dataset.code, btn.dataset.target || "");
       }
     });
     messagesEl.addEventListener("click", function (e) {
@@ -3133,17 +3193,15 @@
       }
     });
     $("swapTryAgain").addEventListener("click", function () {
-      if (state.swapCode) openSwap(state.swapCode,
-                                   { noRetry: true,
-                                     target: state.swapTarget });
+      if (state.swapCode) tryFabric(state.swapCode, state.swapTarget,
+                                    { noRetry: true });
     });
     $("baRange").addEventListener("input", function (e) {
       baUpdate(Number(e.target.value));
     });
     $("swapClose").addEventListener("click", closeSwap);
     $("swapRetryBtn").addEventListener("click", function () {
-      if (state.swapCode) openSwap(state.swapCode,
-                                   { target: state.swapTarget });
+      if (state.swapCode) tryFabric(state.swapCode, state.swapTarget);
     });
     $("hoodToggle").addEventListener("click", function () {
       var box = $("swapTrace");

@@ -81,8 +81,9 @@ room colors or a room photo, mood (warm/cool/neutral), style, who uses the \
 space (kids, pets, hotel, office), opacity for curtains, budget per meter.
 
 TOOLS: you never see the full catalog. Always call search_catalog before \
-recommending anything, and get_fabric for details you quote. When the user \
-shares a room photo, call analyze_room. Never invent fabric codes: every \
+recommending anything, and get_fabric for details you quote. The server \
+analyzes every room photo automatically, so never ask for an image path. \
+Never invent fabric codes: every \
 recommended code must come from a tool result in this conversation.
 
 NEEDS MAPPING: pets -> pet-friendly and scratch-resistant; kids -> \
@@ -95,11 +96,13 @@ their photo, call preview_fabric with a real code from your tool results \
 ask for one and mention the sample rooms.
 
 MULTI-ITEM: when a photo turn lists several changeable items (sofa, \
-cushions, curtains), first ask which to change — "I can see a sofa, \
-cushions and curtains — what would you like to change?" — with one \
-option per item plus All and Just show me. A tap, a chip and a voice \
-answer mean the same thing. Ask only the missing needs for the chosen \
-type; if they say Just show me, skip the questions. When the user picks \
+cushions, curtains), ask once right after the photo is analyzed which \
+to change — "I can see a sofa, cushions and curtains — what would you \
+like to change?" — with one option per item plus All and Just show me. \
+Never repeat that question on later turns or recommendation turns. A \
+tap, a chip and a voice answer mean the same thing. Ask only the \
+missing needs for the chosen type; if they say Just show me, skip the \
+questions. When the user picks \
 curtains, search with usage curtains so every pick is curtain-suitable. \
 After 3 recommendations for a chosen target, the top pick is applied \
 automatically; record every pick with assign_fabric. When fabrics are \
@@ -512,12 +515,6 @@ TOOLS = [
         "parameters": {"type": "object",
                        "properties": {"code": {"type": "string"}},
                        "required": ["code"]}}},
-    {"type": "function", "function": {
-        "name": "analyze_room",
-        "description": "Analyze a room photo at a server-side image path.",
-        "parameters": {"type": "object",
-                       "properties": {"image_path": {"type": "string"}},
-                       "required": ["image_path"]}}},
     {"type": "function", "function": {
         "name": "preview_fabric",
         "description": "Run a real fabric preview (swap) for one fabric "
@@ -1331,14 +1328,9 @@ def _execute_tool(name, args, turn, on_step=None):
             on_step("details")
         code = (args or {}).get("code", "")
         item = get_fabric(code)
-        if item and code not in turn["seen"]:
-            turn["seen"].append(code)
+        # Eligibility comes only from search results: a bare get_fabric
+        # must not launder pet/curtain-filtered codes into seen.
         return item or {"error": "unknown code"}
-    if name == "analyze_room":
-        if on_step:
-            on_step("room")
-        return analyze_room((args or {}).get("image_path", ""),
-                            turn.get("lang"))
     if name == "preview_fabric":
         code = (args or {}).get("code", "")
         if not turn.get("image"):
@@ -1582,18 +1574,23 @@ def _maybe_prefetch_search(history, turn, message, on_step):
 
 
 def valid_recommendations(data, seen):
-    """Check exactly 3 grounded codes. Returns (recs, bad_code).
+    """Check exactly 3 distinct grounded codes. Returns (recs, bad_code).
 
-    Every code must exist and have come from a tool result this turn;
-    memory-only picks are rejected the same way as invented codes.
+    Every code must exist and have come from a search result this turn;
+    memory-only picks are rejected the same way as invented codes, and
+    duplicates ([A,A,A]) are rejected.
     """
     if not isinstance(data, list) or len(data) != 3:
         return None, "want exactly 3"
     recs = []
+    used = set()
     for entry in data:
         code = (entry or {}).get("code", "")
+        if code in used:
+            return None, code
         if not get_fabric(code) or code not in (seen or []):
             return None, code
+        used.add(code)
         recs.append({"code": code,
                      "reason": (entry or {}).get("reason", "")})
     return recs, None
@@ -1853,6 +1850,13 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     turn = accumulate_context(session, turn_for(message))
     turn["lang"] = session.get("lang")
     if image_path:
+        # A new photo drops the old photo's items: stale available /
+        # chosen / assignments would otherwise leak across rooms.
+        if image_path != session.get("image_path"):
+            session["available_targets"] = []
+            session["chosen_targets"] = []
+            session["assignments"] = {}
+            session.pop("detected_piece", None)
         session["image_path"] = image_path
     turn["image"] = image_path or session.get("image_path")
     turn["session"] = session
@@ -1872,7 +1876,10 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     turn["skip_needs"] = bool(choice_flags.get("skip"))
     turn["curtains_only"] = (session.get("chosen_targets", [])
                              == ["curtains"])
-    if available and not session.get("chosen_targets"):
+    # The "which item to change" question is asked once, right after
+    # the photo is analyzed. Repeating it on every later turn (incl.
+    # recommendation turns) makes the sofa line appear in every reply.
+    if available and not session.get("chosen_targets") and image_path:
         user_text += ("\n[Visible changeable items: %s. Ask which to "
                       "change first.]" % ", ".join(available))
     elif session.get("chosen_targets"):
@@ -1964,7 +1971,7 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     if not recommendations and (attempted or exhausted or explicit) \
             and seen_codes:
         arabic = (turn.get("lang") or "en") == "ar"
-        top = seen_codes[:3]
+        top = list(dict.fromkeys(seen_codes))[:3]
         reason = ("أقرب خيار لاحتياجك من هذا البحث." if arabic else
                   "Closest match for your needs from this search.")
         recommendations = [{"code": code, "reason": reason}
@@ -1982,7 +1989,10 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     if (turn.get("preview") and not turn["preview"].get("target")
             and len(chosen_targets) == 1):
         turn["preview"]["target"] = chosen_targets[0]
-    if (recommendations and chosen_targets and image_path
+    # Auto-apply rides the session photo, not just the current request:
+    # a follow-up text turn ("sofa") after the photo turn must still
+    # top-pick into the chosen item.
+    if (recommendations and chosen_targets and turn.get("image")
             and not turn.get("preview")
             and chosen_targets[0]
             not in session.get("assignments", {})):
@@ -2019,7 +2029,13 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     prev_assistant = next((m.get("content") or ""
                            for m in reversed(history)
                            if m.get("role") == "assistant"), "")
-    if prev_assistant and similar_reply(reply, prev_assistant) >= 0.9:
+    # Strip machine blocks from both sides before comparing: history
+    # still holds the raw reply with ```options/```recommendations,
+    # while reply is already stripped, so raw comparison scores ~0.57
+    # and the guard never fires.
+    prev_clean = strip_options(strip_block(prev_assistant))
+    reply_clean = strip_options(strip_block(reply))
+    if prev_clean and similar_reply(reply_clean, prev_clean) >= 0.9:
         nudge = ("[System: the user already answered your last question "
                  "('%s'). Move forward — ask the next missing thing, "
                  "do not repeat it.]" % (message or "")[:200])
@@ -2028,7 +2044,8 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
             chat_fn, turn, on_token=on_token, on_step=on_step)
         retry_reply2, retry_options2, retry_recs2 = split_final(
             retry_text2, turn)
-        if retry_reply2 and similar_reply(retry_reply2, prev_assistant) < 0.9:
+        retry_clean = strip_options(strip_block(retry_reply2 or ""))
+        if retry_reply2 and similar_reply(retry_clean, prev_clean) < 0.9:
             reply = retry_reply2
             options = retry_options2 or options
             if retry_recs2:

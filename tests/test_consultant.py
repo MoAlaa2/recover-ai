@@ -316,7 +316,16 @@ def test_budget_preferred_when_fit_equal(monkeypatch):
                                                   "B-150"]
 
 
-def test_kids_light_note_mentions_fabric():
+def test_kids_light_note_mentions_fabric(monkeypatch):
+    # Eligibility comes from search results only (A10): the search
+    # surfaces the light code, get_fabric is just a detail read.
+    monkeypatch.setattr(
+        c, "run_search",
+        lambda args, turn: {"fabrics": [{"code": "FA-VL-06"},
+                                        {"code": "FA-NL-16"},
+                                        {"code": "FA-NL-02"}],
+                            "relaxed": [], "relaxed_constraints": []})
+
     def fake(messages, tools=None):
         if not hasattr(fake, "n"):
             fake.n = 0
@@ -984,6 +993,7 @@ def test_auto_apply_top_pick_multi(tmp_path, monkeypatch):
         "light_level": "high", "style": "modern"})
     c.SESSIONS["t-auto"] = {
         "messages": [], "lang": "en",
+        "image_path": str(room),
         "available_targets": ["sofa", "cushions"],
         "chosen_targets": ["sofa", "cushions"]}
     asked = {"n": 0}
