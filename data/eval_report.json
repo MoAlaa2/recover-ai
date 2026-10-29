@@ -11,11 +11,11 @@
     },
     {
       "id": "restaurant-chairs",
-      "pass": true,
+      "pass": false,
       "detail": [
         "recs_min_count PASS (3 recs)",
         "each_has_any_feature PASS (all match)",
-        "all_have_feature PASS (all match)"
+        "all_have_feature FAIL (missing: ['FA-NL-10'])"
       ]
     },
     {
@@ -54,19 +54,19 @@
     },
     {
       "id": "allergy-sofa",
-      "pass": false,
+      "pass": true,
       "detail": [
         "recs_min_count PASS (3 recs)",
-        "hypo_or_disclosed FAIL (not disclosed)"
+        "hypo_or_disclosed PASS (receipt disclosed)"
       ]
     },
     {
       "id": "majlis-luxury",
-      "pass": true,
+      "pass": false,
       "detail": [
         "recs_min_count PASS (3 recs)",
         "lux_or_jacquard PASS (all luxe)",
-        "all_field_in PASS (all match)"
+        "all_field_in FAIL (mismatch: ['FA-VL-06'])"
       ]
     },
     {
@@ -89,9 +89,9 @@
     },
     {
       "id": "velvet-budget",
-      "pass": false,
+      "pass": true,
       "detail": [
-        "reply_contains_any FAIL (none mentioned)"
+        "receipt_contains_any PASS (on cards)"
       ]
     },
     {
