@@ -2655,6 +2655,30 @@
         selectTarget(ol.dataset.outline, true);
         return;
       }
+      // Photo-level resolution: a pointer tap may land inside several
+      // nested regions — the smallest one wins, never paint order.
+      var oph = e.target && e.target.closest ?
+        e.target.closest(".chat-outline-photo") : null;
+      if (oph) {
+        var taps = oph.querySelectorAll("[data-outline]");
+        var best = null, bestArea = Infinity;
+        for (var ti = 0; ti < taps.length; ti++) {
+          var r = taps[ti].getBoundingClientRect();
+          if (e.clientX >= r.left && e.clientX <= r.right &&
+              e.clientY >= r.top && e.clientY <= r.bottom) {
+            var area = Math.max(0, (r.right - r.left) *
+                                  (r.bottom - r.top));
+            if (area < bestArea) {
+              bestArea = area;
+              best = taps[ti];
+            }
+          }
+        }
+        if (best && best.dataset.outline) {
+          selectTarget(best.dataset.outline, true);
+          return;
+        }
+      }
       var up = e.target && e.target.closest ?
         e.target.closest("[data-upload]") : null;
       if (up) fi.click();

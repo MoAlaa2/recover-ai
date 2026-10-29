@@ -1538,6 +1538,14 @@ body.modal-open { overflow: hidden; }
     border-radius: 10px;
     padding: 0;
     cursor: pointer;
+    /* Pointer taps resolve at the photo level (smallest region wins),
+       so nested boxes never depend on paint order. Keyboard Enter on a
+       focused region still fires its own click. */
+    pointer-events: none;
+  }
+  .ol-chat-tap:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 2px;
   }
   .ol-chat-tap span {
     position: absolute;
