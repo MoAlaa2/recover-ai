@@ -311,7 +311,9 @@ def _component_boxes(mask, min_area_frac=0.005, max_boxes=8):
 
 def detect_targets(image_path, api_key=None):
     """List + segment + persist masks. Returns target dicts for the API."""
-    types = list_types(image_path)
+    # Shared cached listing with chat (available_types): one vision
+    # call per photo for both, so chips and outlines never disagree.
+    types = available_types(image_path, api_key)
     if not types:
         return []
     masks = masks_for(image_path, types, api_key)

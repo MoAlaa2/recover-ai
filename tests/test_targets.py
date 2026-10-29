@@ -48,6 +48,9 @@ def test_masks_subtract_cushions_from_sofa(monkeypatch, tmp_path):
     monkeypatch.setattr(t, "require_api_key", lambda: "k")
     monkeypatch.setattr(t, "UPLOAD_DIR", str(tmp_path))
     monkeypatch.setattr(t, "list_types", lambda path: ["sofa", "cushions"])
+    # Shared listing cache: identical image bytes across tests must not
+    # leak one test's listing into another.
+    t.TARGETS_CACHE.clear()
 
     def fake_segment(room_bytes, concept, key):
         return [{"concept": concept}]
@@ -91,6 +94,7 @@ def test_masks_fall_back_to_raw_concept(monkeypatch, tmp_path):
     monkeypatch.setattr(t, "require_api_key", lambda: "k")
     monkeypatch.setattr(t, "UPLOAD_DIR", str(tmp_path))
     monkeypatch.setattr(t, "list_types", lambda path: ["cushions"])
+    t.TARGETS_CACHE.clear()
     calls = []
 
     def fake_segment(room_bytes, concept, key):
@@ -114,6 +118,7 @@ def test_lone_item_keeps_closeup_tap(monkeypatch, tmp_path):
     monkeypatch.setattr(t, "require_api_key", lambda: "k")
     monkeypatch.setattr(t, "UPLOAD_DIR", str(tmp_path))
     monkeypatch.setattr(t, "list_types", lambda path: ["sofa"])
+    t.TARGETS_CACHE.clear()
     monkeypatch.setattr(t, "segment",
                         lambda rb, concept, key: [{"concept": concept}])
     monkeypatch.setattr(

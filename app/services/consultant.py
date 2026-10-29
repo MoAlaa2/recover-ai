@@ -1862,12 +1862,35 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     turn["session"] = session
     from app.services import targets as targets_mod
     available = session.get("available_targets", [])
-    if image_path and not available:
-        try:
-            available = targets_mod.available_types(image_path)
-        except Exception:  # noqa: BLE001 - detection must not break chat
-            available = []
-        session["available_targets"] = available
+    room_analysis = None
+    analysis_failed = False
+    if image_path:
+        path = image_path if os.path.isabs(image_path) else \
+            os.path.join(BASE_DIR, image_path)
+        if not os.path.exists(path):
+            raise FileNotFoundError("image not found: %s" % image_path)
+        # Cold photo turn: target listing and room analysis run side by
+        # side and share one cached listing with /targets — the turn
+        # pays max(), not the sum, of the vision calls.
+        box = {}
+
+        def _do_analysis():
+            try:
+                box["room"] = analyze_room(image_path, turn.get("lang"))
+            except Exception:  # noqa: BLE001 - caller sends unreadable
+                box["failed"] = True
+
+        analyzer = threading.Thread(target=_do_analysis, daemon=True)
+        analyzer.start()
+        if not available:
+            try:
+                available = targets_mod.available_types(image_path)
+            except Exception:  # noqa: BLE001 - never break chat
+                available = []
+            session["available_targets"] = available
+        analyzer.join()
+        room_analysis = box.get("room")
+        analysis_failed = bool(box.get("failed"))
     chosen, choice_flags = targets_mod.match_targets(
         message, available) if available else ([], {})
     if chosen:
@@ -1887,13 +1910,9 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
             session["chosen_targets"]))
     confirm = ""
     if image_path:
-        path = image_path if os.path.isabs(image_path) else \
-            os.path.join(BASE_DIR, image_path)
-        if not os.path.exists(path):
-            raise FileNotFoundError("image not found: %s" % image_path)
-        try:
-            room_analysis = analyze_room(image_path, turn.get("lang"))
-        except Exception:  # noqa: BLE001 - unreadable photo, not a crash
+        # room_analysis/analysis_failed were computed in parallel with
+        # the target listing above; the exists check already raised.
+        if analysis_failed:
             lang = _reply_lang(turn, message, session)
             reply = UNREADABLE_LINES.get(lang, UNREADABLE_LINES["en"])
             history.append({"role": "user", "content": user_text})
