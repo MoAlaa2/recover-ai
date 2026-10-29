@@ -17,6 +17,25 @@ from app.core.config import UPLOAD_DIR, require_api_key
 SHARE_TTL_S = 14 * 24 * 3600
 SHAREABLE_EXTS = (".jpg", ".jpeg", ".png")
 
+# Only swap outputs and web-upload room photos are public. Session
+# histories, logs, caches and raw/transient uploads never mint links.
+_PUBLIC_UPLOAD_RE = None
+
+
+def _public_re():
+    import re as _re
+    global _PUBLIC_UPLOAD_RE
+    if _PUBLIC_UPLOAD_RE is None:
+        _PUBLIC_UPLOAD_RE = _re.compile(
+            r"^(?:swap/[^/\s]+|masks/[^/\s]+|[0-9a-f]{32}\.jpg|"
+            r"wa-[0-9a-f]{12}\.jpg)$")
+    return _PUBLIC_UPLOAD_RE
+
+
+def is_public_upload(rel):
+    """Uploads-relative path allowed to be served or shared, else False."""
+    return bool(_public_re().match(rel or ""))
+
 
 def _key():
     return require_api_key().encode("utf-8")

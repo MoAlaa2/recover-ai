@@ -18,15 +18,17 @@ SPECS_PATH = os.path.join(BASE_DIR, "data", "fabric_specs.json")
 CATALOG_DIR = os.path.join(BASE_DIR, "data", "catalog")
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 REPORT_PATH = os.path.join(BASE_DIR, "data", "verify_report.json")
+PRIVATE_DIR = os.path.join(BASE_DIR, "private")
 
 
 def runtime_logs_dir():
-    """Volume-backed dir for logs written while serving.
+    """Private dir for logs written while serving.
 
-    UPLOAD_DIR is the Modal Volume mount in production, so anything
-    here survives redeploys; locally it is the gitignored uploads/.
+    Deliberately outside the served uploads/ mount (and the Modal
+    Volume): session histories and logs must never be fetchable over
+    HTTP. Container-local in production, gitignored locally.
     """
-    path = os.path.join(UPLOAD_DIR, "logs")
+    path = os.path.join(PRIVATE_DIR, "logs")
     os.makedirs(path, exist_ok=True)
     return path
 

@@ -16,7 +16,7 @@ import traceback
 
 import httpx
 
-from app.core.config import BASE_DIR, UPLOAD_DIR
+from app.core.config import BASE_DIR, PRIVATE_DIR, UPLOAD_DIR
 from app.services import consultant as consultant_mod
 
 GRAPH_VERSION = "v21.0"
@@ -43,7 +43,8 @@ def configured():
 
 
 def sessions_dir():
-    path = os.path.join(UPLOAD_DIR, "wa_sessions")
+    """Private sessions dir, outside the served uploads/ mount."""
+    path = os.path.join(PRIVATE_DIR, "wa_sessions")
     os.makedirs(path, exist_ok=True)
     return path
 

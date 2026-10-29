@@ -141,7 +141,7 @@ def sim():
     print("POST flush -> %d" % r.status_code)
     time.sleep(20)
     vol.reload()
-    path = "/root/recover/uploads/wa_sessions/%s.json" % WA_ID
+    path = "/root/recover/private/wa_sessions/%s.json" % WA_ID
     try:
         with open(path, encoding="utf-8") as f:
             sess = json.load(f)

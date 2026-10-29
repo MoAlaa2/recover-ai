@@ -378,6 +378,10 @@ def create_share(req: ShareRequest):
     if rel is None:
         raise HTTPException(404, "result not found")
     base = os.path.relpath(rel, UPLOAD_DIR)
+    # Only swap outputs and web-upload room photos mint links: never
+    # session histories, logs, caches or transient uploads.
+    if not share_mod.is_public_upload(base):
+        raise HTTPException(404, "result not found")
     try:
         token, exp = share_mod.create_token(base)
     except RuntimeError:
@@ -396,7 +400,7 @@ def serve_share(token: str):
     from fastapi.responses import FileResponse
     from app.services import share as share_mod
     rel = share_mod.verify_token(token)
-    if rel is None:
+    if rel is None or not share_mod.is_public_upload(rel):
         raise HTTPException(404, "link invalid or expired")
     path = os.path.join(UPLOAD_DIR, rel)
     if not os.path.isfile(path):

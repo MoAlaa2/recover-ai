@@ -221,6 +221,7 @@ __marimo__/
 
 .DS_Store
 uploads/
+private/
 results/
 data/grounding_log.json
 data/eval_report_partial.json

@@ -48,6 +48,26 @@ def landing():
 @app.get("/consult", include_in_schema=False)
 def consult():
     return _page("index.html")
+def _is_public_upload_path(path):
+    """Allow-list for the served /uploads mount.
+
+    Only swap outputs and web-upload room photos are fetchable.
+    Session histories, logs, caches and transient uploads 404 even
+    if present on disk (defense in depth with the private/ move).
+    """
+    from app.services.share import is_public_upload
+    if not path.startswith("/uploads/"):
+        return True
+    return is_public_upload(path[len("/uploads/"):].split("?")[0])
+
+
+@app.middleware("http")
+async def uploads_allowlist(request, call_next):
+    if not _is_public_upload_path(request.url.path):
+        return Response("not found", status_code=404)
+    return await call_next(request)
+
+
 app.mount("/data/catalog", StaticFiles(
     directory=os.path.join(os.path.dirname(__file__), "..", "data", "catalog"),
     check_dir=False), name="catalog")
