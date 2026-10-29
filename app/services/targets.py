@@ -76,7 +76,7 @@ def available_types(image_path, api_key=None):
     if key not in TARGETS_CACHE:
         if len(TARGETS_CACHE) >= MAX_TARGETS_CACHE:
             TARGETS_CACHE.pop(next(iter(TARGETS_CACHE)))
-        TARGETS_CACHE[key] = list_types(image_path, api_key)
+        TARGETS_CACHE[key] = list_types(image_path)
     return TARGETS_CACHE[key]
 
 LIST_TIMEOUT = 60

@@ -41,6 +41,22 @@ def test_reply_lang_detection():
     assert ev.detect_lang("Here is a fabric for your sofa") == "en"
 
 
+def test_targets_chosen():
+    multi = [{"reply": "a", "codes": [],
+              "targets": {"chosen": ["sofa"]}},
+             {"reply": "b", "codes": [],
+              "targets": {"chosen": ["sofa", "cushions"]}}]
+    ok, _ = ev.check({"type": "targets_chosen",
+                      "values": ["sofa", "cushions"]}, multi, None)
+    assert ok
+    ok, info = ev.check({"type": "targets_chosen",
+                         "values": ["sofa", "curtains"]}, multi, None)
+    assert not ok and "curtains" in info
+    ok, _ = ev.check({"type": "targets_chosen", "values": []},
+                     turns("x", []), None)
+    assert ok
+
+
 def test_declined_and_coordinated():
     ok, _ = ev.check({"type": "declined"},
                      turns("That's outside my expertise, sorry.", []), None)

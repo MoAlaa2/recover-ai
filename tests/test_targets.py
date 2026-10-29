@@ -110,6 +110,16 @@ def test_targets_endpoint_missing_image():
     assert resp.status_code == 400
 
 
+def test_available_types_calls_through(tmp_path, monkeypatch):
+    from PIL import Image as PILImage
+    room = tmp_path / "room.jpg"
+    PILImage.new("RGB", (32, 24), (1, 2, 3)).save(str(room))
+    monkeypatch.setattr(t, "list_types", lambda image_path: ["sofa"])
+    t.TARGETS_CACHE.clear()
+    assert t.available_types(str(room)) == ["sofa"]
+    assert t.available_types(str(room)) == ["sofa"]
+
+
 def test_match_targets_choice_words():
     avail = ["sofa", "cushions", "curtains"]
     assert t.match_targets("the curtains please", avail) == (

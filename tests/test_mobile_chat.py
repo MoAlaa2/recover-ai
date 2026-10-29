@@ -407,3 +407,198 @@ def test_arabic_cards_and_titles(server, page):
     sub = (page.text_content("#roomSub") or "").strip()
     assert title != sub or not sub, "room bar must not repeat: %r / %r" % (
         title, sub)
+
+
+MULTI_MASKS = {"targets": [
+    {"id": "sofa", "type": "sofa", "label_en": "Sofa",
+     "label_ar": "الكنبة", "mask_url": "data/samples/living.jpg",
+     "box": [20, 120, 620, 520]},
+    {"id": "cushions", "type": "cushions", "label_en": "Cushions",
+     "label_ar": "الوسائد", "mask_url": "data/samples/living.jpg",
+     "box": [120, 220, 520, 360]}]}
+
+MULTI_SCORES = {"color": 9, "pattern": 9, "scale": 9, "isolation": 9}
+
+
+def multi_stream_from_assignments(assignments):
+    results = [{
+        "target": a.get("target", "sofa"),
+        "code": a.get("code", "FA-AC-01"),
+        "result_url": "data/samples/living.jpg",
+        "mask_url": "data/samples/living.jpg",
+        "scores": dict(MULTI_SCORES), "attempts": 1,
+        "cached": False} for a in assignments]
+    body = "".join(
+        "data: %s\n\n" % json.dumps({"type": "step", "label": label})
+        for label in ("segment", "edit", "verify"))
+    return body + "data: %s\n\n" % json.dumps(
+        {"type": "done",
+         "result": {"results": results,
+                    "final_url": "data/samples/living.jpg"}})
+
+
+def test_multi_assign_flow(server, page):
+    turn1 = {"reply": "I can see a sofa and cushions. What would you "
+                      "like to change?",
+             "recommendations": [], "room_analysis": None,
+             "options": ["Sofa only", "Cushions too", "All of them"],
+             "targets": {"available": ["sofa", "cushions"], "chosen": [],
+                         "assignments": {}},
+             "detected_lang": "en"}
+    turnN = dict(IMG_TURN)
+    turnN["targets"] = {"available": ["sofa", "cushions"],
+                        "chosen": ["sofa", "cushions"],
+                        "assignments": {}}
+
+    def chat_route(route):
+        data = route.request.post_data_json or {}
+        if data.get("image_path"):
+            body = turn1
+        elif (data.get("message") or "") in ("Hello", ""):
+            body = GREET
+        else:
+            body = turnN
+        route.fulfill(status=200, content_type="text/event-stream",
+                      body="data: %s\n\n" % json.dumps(
+                          {"type": "done", "result": body}))
+
+    def targets_route(route):
+        route.fulfill(status=200, content_type="application/json",
+                      body=json.dumps(MULTI_MASKS))
+
+    def multi_route(route):
+        data = route.request.post_data_json or {}
+        assigns = data.get("assignments") or [
+            {"target": "sofa", "code": "FA-AC-01"}]
+        route.fulfill(status=200, content_type="text/event-stream",
+                      body=multi_stream_from_assignments(assigns))
+
+    page.route("**/api/chat/stream", chat_route)
+    page.route("**/targets*", targets_route)
+    page.route("**/api/swap/stream", lambda r: r.fulfill(
+        status=200, content_type="text/event-stream",
+        body=swap_stream(SWAP_MOCK)))
+    page.route("**/api/swap/multi/stream", multi_route)
+    page.goto(server + "/consult", wait_until="networkidle")
+    upload_photo(page)
+    page.wait_for_selector("#chips:not([hidden])", timeout=15000)
+    page.click("#chips button:has-text('All of them')")
+    page.wait_for_timeout(2000)
+    # Outlines, chips and browse live in the full-screen viewer on
+    # phones: open it and drive the multi flow from there.
+    page.click("#roomView")
+    page.wait_for_selector("#assignRow:not([hidden])", timeout=15000)
+    chips = page.eval_on_selector_all(
+        "#assignRow .assign-chip", "els => els.map(e => e.textContent)")
+    assert len(chips) == 2, chips
+    assert page.evaluate(
+        "document.body.classList.contains('sheet-open')")
+    assert page.eval_on_selector_all(
+        "#outlineLayer .ol-tap", "e => e.length") == 2
+    # Tapping an outline shares the chip state: same answer, same turn.
+    before = len(bubbles(page))
+    at = page.eval_on_selector(
+        "#outlineLayer .ol-tap",
+        "e => { const r = e.getBoundingClientRect(); "
+        "return [r.x + r.width / 2, r.y + r.height / 2]; }")
+    page.mouse.click(at[0], at[1])
+    page.wait_for_timeout(2500)
+    assert len(bubbles(page)) > before, \
+        "outline tap must share the chip answer state"
+    page.click("#assignRow .assign-chip")
+    page.wait_for_selector("#browsePanel:not([hidden])", timeout=15000)
+    page.wait_for_selector("#browsePanel .browse-card", timeout=15000)
+    page.click("#browsePanel [data-apply]")
+    page.wait_for_selector("#swapResult:not([hidden])", timeout=30000)
+    page.click("#swapClose")
+    page.wait_for_timeout(400)
+    page.click("#applyAllBtn")
+    page.wait_for_selector("#messages .sum-card", timeout=60000)
+    assert page.eval_on_selector_all("#pending", "e => e.length") == 0
+    card = page.eval_on_selector(
+        "#messages .sum-card", "e => e.outerHTML")
+    assert "Your picks" in card
+    assert "FA-" in card
+    assert "SAR" in card
+    assert "$" not in card
+    assert "Meterage estimate" in card
+    box = page.evaluate("() => ({sw: document.documentElement.scrollWidth,"
+                        " cw: document.documentElement.clientWidth})")
+    assert box["sw"] == box["cw"]
+    texts = bubbles(page)
+    assert all(texts), "no assistant bubble may be empty: %s" % texts
+
+
+def test_multi_assign_flow_ar(server, page):
+    turn1 = {"reply": "شايفة كنبة ووسائد. وش تبغى تغيّر؟",
+             "recommendations": [], "room_analysis": None,
+             "options": ["الكنبة فقط", "الوسائد بعد", "كلها"],
+             "targets": {"available": ["sofa", "cushions"], "chosen": [],
+                         "assignments": {}},
+             "detected_lang": "ar"}
+    turnN = dict(IMG_TURN)
+    turnN["targets"] = {"available": ["sofa", "cushions"],
+                        "chosen": ["sofa", "cushions"],
+                        "assignments": {}}
+    turnN["detected_lang"] = "ar"
+
+    def chat_route(route):
+        data = route.request.post_data_json or {}
+        if data.get("image_path"):
+            body = turn1
+        elif (data.get("message") or "") in ("Hello", ""):
+            body = GREET
+        else:
+            body = turnN
+        route.fulfill(status=200, content_type="text/event-stream",
+                      body="data: %s\n\n" % json.dumps(
+                          {"type": "done", "result": body}))
+
+    page.route("**/api/chat/stream", chat_route)
+    page.route("**/targets*", lambda r: r.fulfill(
+        status=200, content_type="application/json",
+        body=json.dumps(MULTI_MASKS)))
+    page.route("**/api/swap/stream", lambda r: r.fulfill(
+        status=200, content_type="text/event-stream",
+        body=swap_stream(SWAP_MOCK)))
+    page.route("**/api/swap/multi/stream", lambda r: r.fulfill(
+        status=200, content_type="text/event-stream",
+        body=multi_stream_from_assignments(
+            (r.request.post_data_json or {}).get("assignments") or [
+                {"target": "sofa", "code": "FA-AC-01"}])))
+    page.goto(server + "/consult?lang=ar", wait_until="networkidle")
+    upload_photo(page)
+    page.wait_for_selector("#chips:not([hidden])", timeout=15000)
+    page.click("#chips button:has-text('كلها')")
+    page.wait_for_timeout(2000)
+    page.click("#roomView")
+    page.wait_for_selector("#assignRow:not([hidden])", timeout=15000)
+    assert page.evaluate(
+        "document.body.classList.contains('sheet-open')")
+    assert page.eval_on_selector_all(
+        "#outlineLayer .ol-tap", "e => e.length") == 2
+    before = len(bubbles(page))
+    at = page.eval_on_selector(
+        "#outlineLayer .ol-tap",
+        "e => { const r = e.getBoundingClientRect(); "
+        "return [r.x + r.width / 2, r.y + r.height / 2]; }")
+    page.mouse.click(at[0], at[1])
+    page.wait_for_timeout(2500)
+    assert len(bubbles(page)) > before, \
+        "outline tap must share the chip answer state"
+    page.click("#assignRow .assign-chip")
+    page.wait_for_selector("#browsePanel .browse-card", timeout=15000)
+    page.click("#browsePanel [data-apply]")
+    page.wait_for_selector("#swapResult:not([hidden])", timeout=30000)
+    page.click("#swapClose")
+    page.wait_for_timeout(400)
+    page.click("#applyAllBtn")
+    page.wait_for_selector("#messages .sum-card", timeout=60000)
+    card = page.eval_on_selector(
+        "#messages .sum-card", "e => e.outerHTML")
+    assert "اختياراتك" in card
+    assert "ر.س" in card
+    assert "$" not in card
+    box = page.evaluate("() => ({sw: document.documentElement.scrollWidth,"
+                        " cw: document.documentElement.clientWidth})")
+    assert box["sw"] == box["cw"]

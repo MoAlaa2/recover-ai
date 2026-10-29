@@ -154,6 +154,13 @@ def check(check, turns, specs):
     if ctype == "reply_nonempty":
         ok = bool(reply and reply.strip())
         return ok, "empty reply" if not ok else "reply has prose"
+    if ctype == "targets_chosen":
+        got = set()
+        for t in turns:
+            got |= set(((t.get("targets") or {}).get("chosen")) or [])
+        missing = [v for v in check.get("values", []) if v not in got]
+        return not missing, ("missing: %s" % missing) if missing else (
+            "chosen %s" % sorted(got))
     if ctype == "light_warning":
         flagged = [i["code"] for i in items if is_light_unprotected(i)]
         if not flagged:
@@ -168,10 +175,14 @@ def check(check, turns, specs):
 def run_turns(sid, messages):
     turns = []
     for m in messages:
-        out = c.chat(sid, m)
+        if isinstance(m, dict):
+            out = c.chat(sid, m.get("message", ""), m.get("image"))
+        else:
+            out = c.chat(sid, m)
         turns.append({"reply": out["reply"],
                       "codes": [r["code"] for r in
-                                out["recommendations"]]})
+                                out["recommendations"]],
+                      "targets": out.get("targets", {})})
     return turns
 
 
@@ -190,8 +201,7 @@ def scenario_entry(sc):
                     "PASS" if ok else "FAIL", info))
                 ok_all = ok_all and ok
         return {"id": sc["id"], "pass": ok_all, "detail": detail}
-    turns = run_turns("eval-" + sc["id"],
-                      [t["message"] for t in sc["turns"]])
+    turns = run_turns("eval-" + sc["id"], sc["turns"])
     detail = []
     ok_all = True
     for chk in sc["checks"]:

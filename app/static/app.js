@@ -37,6 +37,15 @@
       emptyLeadGeneric: "Could you tell me a little more about what you need?",
       viewAgain: "View again",
       rephoto: "Try on another photo",
+      applyAll: "Apply to all",
+      resetPicks: "Reset",
+      browseTitle: "Browse fabrics",
+      browseFor: "for your %s",
+      pickOne: "Pick",
+      applyOne: "Apply",
+      summaryTitle: "Your picks",
+      summaryNote: "Meterage estimate and send-to-upholsterer arrive in the next update.",
+      closeBrowse: "Close",
       previewsTitle: "Your previews",
       crumbHome: "Home",
       crumbConsult: "Consultation",
@@ -124,6 +133,15 @@
       emptyLeadGeneric: "ممكن تقول لي أكثر عن اللي تحتاجه؟",
       viewAgain: "شاهدها مرة ثانية",
       rephoto: "جرّب على صورة ثانية",
+      applyAll: "طبّق على الكل",
+      resetPicks: "إعادة",
+      browseTitle: "تصفح الأقمشة",
+      browseFor: "لـ%s",
+      pickOne: "اختر",
+      applyOne: "طبّق",
+      summaryTitle: "اختياراتك",
+      summaryNote: "حساب الأمتار وإرسالها للمنجّد جايين في التحديث الجاي.",
+      closeBrowse: "إغلاق",
       previewsTitle: "معايناتك",
       crumbHome: "الرئيسية",
       crumbConsult: "استشارة",
@@ -468,7 +486,14 @@
     pendingSwap: null,
     pendingSwapLabel: null,
     canvasView: null,
-    lastSwap: null
+    lastSwap: null,
+    outlines: [],
+    assignments: {},
+    chosenTargets: [],
+    selectedTarget: null,
+    browseList: [],
+    browseFor: null,
+    multiRunning: false
   };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -601,6 +626,13 @@
     state.pendingSwapLabel = null;
     state.canvasView = null;
     state.lastSwap = null;
+    state.outlines = [];
+    state.assignments = {};
+    state.chosenTargets = [];
+    state.selectedTarget = null;
+    state.browseList = [];
+    state.browseFor = null;
+    state.multiRunning = false;
     messagesEl.innerHTML = "";
     recsEl.innerHTML = "";
     renderStrip();
@@ -851,6 +883,8 @@
     $("canvasEmpty").hidden = hasPhoto;
     $("canvasPhotoWrap").hidden = !hasPhoto;
     if (hasPhoto) $("canvasImg").src = canvasViewSrc();
+    renderOutlines();
+    renderAssignRow();
     var hb = $("holdBefore");
     if (hb) hb.hidden = !(state.canvasView && state.roomPhoto);
     renderCanvasRow();
@@ -963,6 +997,383 @@
         '<span class="cc-s">' + esc(status) + "</span></span></button>";
     }).join("");
     icons();
+  }
+
+  var TARGET_WORDS = {
+    sofa: ["sofa", "كنب"],
+    armchair: ["armchair", "chair", "كرسي"],
+    curtains: ["curtain", "drape", "ستار", "ستائر"],
+    cushions: ["cushion", "pillow", "وسا", "مخد", "خداد"]
+  };
+
+  function targetLabel(target) {
+    var words = t("pieceWord") || {};
+    return words[target] || target;
+  }
+
+  function optionForTarget(target) {
+    var words = TARGET_WORDS[target] || [target];
+    var opts = state.lastOptions || [];
+    for (var i = 0; i < opts.length; i++) {
+      var low = String(opts[i]).toLowerCase();
+      for (var j = 0; j < words.length; j++) {
+        if (low.indexOf(words[j].toLowerCase()) >= 0) return opts[i];
+      }
+    }
+    return null;
+  }
+
+  function selectTarget(id, fromTap) {
+    state.selectedTarget = id;
+    renderOutlines();
+    renderAssignRow();
+    if (fromTap) {
+      var opt = optionForTarget(id);
+      if (opt) send(opt);
+      else openBrowse(id);
+    }
+  }
+
+  function fetchOutlines() {
+    var path = state.roomPhoto;
+    if (!path) return;
+    fetchReq("/api/session/" + encodeURIComponent(state.sessionId) +
+             "/targets?image_path=" + encodeURIComponent(path),
+             { method: "GET", timeoutMs: 120000, retries: 0 })
+      .then(function (data) {
+        if (path !== state.roomPhoto) return;
+        state.outlines = (data && data.targets) || [];
+        renderOutlines();
+      }).catch(function () {});
+  }
+
+  function renderOutlines() {
+    var layer = $("outlineLayer");
+    if (!layer) return;
+    layer.innerHTML = "";
+    var img = $("canvasImg");
+    if (!state.roomPhoto || !state.outlines.length || !img ||
+        !img.naturalWidth || !img.clientWidth) return;
+    // The canvas image uses object-fit:contain, so it may letterbox
+    // inside its element box. Map room pixels onto the drawn rect.
+    var rw = img.naturalWidth, rh = img.naturalHeight;
+    var ew = img.clientWidth, eh = img.clientHeight;
+    var scale = Math.min(ew / rw, eh / rh);
+    var dw = rw * scale, dh = rh * scale;
+    var ox = (ew - dw) / 2, oy = (eh - dh) / 2;
+    function pct(x, base) { return (x / base * 100) + "%"; }
+    state.outlines.forEach(function (o) {
+      var box = o.box || [0, 0, rw, rh];
+      var fill = document.createElement("div");
+      fill.className = "ol-fill" +
+        (state.selectedTarget === o.id ? " sel" : "") +
+        (state.assignments[o.id] ? " assigned" : "");
+      var url = "url(/" + String(o.mask_url || "").replace(/^\/+/, "") +
+        ")";
+      fill.style.left = pct(ox, ew);
+      fill.style.top = pct(oy, eh);
+      fill.style.width = pct(dw, ew);
+      fill.style.height = pct(dh, eh);
+      fill.style.webkitMaskImage = url;
+      fill.style.maskImage = url;
+      layer.appendChild(fill);
+      var tap = document.createElement("button");
+      tap.type = "button";
+      tap.className = "ol-tap" +
+        (state.selectedTarget === o.id ? " sel" : "");
+      tap.style.left = pct(ox + box[0] * scale, ew);
+      tap.style.top = pct(oy + box[1] * scale, eh);
+      tap.style.width = pct(Math.max(4, (box[2] - box[0]) * scale), ew);
+      tap.style.height = pct(Math.max(4, (box[3] - box[1]) * scale), eh);
+      tap.setAttribute("aria-label", targetLabel(o.id));
+      var tag = document.createElement("span");
+      tag.textContent = targetLabel(o.id) +
+        (state.assignments[o.id] ? " · " + state.assignments[o.id] : "");
+      tap.appendChild(tag);
+      (function (id) {
+        tap.addEventListener("click", function () {
+          selectTarget(id, true);
+        });
+      })(o.id);
+      layer.appendChild(tap);
+    });
+  }
+
+  function renderAssignRow() {
+    var row = $("assignRow");
+    if (!row) return;
+    var chosen = state.chosenTargets || [];
+    if (!state.roomPhoto || !chosen.length) {
+      row.hidden = true;
+      row.innerHTML = "";
+      return;
+    }
+    row.hidden = false;
+    var html = chosen.map(function (tg) {
+      var code = state.assignments[tg];
+      return '<button type="button" class="assign-chip' +
+        (state.selectedTarget === tg ? " sel" : "") +
+        '" data-target="' + esc(tg) + '">' + esc(targetLabel(tg)) +
+        " · " + esc(code || t("pickOne")) + "</button>";
+    }).join("");
+    if (Object.keys(state.assignments).length) {
+      html += '<button type="button" class="ghost-btn" id="applyAllBtn">' +
+        esc(t("applyAll")) + " (" +
+        Object.keys(state.assignments).length + ")</button>";
+    }
+    html += '<button type="button" class="ghost-btn" id="resetAssignBtn">' +
+      esc(t("resetPicks")) + "</button>";
+    row.innerHTML = html;
+  }
+
+  function resetAssignments() {
+    fetchReq("/api/session/" + encodeURIComponent(state.sessionId) +
+             "/assignments", { method: "DELETE", timeoutMs: 30000,
+                               retries: 0 })
+      .then(function (data) {
+        state.assignments = (data && data.assignments) || {};
+        state.selectedTarget = null;
+        state.browseFor = null;
+        renderAssignRow();
+        renderOutlines();
+        renderBrowse();
+      }).catch(function () {});
+  }
+
+  function openBrowse(target) {
+    var tg = target || state.selectedTarget ||
+      (state.chosenTargets || [])[0];
+    if (!tg) return;
+    state.selectedTarget = tg;
+    state.browseFor = tg;
+    renderAssignRow();
+    renderOutlines();
+    var panel = $("browsePanel");
+    if (!panel) return;
+    panel.hidden = false;
+    panel.innerHTML = '<div class="browse-head"><b>' +
+      esc(t("browseTitle")) + " · " + esc(targetLabel(tg)) +
+      '</b><button type="button" class="ghost-btn" id="browseClose">' +
+      esc(t("closeBrowse")) + "</button></div>" +
+      '<div class="browse-grid"><span class="typing"><span></span>' +
+      "<span></span><span></span></span></div>";
+    $("browseClose").addEventListener("click", function () {
+      panel.hidden = true;
+      state.browseFor = null;
+    });
+    fetchReq("/api/fabrics?suitable_for=" + encodeURIComponent(tg) +
+             "&limit=12", { method: "GET", timeoutMs: 60000, retries: 1 })
+      .then(function (data) {
+        if (state.browseFor !== tg) return;
+        state.browseList = (data && data.fabrics) || [];
+        renderBrowseItems();
+      }).catch(function () {
+        if (state.browseFor !== tg) return;
+        panel.querySelector(".browse-grid").textContent = t("sendFail");
+      });
+  }
+
+  function renderBrowse() {
+    var panel = $("browsePanel");
+    if (!panel || panel.hidden) return;
+    if (state.browseFor) openBrowse(state.browseFor);
+  }
+
+  function renderBrowseItems() {
+    var panel = $("browsePanel");
+    if (!panel) return;
+    var grid = panel.querySelector(".browse-grid");
+    if (!grid) return;
+    grid.innerHTML = state.browseList.map(function (f) {
+      var name = state.lang === "ar" ? f.name_ar : f.name_en;
+      return '<div class="browse-card"><img src="/' +
+        esc((f.image || "").replace(/^\/+/, "")) + '" alt="' +
+        esc(name) + '" loading="lazy">' +
+        '<div class="browse-n" dir="auto">' + esc(name) + "</div>" +
+        '<div class="browse-m">' + esc(f.code) + " · " +
+        esc(formatPrice(f.price_sar_per_m)) + "</div>" +
+        '<button type="button" class="seeit" data-apply="' +
+        esc(f.code) + '"><span>' + esc(t("applyOne")) +
+        "</span></button></div>";
+    }).join("");
+  }
+
+  function applyBrowse(code) {
+    var tg = state.browseFor || state.selectedTarget ||
+      (state.chosenTargets || [])[0];
+    if (!tg) return;
+    postJSON("/api/session/" + encodeURIComponent(state.sessionId) +
+             "/assignments", { target: tg, code: code }, 30000, 1)
+      .then(function (data) {
+        state.assignments = (data && data.assignments) || {};
+        state.assignments[tg] = code;
+        renderAssignRow();
+        renderOutlines();
+      }).catch(function () {});
+    openSwap(code, { target: tg });
+  }
+
+  function showSwapStep(label) {
+    var scope = pendingScope();
+    var el = scope && scope.querySelector(".agent-step");
+    if (!el) return;
+    el.textContent = canvasStepLabel(label);
+    el.classList.remove("swap");
+    void el.offsetWidth;
+    el.classList.add("swap");
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function runMultiSwap() {
+    var list = Object.keys(state.assignments).map(function (k) {
+      return { target: k, code: state.assignments[k] };
+    });
+    if (!list.length || state.multiRunning || !state.roomPhoto) return;
+    state.multiRunning = true;
+    pendingBubble();
+    showSwapStep("segment");
+    var reader = null;
+    try {
+      fetch("/api/swap/multi/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: state.sessionId,
+                               image_path: state.roomPhoto,
+                               assignments: list })
+      }).then(function (r) {
+        if (!r.ok || !r.body) throw new Error("HTTP " + r.status);
+        reader = r.body.getReader();
+        var dec = new TextDecoder();
+        var buf = "";
+        function onEvt(evt) {
+          if (evt.type === "step") {
+            showSwapStep(evt.label);
+          } else if (evt.type === "done") {
+            try { reader.cancel(); } catch (e) {}
+            finalizeMulti(evt.result || {});
+          } else if (evt.type === "error") {
+            try { reader.cancel(); } catch (e) {}
+            state.multiRunning = false;
+            dropPending();
+            addMsg(t("swapFail"), "them");
+          }
+        }
+        function pump() {
+          return reader.read().then(function (step) {
+            if (step.done) return;
+            buf += dec.decode(step.value, { stream: true });
+            var parts = buf.split("\n\n");
+            buf = parts.pop();
+            parts.forEach(function (part) {
+              part.split("\n").forEach(function (line) {
+                line = line.trim();
+                if (line.indexOf("data:") !== 0) return;
+                try { onEvt(JSON.parse(line.slice(5))); }
+                catch (e) {}
+              });
+            });
+            return pump();
+          });
+        }
+        return pump();
+      }).catch(function () {
+        state.multiRunning = false;
+        dropPending();
+        addMsg(t("swapFail"), "them");
+      });
+    } catch (e) {
+      state.multiRunning = false;
+      dropPending();
+      addMsg(t("swapFail"), "them");
+    }
+  }
+
+  function metaFor(code) {
+    var lists = [state.lastRecs || [], state.browseList || []];
+    for (var i = 0; i < lists.length; i++) {
+      for (var j = 0; j < lists[i].length; j++) {
+        var f = lists[i][j];
+        if (f.code === code) {
+          return Promise.resolve({ code: f.code, name_en: f.name_en,
+                                   name_ar: f.name_ar,
+                                   price: f.price_sar_per_m,
+                                   image: f.image });
+        }
+      }
+    }
+    return fetchReq("/api/fabric/" + encodeURIComponent(code),
+                    { method: "GET", timeoutMs: 30000, retries: 1 })
+      .then(function (f) {
+        return { code: f.code, name_en: f.name_en, name_ar: f.name_ar,
+                 price: f.price_sar_per_m, image: f.image };
+      }).catch(function () { return { code: code }; });
+  }
+
+  function postSummaryCard(results) {
+    return Promise.all(results.map(function (r) {
+      return metaFor(r.code);
+    })).then(function (metas) {
+      var rows = results.map(function (r, i) {
+        var meta = metas[i] || { code: r.code };
+        var name = state.lang === "ar" ? (meta.name_ar || meta.code)
+                                       : (meta.name_en || meta.code);
+        return '<div class="sum-row"><img class="swap-thumb" src="/' +
+          esc((r.result_url || "").replace(/^\/+/, "")) + '" alt="' +
+          esc(name) + '" data-code="' + esc(r.code) + '">' +
+          "<div><div><b>" + esc(targetLabel(r.target)) + "</b> → " +
+          esc(name) + "</div><div>" + esc(r.code) +
+          (meta.price !== undefined ? " · " + esc(formatPrice(meta.price))
+                                    : "") + "</div></div></div>";
+      }).join("");
+      var div = document.createElement("div");
+      div.className = "msg them";
+      div.innerHTML = AVATAR + '<div dir="auto"><div class="sum-card">' +
+        "<b>" + esc(t("summaryTitle")) + "</b>" + rows +
+        '<p class="coming">' + esc(t("summaryNote")) + "</p>" +
+        "</div></div>";
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      icons();
+    });
+  }
+
+  function finalizeMulti(res) {
+    state.multiRunning = false;
+    dropPending();
+    var results = (res && res.results) || [];
+    if (!results.length) {
+      addMsg(t("swapFail"), "them");
+      return;
+    }
+    var before = state.roomPhoto || "";
+    results.forEach(function (r) {
+      var entry = { fabric_code: r.code, result_url: r.result_url,
+                    mask_url: r.mask_url, before_url: before,
+                    scores: r.scores || {}, attempts: r.attempts || 1,
+                    created_at: Date.now() / 1000, meta: null };
+      before = r.result_url || before;
+      state.prevList.push(entry);
+      state.swaps[r.code] = entry;
+    });
+    state.canvasView = "/" + String(
+      (res.final_url || results[results.length - 1].result_url || "")
+      ).replace(/^\/+/, "");
+    renderStrip();
+    renderCanvas();
+    metaFor(results[results.length - 1].code).then(function (meta) {
+      var last = state.swaps[results[results.length - 1].code];
+      if (last) last.meta = meta;
+      renderStrip();
+    });
+    postSummaryCard(results).then(function () {
+      var last = state.swaps[results[results.length - 1].code];
+      if (last) {
+        if (!last.meta) {
+          last.meta = { code: last.fabric_code };
+        }
+        postSwapMessage(last);
+      }
+    });
   }
 
   function loadSample(id) {
@@ -1645,6 +2056,13 @@
   function handleStreamResult(res) {
     autoLang(res);
     if (!res) return;
+    if (res.targets) {
+      state.assignments = res.targets.assignments || {};
+      state.chosenTargets = res.targets.chosen || [];
+      if (!state.selectedTarget && state.chosenTargets.length) {
+        state.selectedTarget = state.chosenTargets[0];
+      }
+    }
     if (res.detected_piece) state.detectedPiece = res.detected_piece;
     if (res.recommendations && res.recommendations.length) {
       state.lastRecs = res.recommendations;
@@ -1654,6 +2072,7 @@
     if (res.detected_piece) state.lastDetected = res.detected_piece;
     renderRoomCard(state.lastRoom, state.lastDetected);
     renderCanvas();
+    if (state.roomPhoto && !state.outlines.length) fetchOutlines();
     ensureBubbleText(res);
     if (state.lastRecs && state.lastRecs.length) {
       showRecs(state.lastRecs);
@@ -1744,11 +2163,19 @@
         // Room state only commits once the follow-up chat confirms the
         // photo: a chat failure must never leave a broken canvas behind.
         savedPath = data.image_path;
+        state.outlines = [];
         // Warm the item targets while the chat runs: detection and SAM
         // are independent of the conversation, so the sheet opens ready.
         fetchReq("/api/session/" + encodeURIComponent(state.sessionId) +
                  "/targets?image_path=" + encodeURIComponent(savedPath),
                  { method: "GET", timeoutMs: 120000, retries: 0 })
+          .then(function (targets) {
+            if (targets && targets.targets &&
+                savedPath === state.roomPhoto) {
+              state.outlines = targets.targets;
+              renderOutlines();
+            }
+          })
           .catch(function () {});
         return streamChat("", savedPath);
       })
@@ -2047,6 +2474,26 @@
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", fitAppHeight);
     }
+    $("canvasImg").addEventListener("load", renderOutlines);
+    $("assignRow").addEventListener("click", function (e) {
+      if (!e.target.closest) return;
+      var chip = e.target.closest(".assign-chip");
+      if (chip && chip.dataset.target) {
+        selectTarget(chip.dataset.target, false);
+        openBrowse(chip.dataset.target);
+        return;
+      }
+      if (e.target.closest("#applyAllBtn")) {
+        runMultiSwap();
+        return;
+      }
+      if (e.target.closest("#resetAssignBtn")) resetAssignments();
+    });
+    $("browsePanel").addEventListener("click", function (e) {
+      if (!e.target.closest) return;
+      var btn = e.target.closest("[data-apply]");
+      if (btn && btn.dataset.apply) applyBrowse(btn.dataset.apply);
+    });
     $("roomView").addEventListener("click", openSheet);
     $("roomThumbBtn").addEventListener("click", openSheet);
     $("roomThumb").addEventListener("error", function () {

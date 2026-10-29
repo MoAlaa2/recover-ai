@@ -35,6 +35,43 @@ INJECT_RECS = """() => {
     '<span class="cc-s">See it</span></span></button>').repeat(3);
 }"""
 
+INJECT_MULTI = """() => {
+  const layer = document.getElementById('outlineLayer');
+  layer.innerHTML =
+    '<div class="ol-fill" style="left:5%;top:10%;width:90%;height:60%">' +
+    '</div><button class="ol-tap" style="left:5%;top:10%;width:90%;' +
+    'height:60%"><span>Sofa &middot; FA-AC-01</span></button>' +
+    '<button class="ol-tap" style="left:20%;top:40%;width:50%;' +
+    'height:20%"><span>Cushions</span></button>';
+  const row = document.getElementById('assignRow');
+  row.hidden = false;
+  row.innerHTML = '<button class="assign-chip">Sofa &middot; FA-AC-01' +
+    '</button><button class="assign-chip">Cushions &middot; Pick' +
+    '</button><button class="ghost-btn">Apply to all (1)</button>' +
+    '<button class="ghost-btn">Reset</button>';
+  const panel = document.getElementById('browsePanel');
+  panel.hidden = false;
+  panel.innerHTML = '<div class="browse-head"><b>Browse fabrics</b>' +
+    '<button class="ghost-btn">Close</button></div>' +
+    '<div class="browse-grid">' + ('<div class="browse-card">' +
+    '<img src="/data/samples/living.jpg">' +
+    '<div class="browse-n">Test Fabric</div>' +
+    '<div class="browse-m">FA-AC-01 &middot; 155 SAR/m</div>' +
+    '<button class="seeit"><span>Apply</span></button>' +
+    '</div>').repeat(4) + '</div>';
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg them';
+  div.innerHTML = '<div><div class="sum-card"><b>Your picks</b>' +
+    ('<div class="sum-row"><img class="swap-thumb" ' +
+    'src="/data/samples/living.jpg">' +
+    '<div><div><b>Sofa</b></div><div>FA-AC-01 &middot; 155 SAR/m</div>' +
+    '</div></div>').repeat(2) +
+    '<p class="coming">Meterage estimate and send-to-upholsterer arrive ' +
+    'in the next update.</p></div></div>';
+  msgs.appendChild(div);
+}"""
+
 
 def free_port():
     sock = socket.socket()
@@ -72,11 +109,14 @@ def measure(pg, url, setup=None):
     if setup == "switcher":
         pg.click(".rcsw-btn")
         pg.wait_for_timeout(400)
-    if setup in ("photo", "recs"):
+    if setup in ("photo", "recs", "multi"):
         pg.evaluate(INJECT_PHOTO)
         pg.wait_for_timeout(300)
     if setup == "recs":
         pg.evaluate(INJECT_RECS)
+        pg.wait_for_timeout(300)
+    if setup == "multi":
+        pg.evaluate(INJECT_MULTI)
         pg.wait_for_timeout(300)
     return pg.evaluate("() => ({sw: document.documentElement.scrollWidth,"
                        " cw: document.documentElement.clientWidth})")
@@ -87,7 +127,7 @@ def test_no_horizontal_overflow(server, width):
     pw = pytest.importorskip("playwright.sync_api")
     states = [("/", None), ("/consult", None),
               ("/consult", "switcher"), ("/consult", "photo"),
-              ("/consult", "recs")]
+              ("/consult", "recs"), ("/consult", "multi")]
     with pw.sync_playwright() as p:
         try:
             browser = p.webkit.launch()
