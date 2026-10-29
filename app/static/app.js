@@ -1900,6 +1900,16 @@
   var SWAP_TARGETS = ["sofa", "armchair", "curtains", "cushions"];
 
   function tryFabric(code, target) {
+    // Same fabric already rendering (auto-preview + manual tap racing,
+    // double-click, script retry): ride the in-flight swap instead of
+    // burning a second model run and posting a twin bubble.
+    if (state.pendingSwap && state.pendingSwap === code) {
+      if ($("swapModal").hidden) {
+        $("swapModal").hidden = false;
+        document.body.classList.add("modal-open");
+      }
+      return;
+    }
     if (target && SWAP_TARGETS.indexOf(target) < 0) target = "";
     if (target) state.selectedTarget = target;
     if (!state.roomPhoto) {
@@ -2937,6 +2947,12 @@
       }
       var btn = e.target.closest(".seeit");
       if (btn && btn.dataset.code) {
+        // "View again" shows the finished result; only a real Try
+        // starts a new swap.
+        if (btn.classList.contains("review") && state.swaps[btn.dataset.code]) {
+          openSwapReview(state.swaps[btn.dataset.code]);
+          return;
+        }
         openSwap(btn.dataset.code,
                  btn.dataset.target ? { target: btn.dataset.target }
                                     : undefined);

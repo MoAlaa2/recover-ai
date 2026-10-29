@@ -619,6 +619,58 @@ def test_multi_assign_flow_ar(server, page):
     assert box["sw"] == box["cw"]
 
 
+def test_double_try_fires_one_swap(server, page):
+    """Auto-preview + manual tap on the same fabric must not start two
+    swaps (twin bubbles, double model burn): the second tap rides the
+    in-flight swap."""
+    hits = []
+
+    def slow_swap(route):
+        hits.append(1)
+        route.fulfill(status=200, content_type="text/event-stream",
+                      body="data: %s\n\n" % json.dumps(
+                          {"type": "step", "label": "segment"}))
+
+    page.route("**/api/swap/stream", slow_swap)
+    page.goto(server + "/consult", wait_until="networkidle")
+    upload_photo(page)
+    tap = ("document.querySelector('#messages [data-try=\"FA-NL-07\"]')"
+           ".click()")
+    page.evaluate(tap)
+    page.wait_for_timeout(400)
+    page.evaluate(tap)
+    page.wait_for_timeout(1200)
+    assert hits == [1], "second tap must ride the in-flight swap"
+    assert page.evaluate("!document.getElementById('swapModal').hidden")
+
+
+def test_view_again_opens_result_without_reswap(server, page):
+    """Desktop 'View again' must show the finished result, never burn a
+    second swap (and post a twin bubble)."""
+    hits = []
+
+    def counting_swap(route):
+        hits.append(1)
+        route.fulfill(status=200, content_type="text/event-stream",
+                      body=swap_stream(SWAP_MOCK))
+
+    page.route("**/api/swap/stream", counting_swap)
+    page.goto(server + "/consult", wait_until="networkidle")
+    upload_photo(page)
+    page.evaluate("document.querySelector('#messages [data-try=\"FA-NL-07\"]')"
+                  ".click()")
+    page.wait_for_selector("#swapResult:not([hidden])", timeout=30000)
+    page.click("#swapClose")
+    page.wait_for_timeout(400)
+    assert len(hits) == 1
+    page.set_viewport_size({"width": 1440, "height": 900})
+    page.wait_for_timeout(400)
+    page.click("#recs .card .seeit.review")
+    page.wait_for_selector("#swapResult:not([hidden])", timeout=15000)
+    page.wait_for_timeout(800)
+    assert len(hits) == 1, "View again must not start a new swap"
+
+
 def test_canvas_image_retries_once_after_404(server, page):
     """A just-written volume file can 404 the first GET: canvasImg must
     retry once and recover instead of staying broken."""
