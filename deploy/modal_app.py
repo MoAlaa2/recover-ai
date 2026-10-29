@@ -42,7 +42,8 @@ class VolumeSyncMiddleware:
     so a redeploy handover or a second writer can never serve a 404.
     """
 
-    WRITE_PREFIXES = ("/api/upload", "/api/swap", "/api/session/")
+    WRITE_PREFIXES = ("/api/upload", "/api/swap", "/api/session/",
+                      "/webhook/whatsapp")
 
     def __init__(self, inner, volume):
         self.inner = inner
@@ -57,6 +58,9 @@ class VolumeSyncMiddleware:
             return path.startswith("/uploads/") or (
                 path.startswith("/api/session/")
                 and path.endswith("/targets"))
+        if method == "POST" and path.startswith("/webhook/"):
+            # WhatsApp sessions and media live on the volume.
+            return True
         return method == "POST" and (
             path == "/api/chat" or path.startswith("/api/swap"))
 
@@ -99,7 +103,11 @@ class DemoLockMiddleware:
 
     Uses constant-time comparison and adds
     X-Robots-Tag: noindex, nofollow to every response while locked.
+    The WhatsApp webhook is exempt: Meta cannot send Basic Auth, so
+    GET verification is public and POST is HMAC-verified instead.
     """
+
+    WEBHOOK_PREFIX = "/webhook/"
 
     def __init__(self, inner):
         self.inner = inner
@@ -109,6 +117,9 @@ class DemoLockMiddleware:
             await self.inner(scope, receive, send)
             return
         if os.environ.get("DEMO_LOCK", "") != "1":
+            await self.inner(scope, receive, send)
+            return
+        if scope.get("path", "").startswith(self.WEBHOOK_PREFIX):
             await self.inner(scope, receive, send)
             return
         if not self._authed(scope.get("headers", [])):

@@ -142,6 +142,38 @@ modal secret create recover-secrets MODEL_API_KEY=... DEMO_USER=... DEMO_PASS=..
 modal deploy deploy/modal_app.py
 ```
 
+## WhatsApp
+
+The same consultant runs on the WhatsApp Cloud API — same catalog,
+swap, voice, meterage and CO₂ services, no duplicated logic:
+
+- Text → consultant turn (auto language, Saudi dialect for Arabic).
+- Photo → same upload/normalize path, then room analysis + detection.
+- Voice note → ffmpeg → 16 kHz mono wav → Muse Voice transcription.
+- Chips → reply buttons (≤3) or a list; detected items → a list;
+  each fabric → its swatch image + caption, then "Try it" buttons.
+- "Try it" runs the real swap and returns the result image;
+  "apply all" runs the multi-swap; "summary" sends the forwardable
+  handoff block (items, meters, price, total, CO₂).
+- `new` / `جديد` resets, `language` shows the language list.
+- Sessions persist on the Volume (24 h TTL); Meta retries are
+  deduped by message id; replies return 200 fast and process in a
+  background thread.
+
+Setup (Meta dashboard values in angle brackets — nothing secret goes
+in code or git):
+
+```bash
+modal secret create recover-whatsapp WA_TOKEN=<token> \
+  WA_PHONE_NUMBER_ID=<phone-number-id> WA_APP_SECRET=<app-secret> \
+  WA_VERIFY_TOKEN=<any-string-you-choose>
+```
+
+Then subscribe the app to the `messages` webhook field with callback
+URL `https://<your-modal-app-url>/webhook/whatsapp` and the same
+verify token. Local simulator (fake payloads, prints outbound, no
+real sends): `.venv/bin/python scripts/whatsapp_sim.py`.
+
 ## Built during the hackathon (Oct 26 – Nov 4, 2026)
 
 ReCover was built end-to-end during the hackathon window: catalog +
