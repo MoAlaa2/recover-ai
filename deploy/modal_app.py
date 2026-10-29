@@ -43,7 +43,7 @@ class VolumeSyncMiddleware:
     """
 
     WRITE_PREFIXES = ("/api/upload", "/api/swap", "/api/session/",
-                      "/api/chat", "/webhook/whatsapp")
+                      "/webhook/whatsapp")
 
     def __init__(self, inner, volume):
         self.inner = inner
