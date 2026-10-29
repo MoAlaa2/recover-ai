@@ -178,7 +178,8 @@ class DemoLockMiddleware:
 
 @app.function(
     image=image,
-    secrets=[modal.Secret.from_name("recover-secrets")],
+    secrets=[modal.Secret.from_name("recover-secrets"),
+             modal.Secret.from_name("recover-whatsapp")],
     volumes={"/root/recover/uploads": vol},
     env={"DEMO_LOCK": "1"},
     min_containers=1,
