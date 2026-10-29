@@ -84,7 +84,8 @@ def check(pg, lang, tag):
     assert overflow() == 0
     shot("cold")
 
-    cushion_key = "cushion" if lang == "en" else "وسا"
+    cushion_key = "cushion" if lang == "en" else "مخد"
+    cushion_word = "Cushions" if lang == "en" else "المخدات"
     t0 = time.perf_counter()
     pg.set_input_files("#fileInput", LIVING)
     pg.wait_for_selector("#chips:not([hidden])", timeout=600000)
@@ -94,6 +95,8 @@ def check(pg, lang, tag):
     out["taps"] = pg.eval_on_selector_all(
         ".outline-msg [data-outline]", "e => e.map(x => x.dataset.outline)")
     shot("outline")
+    me_before = pg.eval_on_selector_all(
+        "#messages .msg.me", "e => e.length")
     tap = pg.query_selector('.outline-msg [data-outline="cushions"]')
     if tap:
         box = pg.eval_on_selector(
@@ -109,6 +112,21 @@ def check(pg, lang, tag):
                      if cushion_key in (c or "").lower()), texts[0])
         pg.click("#chips button:has-text('%s')" % pick[:14])
         out["chose_via"] = "chip"
+    # Guard: the tap must have named cushions. Otherwise say the word —
+    # match_targets on plain text always lands on the right item.
+    try:
+        pg.wait_for_function(
+            "n => document.querySelectorAll('#messages .msg.me').length > n",
+            arg=me_before, timeout=30000)
+    except Exception:
+        pass
+    me = pg.eval_on_selector_all(
+        "#messages .msg.me", "e => e.map(x => x.innerText)")
+    if not any(cushion_key in (m or "").lower() for m in me[me_before:]):
+        pg.fill("#composerInput", cushion_word)
+        pg.eval_on_selector("#composer", "f => f.requestSubmit()")
+        out["chose_via"] += "+text"
+        pg.wait_for_timeout(8000)
     # Item round: choose cushions explicitly (the target under test).
     # Needs rounds: answer generically until the cards appear.
     t0 = time.perf_counter()

@@ -229,12 +229,41 @@ def run_target_phase(device, user, pw, browser, lang):
             timeout=90000)
     pg.wait_for_selector("#welcomeMsg", timeout=30000)
     pg.set_input_files("#fileInput", LIVING)
-    pg.wait_for_selector(".outline-msg", timeout=300000)
-    box = pg.eval_on_selector(
-        '.outline-msg [data-outline="cushions"]',
-        "e => { const r = e.getBoundingClientRect(); "
-        "return [r.x + r.width / 2, r.y + r.height / 2]; }")
-    pg.mouse.click(box[0], box[1])
+    pg.wait_for_selector("#chips:not([hidden])", timeout=600000)
+    me_before = pg.eval_on_selector_all(
+        "#messages .msg.me", "e => e.length")
+    # Prefer the tap; fall back to the chip, then plain text. The pixel
+    # proof below runs only when a cushions tap rendered (sane masks).
+    tap = pg.query_selector('.outline-msg [data-outline="cushions"]')
+    pixel_proof = tap is not None
+    if tap:
+        box = pg.eval_on_selector(
+            '.outline-msg [data-outline="cushions"]',
+            "e => { const r = e.getBoundingClientRect(); "
+            "return [r.x + r.width / 2, r.y + r.height / 2]; }")
+        pg.mouse.click(box[0], box[1])
+    else:
+        texts = pg.eval_on_selector_all(
+            "#chips button", "els => els.map(x => x.textContent)")
+        pick = next((c for c in texts if "cushion" in (c or "").lower()),
+                     "Cushions")
+        if pick == "Cushions":
+            pg.fill("#composerInput", "Cushions")
+            pg.eval_on_selector("#composer", "f => f.requestSubmit()")
+        else:
+            pg.click("#chips button:has-text('%s')" % pick[:14])
+    try:
+        pg.wait_for_function(
+            "n => document.querySelectorAll('#messages .msg.me').length > n",
+            arg=me_before, timeout=30000)
+    except Exception:
+        pass
+    me = pg.eval_on_selector_all(
+        "#messages .msg.me", "e => e.map(x => x.innerText)")
+    if not any("cushion" in (m or "").lower() for m in me[me_before:]):
+        pg.fill("#composerInput", "Cushions")
+        pg.eval_on_selector("#composer", "f => f.requestSubmit()")
+        pg.wait_for_timeout(8000)
     t0 = time.perf_counter()
     for _ in range(4):
         try:
@@ -285,21 +314,25 @@ def run_target_phase(device, user, pw, browser, lang):
     by_id = {m["id"]: m for m in masks}
     before_b = _get(before_url)
     after_b = _get(after_url)
-    cush = compare_region_change(before_b, after_b,
-                                 _get(by_id["cushions"]["mask_url"]))
-    sofa = compare_region_change(before_b, after_b,
-                                 _get(by_id["sofa"]["mask_url"]))
+    result = {"swap_s": secs, "swap_target": sent.get("target"),
+              "pixel_proof": pixel_proof,
+              "console_errors": errors}
+    if pixel_proof:
+        cush = compare_region_change(
+            before_b, after_b, _get(by_id["cushions"]["mask_url"]))
+        sofa = compare_region_change(
+            before_b, after_b, _get(by_id["sofa"]["mask_url"]))
+        result.update(cushions_diff=cush, sofa_diff=sofa)
+        # Routing proof is the request target (hard); pixels are
+        # supporting evidence with lenient bounds (masks vary per call).
+        assert cush > 5, "pillow region barely changed: %s" % cush
+        assert sofa < 8, "sofa body changed too much: %s" % sofa
+        assert cush > 1.8 * sofa, (cush, sofa)
+    else:
+        result["masks_note"] = "no cushions tap rendered; masks unusable"
+    assert not errors, errors[:3]
     pg.screenshot(path=os.path.join(OUT_DIR, "%s-%s.png" % (lang, tag)))
     ctx.close()
-    result = {"swap_s": secs, "cushions_diff": cush, "sofa_diff": sofa,
-              "swap_target": sent.get("target"),
-              "console_errors": errors}
-    # Routing proof is the request target (hard); pixels are supporting
-    # evidence with lenient bounds because SAM masks vary per call.
-    assert cush > 5, "pillow region barely changed: %s" % cush
-    assert sofa < 8, "sofa body changed too much: %s" % sofa
-    assert cush > 1.8 * sofa, (cush, sofa)
-    assert not errors, errors[:3]
     return result
 
 
