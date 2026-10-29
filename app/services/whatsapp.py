@@ -5,12 +5,14 @@ duplicated logic. Disabled unless the WA_* env vars are present (modal
 secret "recover-whatsapp"); without them the webhook answers 404 and
 nothing is sent anywhere.
 """
+import contextvars
 import hashlib
 import hmac
 import json
 import os
 import threading
 import time
+import traceback
 
 import httpx
 
@@ -101,24 +103,28 @@ def parse_webhook(body):
             contacts = value.get("contacts", []) or []
             wa_id = (contacts[0].get("wa_id", "")
                      if contacts else "")
+            # The business number this message arrived on; replies go
+            # back out FROM it (multi-number WABAs).
+            via = ((value.get("metadata", {}) or {})
+                   .get("phone_number_id", ""))
             for msg in value.get("messages", []) or []:
                 kind = (msg or {}).get("type", "")
                 mid = (msg or {}).get("id", "")
                 if kind == "text":
                     out.append((wa_id, {
-                        "kind": "text", "id": mid,
+                        "kind": "text", "id": mid, "via": via,
                         "text": ((msg.get("text") or {}).get("body")
                                  or "")}))
                 elif kind == "image":
                     out.append((wa_id, {
-                        "kind": "image", "id": mid,
+                        "kind": "image", "id": mid, "via": via,
                         "media_id": (msg.get("image") or {}).get("id",
                                                                  ""),
                         "caption": ((msg.get("image") or {}).get(
                             "caption") or "")}))
                 elif kind == "audio":
                     out.append((wa_id, {
-                        "kind": "audio", "id": mid,
+                        "kind": "audio", "id": mid, "via": via,
                         "media_id": (msg.get("audio") or {}).get("id",
                                                                  "")}))
                 elif kind == "interactive":
@@ -131,7 +137,8 @@ def parse_webhook(body):
                         payload = ((inter.get("list_reply") or {})
                                    .get("id") or "")
                     out.append((wa_id, {"kind": "interactive",
-                                        "id": mid, "payload": payload}))
+                                        "id": mid, "via": via,
+                                        "payload": payload}))
     return [(w, m) for w, m in out if w and m.get("id")]
 
 
@@ -139,9 +146,51 @@ def parse_webhook(body):
 SEND_FN = None
 
 
+def _wa_tag(wa_id):
+    """Short non-PII correlation tag (never the phone number)."""
+    return hashlib.sha256(
+        (wa_id or "").encode("utf-8")).hexdigest()[:8]
+
+
+def log_wa(event, wa_id="", **fields):
+    """One JSON log line to stdout (Modal captures it). Never logs token."""
+    record = {"wa": _wa_tag(wa_id), "event": event}
+    record.update(fields)
+    try:
+        print(json.dumps(record, ensure_ascii=False), flush=True)
+    except Exception:  # noqa: BLE001 - logging never crashes the bot
+        pass
+
+
+def apology_text(wa_id):
+    session = consultant_mod.SESSIONS.get(wa_session_id(wa_id), {})
+    if (session.get("lang") or "en") == "ar":
+        return "عذرا، حصل خطأ — حاول مرة ثانية."
+    return "Sorry, something went wrong — please try again."
+
+
+def send_apology(wa_id):
+    """Last-resort short text reply. Logs instead of raising."""
+    try:
+        send_payload(text_payload(wa_id, apology_text(wa_id)))
+    except Exception as exc:  # noqa: BLE001 - nothing left to try
+        log_wa("apology_failed", wa_id, error=str(exc)[:500])
+
+
 def graph_url(path):
     return ("https://graph.facebook.com/%s/%s%s"
-            % (GRAPH_VERSION, wa_env()["phone_id"], path))
+            % (GRAPH_VERSION, _send_phone_id(), path))
+
+
+# Phone number the current message arrived on (metadata.phone_number_id).
+# Replies must go out FROM that number; the env default is only a fallback
+# when the webhook carried no metadata (simulator, old payloads).
+_send_phone_ctx = contextvars.ContextVar("wa_send_phone_id", default="")
+
+
+def _send_phone_id():
+    """Sender number for this message, else WA_PHONE_NUMBER_ID."""
+    return _send_phone_ctx.get() or wa_env()["phone_id"]
 
 
 def _post_graph(path, payload, files=None):
@@ -154,7 +203,17 @@ def _post_graph(path, payload, files=None):
         else:
             resp = client.post(graph_url(path), headers=headers,
                                json=payload)
-    resp.raise_for_status()
+    try:
+        resp.raise_for_status()
+    except Exception as exc:
+        # Status + Graph error body, never the token or headers.
+        log_wa("graph_error", (payload or {}).get("to", ""),
+               path=path, status=getattr(resp, "status_code", "?"),
+               body=(getattr(resp, "text", "") or "")[:2000],
+               error="%s: %s" % (type(exc).__name__, exc))
+        raise
+    log_wa("graph_ok", (payload or {}).get("to", ""),
+           path=path, status=getattr(resp, "status_code", "?"))
     return resp.json()
 
 
@@ -510,7 +569,9 @@ def run_try_swap(wa_id, code, target=""):
             res.get("result_url", "")) else os.path.join(
                 BASE_DIR, (res.get("result_url") or "").lstrip("/")))
         media_id = upload_media(path)
-    except Exception:  # noqa: BLE001 - degraded image send
+    except Exception as exc:  # noqa: BLE001 - fall back to text below
+        log_wa("media_upload_error", wa_id, kind="try_swap", code=code,
+               error="%s: %s" % (type(exc).__name__, exc))
         media_id = ""
     lang = session.get("lang") or "en"
     if lang == "ar":
@@ -520,6 +581,10 @@ def run_try_swap(wa_id, code, target=""):
     if media_id:
         send_payload(image_payload(wa_id, media_id=media_id,
                                    caption=caption))
+    else:
+        # The swap ran but the photo cannot be delivered: say so
+        # instead of going silent.
+        send_payload(text_payload(wa_id, apology_text(wa_id)))
     session.setdefault("assignments", {})[target] = code
     persist_session(wa_id)
 
@@ -580,9 +645,22 @@ def handle_text(wa_id, text):
     if is_command(text, APPLY_ALL_WORDS):
         run_apply_all(wa_id)
         return
-    out = consultant_mod.chat(wa_session_id(wa_id), text or "")
+    try:
+        out = consultant_mod.chat(wa_session_id(wa_id), text or "")
+    except Exception as exc:  # noqa: BLE001 - apologize, never silent
+        log_wa("consultant_error", wa_id, kind="text",
+               error="%s: %s" % (type(exc).__name__, exc),
+               traceback=traceback.format_exc()[-4000:])
+        send_apology(wa_id)
+        return
     persist_session(wa_id)
-    send_turn_result(wa_id, out)
+    try:
+        send_turn_result(wa_id, out)
+    except Exception as exc:  # noqa: BLE001 - send/media failed
+        log_wa("send_error", wa_id, kind="text",
+               error="%s: %s" % (type(exc).__name__, exc),
+               traceback=traceback.format_exc()[-4000:])
+        send_apology(wa_id)
 
 
 def handle_image(wa_id, media_id, caption=""):
@@ -613,9 +691,22 @@ def handle_image(wa_id, media_id, caption=""):
                    "or PNG photo."))
         return
     rel = os.path.join("uploads", os.path.basename(dest))
-    out = consultant_mod.chat(wa_session_id(wa_id), caption or "", rel)
+    try:
+        out = consultant_mod.chat(wa_session_id(wa_id), caption or "", rel)
+    except Exception as exc:  # noqa: BLE001 - apologize, never silent
+        log_wa("consultant_error", wa_id, kind="image",
+               error="%s: %s" % (type(exc).__name__, exc),
+               traceback=traceback.format_exc()[-4000:])
+        send_apology(wa_id)
+        return
     persist_session(wa_id)
-    send_turn_result(wa_id, out)
+    try:
+        send_turn_result(wa_id, out)
+    except Exception as exc:  # noqa: BLE001 - send/media failed
+        log_wa("send_error", wa_id, kind="image",
+               error="%s: %s" % (type(exc).__name__, exc),
+               traceback=traceback.format_exc()[-4000:])
+        send_apology(wa_id)
 
 
 def mid_tag(media_id):
@@ -709,27 +800,34 @@ def process_message(wa_id, message):
     """One inbound message -> outbound payloads. Idempotent."""
     if not configured():
         return
-    session = restore_session(wa_id)
-    if not mark_seen(session, message.get("id", "")):
-        return
-    persist_session(wa_id)
-    kind = message.get("kind", "")
+    # Reply FROM the number the message arrived on; env is the fallback.
+    via = message.get("via") or ""
+    token = _send_phone_ctx.set(via)
     try:
-        if kind == "text":
-            handle_text(wa_id, message.get("text", ""))
-        elif kind == "image":
-            handle_image(wa_id, message.get("media_id", ""),
-                         message.get("caption", ""))
-        elif kind == "audio":
-            handle_audio(wa_id, message.get("media_id", ""))
-        elif kind == "interactive":
-            handle_interactive(wa_id, message.get("payload", ""))
-    except Exception as exc:  # noqa: BLE001 - webhook never crashes
+        log_wa("inbound", wa_id, kind=message.get("kind", ""),
+               via=via or "env-fallback")
+        session = restore_session(wa_id)
+        if not mark_seen(session, message.get("id", "")):
+            return
+        persist_session(wa_id)
+        kind = message.get("kind", "")
         try:
-            send_payload(text_payload(wa_id, "Something went wrong "
-                                              "(%s)." % exc))
-        except Exception:  # noqa: BLE001 - truly best effort
-            pass
+            if kind == "text":
+                handle_text(wa_id, message.get("text", ""))
+            elif kind == "image":
+                handle_image(wa_id, message.get("media_id", ""),
+                             message.get("caption", ""))
+            elif kind == "audio":
+                handle_audio(wa_id, message.get("media_id", ""))
+            elif kind == "interactive":
+                handle_interactive(wa_id, message.get("payload", ""))
+        except Exception as exc:  # noqa: BLE001 - webhook never crashes
+            log_wa("process_error", wa_id, kind=kind,
+                   error="%s: %s" % (type(exc).__name__, exc),
+                   traceback=traceback.format_exc()[-4000:])
+            send_apology(wa_id)
+    finally:
+        _send_phone_ctx.reset(token)
 
 
 _WORKERS = []
