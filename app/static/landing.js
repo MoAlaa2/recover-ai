@@ -3,9 +3,9 @@
 (function () {
   "use strict";
 
-  // ESTIMATE — illustrative per-sofa CO2e saving, NOT sourced. Always
-  // rendered with the Estimate label; do not present as measured fact.
-  var CO2_PER_SOFA_KG = 70;
+  // Sourced: EPD NEPD-1805-759 (Helland Duun 3-seater sofa, 47.7 kg):
+  // 52 kg CO2e for life-cycle stages A1-A3 (manufacturing).
+  var CO2_PER_SOFA_KG = 52;
 
   // Real hero swap: living sample + FA-NL-06, verify min 8/10.
   var HERO = { code: "FA-NL-06", score: 8 };

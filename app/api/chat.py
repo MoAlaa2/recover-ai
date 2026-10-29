@@ -308,6 +308,10 @@ def session_quote(session_id: str):
                              session.get("curtain_dims"),
                              session.get("pillow_counts", {}))
     res["preliminary"] = True
+    from app.services import impact as impact_mod
+    co2, waste = impact_mod.avoided(assignments)
+    res["co2"] = {"kg": co2, "waste_kg": waste,
+                  "source": impact_mod.CO2_SOURCE}
     return res
 
 

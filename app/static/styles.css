@@ -1298,6 +1298,25 @@ body.modal-open { overflow: hidden; }
 .sum-actions .ghost-btn {
   min-height: 44px;
 }
+.co2-line {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rc-line);
+  font-size: var(--rc-fs-sm);
+}
+.co2-line svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-top: 2px;
+}
+.co2-src {
+  font-size: var(--rc-fs-xs);
+  color: var(--rc-ink-muted);
+}
 
 .chat-follow { font-size: var(--rc-fs-sm); margin: 8px 0 0; }
 

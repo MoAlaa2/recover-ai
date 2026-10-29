@@ -14,8 +14,9 @@ Most sofas are thrown out for their fabric, not their frame:
   (US EPA, 2018); **~80%** of it ends up in landfill (US EPA, 2018).
 - **10M+** tonnes of furniture discarded each year in the EU
   (EEB, 2017).
-- Roughly **70 kg of CO₂e avoided per reupholstered sofa**
-  (estimate — illustrative, not measured).
+- **≈52 kg of CO₂e avoided per reupholstered 3-seat sofa**
+  (sourced: EPD NEPD-1805-759, Helland Duun 3-seater, A1–A3
+  manufacturing; other pieces scale by weight class).
 
 Reupholstering gives a good frame another ten years and keeps bulk
 waste down. ReCover removes the two reasons people replace instead:

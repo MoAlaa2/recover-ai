@@ -526,6 +526,7 @@ def test_multi_assign_flow(server, page):
     assert "https://wa.me/?text=" in card
     assert "Send to upholsterer" in card
     assert "Copy summary" in card
+    assert "EPD NEPD-1805-759" in card
     page.click("#sheetClose")
     page.wait_for_timeout(400)
     page.click("#messages .sum-copy")
@@ -612,6 +613,7 @@ def test_multi_assign_flow_ar(server, page):
     assert "الإجمالي" in card
     assert "https://wa.me/?text=" in card
     assert "أرسل للمنجّد" in card
+    assert "EPD NEPD-1805-759" in card
     box = page.evaluate("() => ({sw: document.documentElement.scrollWidth,"
                         " cw: document.documentElement.clientWidth})")
     assert box["sw"] == box["cw"]

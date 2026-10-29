@@ -54,6 +54,9 @@
       copiedTick: "Copied",
       needsMeasure: "needs measurements",
       preliminaryNote: "Preliminary estimate — your upholsterer will measure.",
+      co2Line: "By keeping your %s you avoid ≈%d kg CO₂e of new manufacturing and ≈%d kg of furniture waste",
+      co2Source: "Source: EPD NEPD-1805-759",
+      co2Note: "Based on one published EPD (A1–A3 manufacturing stages).",
       previewsTitle: "Your previews",
       crumbHome: "Home",
       crumbConsult: "Consultation",
@@ -158,6 +161,9 @@
       copiedTick: "تم النسخ",
       needsMeasure: "يحتاج مقاسات",
       preliminaryNote: "تقدير مبدئي — المقاس النهائي من المنجّد.",
+      co2Line: "باحفاظك على %s تتجنّب ≈%d كغ CO₂e من التصنيع الجديد و≈%d كغ من نفايات الأثاث",
+      co2Source: "المصدر: EPD NEPD-1805-759",
+      co2Note: "مبني على إعلان بيئي واحد منشور (مراحل التصنيع A1–A3).",
       previewsTitle: "معايناتك",
       crumbHome: "الرئيسية",
       crumbConsult: "استشارة",
@@ -1337,7 +1343,13 @@
     return n + " " + t("sarUnit");
   }
 
-  function waSummaryText(rows, total) {
+  function fmtNum(n) {
+    if (n === undefined || n === null) return "";
+    if (state.lang === "ar") return toArabicDigits(n);
+    return String(n);
+  }
+
+  function waSummaryText(rows, total, co2line) {
     var lines = rows.map(function (r) {
       return "• " + r.target + " → " + r.name + " (" + r.code + "): " +
         (r.meters !== undefined && r.meters !== null ?
@@ -1347,6 +1359,7 @@
     lines.push(t("totalLabel") + " (" + t("preliminaryNote") + "): " +
                total);
     lines.push(t("preliminaryNote"));
+    if (co2line) lines.push(co2line);
     var view = state.canvasView || "";
     if (view) {
       var origin = "";
@@ -1402,7 +1415,22 @@
             extra = '<div class="sum-total"><b>' + esc(t("totalLabel")) +
               "</b> " + esc(fmtMoney(quote.total)) + "</div>" +
               '<p class="coming">' + esc(t("preliminaryNote")) + "</p>";
-            waText = waSummaryText(waRows, fmtMoney(quote.total));
+            var co2txt = "";
+            if (quote.co2 && quote.co2.kg > 0) {
+              var pieces = results.map(function (r) {
+                return targetLabel(r.target);
+              }).join(" + ");
+              co2txt = t("co2Line").replace("%s", pieces)
+                .replace("%d", fmtNum(quote.co2.kg))
+                .replace("%d", fmtNum(quote.co2.waste_kg));
+              extra += '<div class="co2-line"><i data-lucide="leaf" ' +
+                'aria-hidden="true"></i><div>' + esc(co2txt) +
+                ' <span class="co2-src">' + esc(t("co2Source")) +
+                "</span></div></div>" +
+                '<p class="coming">' + esc(t("co2Note")) + "</p>";
+            }
+            waText = waSummaryText(waRows, fmtMoney(quote.total),
+                                   co2txt);
           }
           var div = document.createElement("div");
           div.className = "msg them";
