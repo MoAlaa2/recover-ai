@@ -300,7 +300,15 @@ def run_target_phase(device, user, pw, browser, lang):
             timeout=90000)
     pg.wait_for_selector("#welcomeMsg", timeout=30000)
     pg.set_input_files("#fileInput", LIVING)
-    pg.wait_for_selector("#chips:not([hidden])", timeout=600000)
+    try:
+        pg.wait_for_selector("#chips:not([hidden])", timeout=300000)
+    except Exception:
+        print("PHOTO-ERRORS %r" % (errors,))
+        dump_state(pg, tag, "photo-retry")
+        pg.reload(wait_until="networkidle", timeout=90000)
+        pg.wait_for_selector("#welcomeMsg", timeout=30000)
+        pg.set_input_files("#fileInput", LIVING)
+        pg.wait_for_selector("#chips:not([hidden])", timeout=300000)
     me_before = pg.eval_on_selector_all(
         "#messages .msg.me", "e => e.length")
     # Prefer the tap; fall back to the chip, then plain text. The pixel

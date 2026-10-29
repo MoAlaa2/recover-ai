@@ -147,10 +147,26 @@ def swap_fabric(req: SwapRequest):
     return res
 
 
+def _wait_for_image(path, tries=4):
+    """Tolerate a just-written file that is not visible yet.
+
+    Upload/swap/mask files can lag one volume sync behind the request
+    that references them (fresh container, commit in flight). The
+    happy path costs nothing; only a missing file waits, 1s at a
+    time, then the caller 400s as before.
+    """
+    import time as _time
+    for _ in range(tries):
+        if os.path.exists(path):
+            return True
+        _time.sleep(1)
+    return os.path.exists(path)
+
+
 def _check_image(image_path):
     path = image_path if os.path.isabs(image_path) else os.path.join(
         BASE_DIR, image_path)
-    if not os.path.exists(path):
+    if not _wait_for_image(path):
         raise HTTPException(400, "image not found")
     return path
 
@@ -415,7 +431,7 @@ def session_targets(session_id: str, image_path: str = ""):
         raise HTTPException(400, "image_path is required")
     path = image_path if os.path.isabs(image_path) else \
         os.path.join(BASE_DIR, image_path)
-    if not os.path.exists(path):
+    if not _wait_for_image(path):
         raise HTTPException(400, "image not found")
     try:
         items = targets_mod.detect_targets(image_path)
@@ -498,7 +514,7 @@ def chat(req: ChatRequest):
     if req.image_path:
         path = req.image_path if os.path.isabs(req.image_path) else \
             os.path.join(BASE_DIR, req.image_path)
-        if not os.path.exists(path):
+        if not _wait_for_image(path):
             raise HTTPException(400, "image not found")
     try:
         return consultant.chat(req.session_id, req.message,
@@ -521,7 +537,7 @@ def chat_stream(req: ChatRequest):
     if req.image_path:
         path = req.image_path if os.path.isabs(req.image_path) else \
             os.path.join(BASE_DIR, req.image_path)
-        if not os.path.exists(path):
+        if not _wait_for_image(path):
             raise HTTPException(400, "image not found")
     events = queue.Queue()
 

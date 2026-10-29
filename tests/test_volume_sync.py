@@ -72,3 +72,31 @@ def test_commit_once_for_chunked_body():
     # Swap reads the room file first, then persists the result.
     calls, _ = run("/api/swap", "POST", chunks=(b"a", b"b"))
     assert calls == ["reload", "commit"]
+
+
+def test_commit_before_final_send():
+    # The browser fetches file URLs the moment the response lands, so
+    # the commit must precede the final body bytes (it used to run
+    # after send, racing the browser's GET into 404s).
+    events = []
+    vol = FakeVolume()
+    real_commit = vol.commit
+    vol.commit = lambda: (events.append("commit"), real_commit())
+
+    async def inner(_scope, _receive, send):
+        await send({"type": "http.response.start", "status": 200,
+                    "headers": []})
+        await send({"type": "http.response.body", "body": b"done",
+                    "more_body": False})
+
+    async def receive():
+        return {"type": "http.request", "body": b""}
+
+    async def send(message):
+        events.append("sent:%s" % message["type"])
+
+    scope = {"type": "http", "path": "/api/upload", "method": "POST",
+             "headers": []}
+    asyncio.run(VolumeSyncMiddleware(inner, vol)(scope, receive, send))
+    assert events.index("commit") < events.index(
+        "sent:http.response.body")

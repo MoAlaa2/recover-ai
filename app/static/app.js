@@ -2506,12 +2506,14 @@
       fd.append("file", ready,
                 ready === file ? (file.name || "photo.jpg") : "photo.jpg");
       return fetchReq("/api/upload", { form: fd, timeoutMs: 60000,
-                                      retries: 1 });
+                                      retries: 1 }).then(function (data) {
+        return { data: data, ready: ready };
+      });
     })
-      .then(function (data) {
+      .then(function (up) {
         // Room state only commits once the follow-up chat confirms the
         // photo: a chat failure must never leave a broken canvas behind.
-        savedPath = data.image_path;
+        savedPath = up.data.image_path;
         state.outlines = [];
         // Warm the item targets while the chat runs: detection and SAM
         // are independent of the conversation, so the sheet opens ready.
@@ -2526,7 +2528,22 @@
             }
           })
           .catch(function () {});
-        return streamChat("", savedPath);
+        return streamChat("", savedPath).then(function (res) {
+          if (res) return res;
+          // One re-upload: the file may have missed the volume on a
+          // fresh container, in which case chat (and its fallback) 400
+          // on a path that will never resolve. A new upload gets a new
+          // path; failing twice ends the turn like any other failure.
+          var fd2 = new FormData();
+          fd2.append("file", up.ready, "photo.jpg");
+          return fetchReq("/api/upload",
+                          { form: fd2, timeoutMs: 60000,
+                            retries: 1 }).then(function (data2) {
+            savedPath = data2.image_path;
+            state.outlines = [];
+            return streamChat("", savedPath);
+          });
+        });
       })
       .then(function (res) {
         if (!res) {

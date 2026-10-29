@@ -66,3 +66,24 @@ def test_unsupported_type_rejected(tmp_path, monkeypatch):
     resp = post(client(tmp_path, monkeypatch), "anim.gif", b"GIF89a",
                 "image/gif")
     assert resp.status_code == 400
+
+
+def test_wait_for_image_instant_when_present(tmp_path):
+    from app.api import chat as chat_api
+    f = tmp_path / "late.jpg"
+    f.write_bytes(b"x")
+    assert chat_api._wait_for_image(str(f), tries=1) is True
+
+
+def test_wait_for_image_tolerates_late_file(tmp_path):
+    import threading
+    from app.api import chat as chat_api
+    f = tmp_path / "late.jpg"
+    threading.Timer(0.3, lambda: f.write_bytes(b"x")).start()
+    assert chat_api._wait_for_image(str(f), tries=5) is True
+
+
+def test_wait_for_image_false_when_absent(tmp_path):
+    from app.api import chat as chat_api
+    assert chat_api._wait_for_image(
+        str(tmp_path / "never.jpg"), tries=1) is False
