@@ -190,7 +190,19 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
         pg.wait_for_timeout(500)
         t3 = time.perf_counter()
         pg.click("#applyAllBtn")
-        pg.wait_for_selector("#messages .sum-card", timeout=600000)
+        for mi in range(25):
+            pg.wait_for_timeout(60000)
+            if pg.eval_on_selector_all("#messages .sum-card",
+                                       "e => e.length"):
+                break
+            tail = pg.eval_on_selector_all(
+                "#messages .msg", "e => e.map(x => x.innerText)")[-2:]
+            print("MULTI-WAIT %s %dmin tail=%r" % (tag, mi + 1, tail))
+            if any("preview failed" in (m or "").lower()
+                   or "تعذّرت المعاينة" in (m or "") for m in tail):
+                dump_state(pg, lang + "-" + tag, "multi-fail")
+                raise RuntimeError("multi swap failed: %r" % (tail,))
+        pg.wait_for_selector("#messages .sum-card", timeout=120000)
         timings["multi_s"] = round(time.perf_counter() - t3, 1)
         shot("summary")
         card = pg.eval_on_selector(
