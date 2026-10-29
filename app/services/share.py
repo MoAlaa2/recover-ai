@@ -30,8 +30,15 @@ def _unb64(text: str) -> bytes:
     return base64.urlsafe_b64decode(text + "=" * (-len(text) % 4))
 
 
-def resolve_result(result_url):
-    """Result path under the uploads dir, or None (incl. traversal)."""
+def disk_path_for(result_url, base=None):
+    """Map a result URL to its on-disk path, or None when unsafe.
+
+    No existence check: the volume middleware uses this to wait a fresh
+    file into visibility BEFORE the share endpoint stats it. `base`
+    defaults to the app uploads dir; the middleware passes its own
+    volume mount (same path in prod, different in tests).
+    """
+    base = os.path.normpath(base or UPLOAD_DIR)
     rel = (result_url or "").lstrip("/")
     if rel.startswith("uploads/"):
         rel = rel[len("uploads/"):]
@@ -39,10 +46,16 @@ def resolve_result(result_url):
         return None
     if not rel or rel.startswith(".") or ".." in rel.split("/"):
         return None
-    abs_path = os.path.normpath(os.path.join(UPLOAD_DIR, rel))
-    if os.path.commonpath([abs_path, UPLOAD_DIR]) != UPLOAD_DIR:
+    abs_path = os.path.normpath(os.path.join(base, rel))
+    if os.path.commonpath([abs_path, base]) != base:
         return None
-    if not os.path.isfile(abs_path):
+    return abs_path
+
+
+def resolve_result(result_url):
+    """Result path under the uploads dir, or None (incl. traversal)."""
+    abs_path = disk_path_for(result_url)
+    if abs_path is None or not os.path.isfile(abs_path):
         return None
     return abs_path
 

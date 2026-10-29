@@ -132,6 +132,37 @@ class VolumeSyncMiddleware:
         method = scope.get("method", "")
         if self.reads_volume(path, method):
             await asyncio.to_thread(self.volume.reload)
+        if method == "POST" and path == "/api/share":
+            # Minting a link stats a file another request just wrote
+            # (multi composite): wait it into visibility first, or the
+            # endpoint 404s and the summary ships a link-less wa.me.
+            body = b""
+            while True:
+                message = await receive()
+                if message.get("type") != "http.request":
+                    break
+                body += message.get("body", b"")
+                if not message.get("more_body"):
+                    break
+            disk = None
+            try:
+                import json
+                from app.services import share as share_mod
+                data = json.loads(body.decode("utf-8") or "{}")
+                disk = share_mod.disk_path_for(
+                    (data or {}).get("result_url", ""),
+                    self.upload_dir or None)
+            except Exception:  # noqa: BLE001 - fail open to the 404
+                disk = None
+            if disk is not None:
+                await self._ensure_visible(disk)
+
+            async def replay(_sentinel=body):
+                return {"type": "http.request", "body": _sentinel,
+                        "more_body": False}
+
+            await self.inner(scope, replay, send)
+            return
         if method == "GET":
             disk = self._disk_path(path)
             if disk is not None:

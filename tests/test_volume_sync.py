@@ -16,19 +16,37 @@ class FakeVolume:
 
 
 def run(path, method, chunks=(b"ok",), upload_dir=None,
-        sync_kwargs=None):
+        sync_kwargs=None, body=b"", echo_body=False):
     vol = FakeVolume()
     messages = []
 
-    async def inner(_scope, _receive, send):
+    async def inner(_scope, receive, send):
+        if echo_body:
+            seen = b""
+            while True:
+                message = await receive()
+                if message.get("type") != "http.request":
+                    break
+                seen += message.get("body", b"")
+                if not message.get("more_body"):
+                    break
+            await send({"type": "http.response.start", "status": 200,
+                        "headers": [(b"content-type", b"text/plain")]})
+            await send({"type": "http.response.body", "body": seen,
+                        "more_body": False})
+            return
         await send({"type": "http.response.start", "status": 200,
                     "headers": [(b"content-type", b"text/plain")]})
         for i, chunk in enumerate(chunks):
             await send({"type": "http.response.body", "body": chunk,
                         "more_body": i < len(chunks) - 1})
 
+    sent_body = [body]
+
     async def receive():
-        return {"type": "http.request", "body": b""}
+        chunk, sent_body[0] = sent_body[0], b""
+        return {"type": "http.request", "body": chunk,
+                "more_body": False}
 
     async def send(message):
         messages.append(message)
@@ -130,3 +148,34 @@ def test_share_bogus_token_no_wait():
     calls, _ = run("/share/bogus.jpg", "GET",
                    upload_dir="/nonexistent-xyz-recover")
     assert calls == []
+
+
+def test_share_post_missing_file_waits_then_replays_body():
+    import json
+    payload = json.dumps({"result_url": "uploads/fresh.jpg"}).encode()
+    calls, out = run("/api/share", "POST", upload_dir="/nonexistent-xyz",
+                     sync_kwargs={"sync_tries": 3, "sync_sleep": 0.01},
+                     body=payload, echo_body=True)
+    # No initial reload (POST /api/share is not a reload path); the
+    # missing fresh file serializes one reload chain, then the drained
+    # body is replayed to the app untouched.
+    assert calls == ["reload"] * 3
+    assert out[-1] == {"type": "http.response.body", "body": payload,
+                       "more_body": False}
+
+
+def test_share_post_present_file_no_wait(tmp_path):
+    import json
+    (tmp_path / "r.jpg").write_bytes(b"x")
+    payload = json.dumps({"result_url": "uploads/r.jpg"}).encode()
+    calls, out = run("/api/share", "POST", upload_dir=str(tmp_path),
+                     body=payload, echo_body=True)
+    assert calls == []
+    assert out[-1]["body"] == payload
+
+
+def test_share_post_bad_body_passes_through():
+    calls, out = run("/api/share", "POST", body=b"not-json{{{",
+                     echo_body=True)
+    assert calls == []
+    assert out[-1]["body"] == b"not-json{{{"

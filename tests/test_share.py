@@ -46,6 +46,18 @@ def test_resolve_rejects(jpg):
     assert sh.resolve_result("") is None
 
 
+def test_disk_path_for_maps_without_stat(jpg, tmp_path, monkeypatch):
+    monkeypatch.setattr(sh, "UPLOAD_DIR", str(tmp_path))
+    # Present or not, the mapping is identical; traversal still fails.
+    assert sh.disk_path_for("uploads/swap/r.jpg") == \
+        os.path.join(str(tmp_path), "swap", "r.jpg")
+    assert sh.disk_path_for("swap/r.jpg") == \
+        os.path.join(str(tmp_path), "swap", "r.jpg")
+    assert sh.disk_path_for("uploads/../../app/main.py") is None
+    assert sh.disk_path_for("swap/secret.txt") is None
+    assert sh.disk_path_for("") is None
+
+
 def test_serve_endpoint(jpg, monkeypatch):
     monkeypatch.setenv("MODEL_API_KEY", "k")
     from app.main import app
