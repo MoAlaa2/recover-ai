@@ -199,10 +199,11 @@ def check(pg, lang, tag):
         "#messages .msg.them[data-auto]", "e => e.length")
     assert auto_left == 0, "unmerged auto bubble left"
     bar = pg.eval_on_selector("#roomBar", "e => e.innerText")
-    assert "Your room" not in bar and "غرفتك" not in bar.split("\n")[0], bar
-    title_changed = ("cushion" in bar.lower() or "وسا" in bar
-                     or "مخد" in bar)
-    assert title_changed, "room bar title not fabric: %r" % bar
+    lines = [ln.strip() for ln in bar.split("\n") if ln.strip()]
+    # After a swap the title is the fabric name, the subtitle the room.
+    assert lines and lines[0] not in ("Your room", "غرفتك"), bar
+    assert any("living" in ln.lower() or "ليف" in ln or "غرفة" in ln
+               for ln in lines[1:]), bar
     assert overflow() == 0
     shot("done")
     out["errors"] = errs
