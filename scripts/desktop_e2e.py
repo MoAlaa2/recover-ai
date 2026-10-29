@@ -30,9 +30,23 @@ def desktop_asserts(pg, tag, errors):
     print("DESK %s canvas-taps=%d chat-taps=%d"
           % (tag, taps, chat_taps))
     if taps:
+        # Overlapping regions resolve smallest-wins: click the tap
+        # that is actually hittable at its own center.
+        idx = pg.evaluate(
+            "() => { const els = [...document.querySelectorAll("
+            "'#outlineLayer .ol-tap')]; "
+            "for (let i = 0; i < els.length; i++) { "
+            "const r = els[i].getBoundingClientRect(); "
+            "const el = document.elementFromPoint("
+            "r.x + r.width / 2, r.y + r.height / 2); "
+            "if (el && (el === els[i] || els[i].contains(el))) "
+            "return { i, label: els[i].getAttribute('aria-label') }; } "
+            "return null; }")
+        assert idx is not None, "no hittable canvas tap"
+        print("DESK %s canvas taps=%d topmost=%r" % (tag, taps, idx))
         me_before = pg.eval_on_selector_all(
             "#messages .msg.me", "e => e.length")
-        pg.click("#outlineLayer .ol-tap >> nth=0")
+        pg.click("#outlineLayer .ol-tap >> nth=%d" % idx["i"])
         pg.wait_for_function(
             "n => document.querySelectorAll('#messages .msg.me').length > n",
             arg=me_before, timeout=30000)
