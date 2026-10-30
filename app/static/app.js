@@ -2379,6 +2379,7 @@
     if ($("hoodToggle")) $("hoodToggle").hidden = true;
     state.pendingSwapModel = null;
     state.swapTrace = [];
+    state.swapTraceEnd = null;
     paintStepBadges();
     renderCanvasRow();
     clearSwapTimers();
@@ -2482,6 +2483,7 @@
       } else if (evt.type === "done") {
         if (settled || isStale()) return;
         settled = true;
+        state.swapTraceEnd = Date.now();
         stopWatch();
         releaseCtrl();
         try { if (reader) reader.cancel(); } catch (e) {}
@@ -2549,10 +2551,13 @@
   function renderTrace(res) {
     var box = $("swapTrace");
     if (!box) return;
-    var prev = state.swapAttemptT0 || Date.now(), html = "";
-    (state.swapTrace || []).forEach(function (s) {
-      var secs = Math.max(0, (s.t - prev) / 1000);
-      prev = s.t;
+    // Each row shows how long ITS step ran: until the next step began,
+    // or until the result arrived for the last one.
+    var trace = state.swapTrace || [], html = "";
+    var end = state.swapTraceEnd || Date.now();
+    trace.forEach(function (s, i) {
+      var next = i + 1 < trace.length ? trace[i + 1].t : end;
+      var secs = Math.max(0, (next - s.t) / 1000);
       html += '<div class="trace-row"><span dir="auto">' +
         esc(canvasStepLabel(s.label)) + "</span>" +
         modelBadge(s.model) +

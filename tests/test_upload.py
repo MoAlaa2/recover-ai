@@ -42,7 +42,8 @@ def test_large_jpeg_exif_transposed(tmp_path, monkeypatch):
     assert resp.status_code == 200, resp.text
     out = Image.open(str(tmp_path / resp.json()["image_path"].split(
         "uploads/")[1]))
-    assert out.size == (3000, 4000)
+    # Portrait kept, long side capped (12 MP slows every mask step).
+    assert out.size == (1536, 2048)
 
 
 def test_png_alpha_flattened(tmp_path, monkeypatch):

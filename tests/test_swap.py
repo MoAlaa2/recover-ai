@@ -126,3 +126,115 @@ def test_preview_store_caps_length():
         chat_api.record_preview("sess-2", "FA-NL-02", res)
     assert len(chat_api.get_previews("sess-2")) == chat_api.MAX_PREVIEWS
     chat_api.PREVIEWS.clear()
+
+
+def _box(size, box, fill=255):
+    m = Image.new("L", size, 0)
+    m.paste(fill, box)
+    return m
+
+
+def test_sofa_full_mask_cuts_out_the_wooden_base(monkeypatch):
+    """SAM's sofa record covers the wooden plinth; the wood segment is
+    subtracted so the swap leaves it alone."""
+    size = (100, 100)
+    sofa = [{"box": (0, 0, 100, 100), "frame_size": (100, 100)}]
+    wood = [{"box": (0, 80, 100, 100), "frame_size": (100, 100)}]
+
+    def fake_segment(img, concept, key=None, timeout=1):
+        if concept == s.SOFA_WOOD_CONCEPT:
+            return wood
+        if concept == s.TARGET_CONCEPTS["sofa"]:
+            return sofa
+        return []
+
+    def fake_sam_mask(records, sz):
+        return _box(sz, tuple(records[0]["box"]))
+
+    monkeypatch.setattr(s, "segment", fake_segment)
+    monkeypatch.setattr(s, "sam_mask", fake_sam_mask)
+    _, mask = s.sofa_full_mask(b"x", size, "k", 5)
+    assert mask.getpixel((50, 50)) == 255, "upholstery stays"
+    assert mask.getpixel((50, 90)) == 0, "wood is cut out"
+
+
+def test_sofa_full_mask_ignores_a_wood_mask_that_is_the_whole_sofa(
+        monkeypatch):
+    size = (100, 100)
+    rec = [{"box": (0, 0, 100, 100), "frame_size": (100, 100)}]
+
+    def fake_segment(img, concept, key=None, timeout=1):
+        # Sofa, cushions and "wood" all come back as the whole sofa.
+        if concept == s.TARGET_CONCEPTS["cushions"]:
+            return []
+        return rec
+
+    monkeypatch.setattr(s, "segment", fake_segment)
+    monkeypatch.setattr(s, "sam_mask",
+                        lambda records, sz: _box(sz, (0, 0, 100, 100)))
+    _, mask = s.sofa_full_mask(b"x", size, "k", 5)
+    assert mask.getpixel((50, 50)) == 255, "a whole-sofa wood mask is ignored"
+
+
+def test_edit_prompt_protects_wood_for_sofa_not_pillows():
+    fabric = {"name_en": "X", "material": "velvet", "primary_color": "red",
+              "pattern_type": "plain"}
+    assert "wooden" in s.edit_prompt(fabric, "sofa")
+    assert "wooden" not in s.edit_prompt(
+        fabric, s.TARGET_CONCEPTS["cushions"])
+
+
+def test_needs_retry_only_on_checks_or_motif_scores():
+    ok = {"ok": True}
+    assert s.needs_retry({"ok": False}, {"color": 9, "pattern": 9,
+                                         "scale": 9, "isolation": 9})
+    assert not s.needs_retry(ok, {"color": 4, "pattern": 7, "scale": 6,
+                                  "isolation": 3}), \
+        "colour and isolation are covered deterministically"
+    assert s.needs_retry(ok, {"color": 9, "pattern": 5, "scale": 9,
+                              "isolation": 9})
+    assert s.needs_retry(ok, {"color": 9, "pattern": 9, "scale": 5,
+                              "isolation": 9})
+
+
+def test_single_swap_composites_only_inside_the_mask(tmp_path, monkeypatch):
+    """The model re-renders the whole frame; only the masked item may
+    change in the result (the wooden base keeps the photo's pixels)."""
+    from app.services import swap_checks as sc
+    from app.services.catalog import get_fabric
+    fabric = get_fabric("FA-AC-01")
+    swatch = Image.open(os.path.join(os.getcwd(), fabric["image"]))
+    want = swatch.convert("RGB").resize((1, 1), Image.BOX).getpixel((0, 0))
+    size = (160, 120)
+    room = tmp_path / "room.jpg"
+    solid((120, 120, 120), size).save(str(room))
+    item = (40, 40, 120, 100)
+    monkeypatch.setattr(s, "require_api_key", lambda: "k")
+    monkeypatch.setattr(s, "sofa_full_mask",
+                        lambda *a, **k: ([{"box": item, "frame_size": size}],
+                                         _box(size, item)))
+    # The edit paints the WHOLE image in the new colour (as if the model
+    # recoloured the wood and the wall too).
+    monkeypatch.setattr(s, "edit_room", lambda *a, **k: solid(want, size))
+    monkeypatch.setattr(s, "verify", lambda *a, **k: {
+        "color": 9, "pattern": 9, "scale": 9, "isolation": 9})
+    res = s.swap(str(room), "FA-AC-01", "sofa", out_dir=str(tmp_path))
+    assert res["checks"]["ok"] and res["attempts"] == 1
+    out = Image.open(os.path.join(os.getcwd(), res["result_url"])).convert(
+        "RGB")
+    # Well clear of the 6px feather; JPEG noise allowed.
+    outside = out.getpixel((8, 8))
+    assert all(abs(c - 120) <= 3 for c in outside), (
+        "outside untouched", outside)
+    inside = out.getpixel((80, 70))
+    assert sc.delta_e2000(sc._srgb_to_lab([c / 255.0 for c in inside]),
+                          sc._srgb_to_lab([c / 255.0 for c in want])) < 3
+
+
+def test_upload_caps_the_photo_side(tmp_path):
+    from app.api import chat as chat_api
+    big = tmp_path / "big.jpg"
+    Image.new("RGB", (3000, 4000), (90, 90, 90)).save(str(big), quality=60)
+    im = chat_api._open_photo(str(big))
+    assert max(im.size) == chat_api.PHOTO_MAX_SIDE == 2048
+    assert im.size == (1536, 2048)

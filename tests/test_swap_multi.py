@@ -102,7 +102,8 @@ def test_multi_cache_reuses_without_calls(tmp_path, fakes):
 
 def test_multi_retry_once_on_low_scores(tmp_path, monkeypatch):
     room = make_room(tmp_path)
-    scores = [{"color": 5, "pattern": 8, "scale": 8, "isolation": 8},
+    # A low motif score retries; colour alone would not (ΔE gate).
+    scores = [{"color": 8, "pattern": 5, "scale": 8, "isolation": 8},
               {"color": 8, "pattern": 8, "scale": 8, "isolation": 8}]
     edits = []
 
@@ -120,7 +121,7 @@ def test_multi_retry_once_on_low_scores(tmp_path, monkeypatch):
                        api_key="k", out_dir=str(tmp_path / "o"))
     assert res["results"][0]["attempts"] == 2
     assert len(edits) == 2
-    assert res["results"][0]["scores"]["color"] == 8
+    assert res["results"][0]["scores"]["pattern"] == 8
 
 
 def test_multi_skips_failed_item_keeps_rest(tmp_path, monkeypatch):
@@ -420,6 +421,8 @@ def test_chained_pillows_edit_on_sofa_result_and_land_on_top(tmp_path,
     def fake_segment(room_bytes, concept, key=None, timeout=120):
         if concept == "sofa":
             return [{"box": (0, 0, 90, 100), "frame_size": (100, 100)}]
+        if concept == s.SOFA_WOOD_CONCEPT:
+            return []  # no exposed wood in this room
         return [{"box": (15, 20, 45, 60), "frame_size": (100, 100)}]
 
     def fake_mask(records, size):

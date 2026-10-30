@@ -56,6 +56,9 @@ class ChatRequest(BaseModel):
     lang: Optional[str] = None
 
 
+PHOTO_MAX_SIDE = 2048
+
+
 def _open_photo(src):
     """Open any accepted upload, EXIF-transposed, flattened to RGB."""
     from PIL import Image, ImageOps
@@ -73,6 +76,10 @@ def _open_photo(src):
         im = bg
     else:
         im = im.convert("RGB")
+    if max(im.size) > PHOTO_MAX_SIDE:
+        # A 12 MP phone photo makes every mask/composite step and
+        # every download several times slower for no visible gain.
+        im.thumbnail((PHOTO_MAX_SIDE, PHOTO_MAX_SIDE), Image.LANCZOS)
     return im
 
 

@@ -47,6 +47,12 @@ TARGET_CONCEPTS = {
 
 VERIFY_LABELS = ("color", "pattern", "scale", "isolation")
 
+# A second edit costs ~25s. Only the scores the deterministic checks
+# cannot judge (motif and weave scale) may trigger it: colour has the
+# ΔE gate and isolation is guaranteed by compositing inside the mask.
+RETRY_SCORES = ("pattern", "scale")
+RETRY_MIN_SCORE = 6
+
 # Hard per-model-call cap (seconds). No single network call may hang
 # longer than this; the client enforces the overall 2-minute budget.
 MODEL_TIMEOUT = 75
@@ -355,6 +361,9 @@ def edit_prompt(fabric, piece_label, corrective=None):
                 fabric.get("material", "fabric"),
                 fabric.get("primary_color", ""),
                 pattern, piece_label))
+    if "pillow" not in piece_label and "cushion" not in piece_label:
+        text += (" Keep any wooden frame, base, legs and trim exactly as "
+                 "they are: only the fabric changes.")
     if "pillow" in piece_label or "cushion" in piece_label:
         text += (" Replace each existing pillow with exactly ONE pillow of "
                  "the same size, shape and position. Do not add, duplicate "
@@ -543,14 +552,6 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
                           timeout=call_timeout())
     if not records:
         raise SwapError("could not find the %s in this photo" % concept)
-    boxes = []
-    for record in records:
-        x1, y1, x2, y2 = record["box"]
-        fw, fh = record["frame_size"]
-        boxes.append((int(x1 / fw * width), int(y1 / fh * height),
-                      int(x2 / fw * width), int(y2 / fh * height)))
-    union = (min(b[0] for b in boxes), min(b[1] for b in boxes),
-             max(b[2] for b in boxes), max(b[3] for b in boxes))
     raw_mask = full_mask if full_mask is not None else sam_mask(
         records, (width, height))
     # Pillows are judged per piece (see swap_checks.run_checks).
@@ -577,9 +578,11 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
                            timeout=call_timeout()).resize(
                                (width, height), Image.BILINEAR)
         step("composite")
-        mask = paste_mask(room, edited, union)
-        result = room.copy()
-        result.paste(edited, (0, 0), mask)
+        # Composite strictly inside the segmentation mask: whatever the
+        # model re-rendered around the item (the wooden base, the wall)
+        # keeps the photo's own pixels.
+        mask = raw_mask
+        result = paste_strict(room, edited, mask)
         step("verify")
         need_budget("verify")
         small_result = result
@@ -596,13 +599,12 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
             # Only the recoloured pillows change; untouched ones keep
             # the photo's own pixels, not the model's re-render.
             mask = ImageChops.multiply(mask.convert("L"), kept.convert("L"))
-            result = room.copy()
-            result.paste(edited, (0, 0), mask)
+            result = paste_strict(room, edited, mask)
         cand = {"result": result, "mask": mask, "scores": scores,
                 "checks": checks}
         if best is None or _rank(cand) > _rank(best):
             best = cand
-        if checks["ok"] and min(scores.values()) >= 7:
+        if not needs_retry(checks, scores):
             break
     if not best["checks"]["ok"]:
         raise CheckFailed(best["checks"]["fail"], best["checks"], target)
@@ -619,6 +621,14 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
             "checks": best["checks"], "target": target}
 
 
+def needs_retry(checks, scores):
+    """Second edit only when a deterministic check failed or Spark
+    rated the motif/scale below RETRY_MIN_SCORE (see RETRY_SCORES)."""
+    if not checks.get("ok"):
+        return True
+    return min(int(scores.get(k, 0)) for k in RETRY_SCORES) < RETRY_MIN_SCORE
+
+
 def _rank(cand):
     """Passing checks first, then the Spark minimum and sum."""
     scores = cand["scores"]
@@ -627,6 +637,12 @@ def _rank(cand):
 
 
 SOFA_CUSHIONS_CONCEPT = "cushions"
+# SAM's "sofa" record includes an exposed wooden plinth/frame; a sofa
+# swap must leave the wood alone, so it is segmented and cut out.
+SOFA_WOOD_CONCEPT = "wooden base of the sofa"
+# A wood mask this large relative to the sofa is a mis-segmentation
+# (the whole sofa), not a frame: ignore it rather than erase the sofa.
+WOOD_MAX_SHARE = 0.5
 
 
 def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
@@ -641,7 +657,8 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
     gap behind a narrower new pillow shows the new sofa fabric).
     """
     from concurrent.futures import ThreadPoolExecutor
-    concepts = [TARGET_CONCEPTS["sofa"], SOFA_CUSHIONS_CONCEPT]
+    concepts = [TARGET_CONCEPTS["sofa"], SOFA_CUSHIONS_CONCEPT,
+                SOFA_WOOD_CONCEPT]
     if keep_pillows:
         concepts.append(TARGET_CONCEPTS["cushions"])
 
@@ -653,8 +670,8 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
                 raise
             return exc
 
-    # The three SAM calls are independent: run them side by side (one
-    # call's latency instead of three).
+    # The SAM calls are independent: run them side by side (one
+    # call's latency instead of three or four).
     with ThreadPoolExecutor(max_workers=len(concepts)) as pool:
         outs = list(pool.map(one, concepts))
     records = outs[0]
@@ -667,8 +684,18 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
             mask = ImageChops.lighter(mask, sam_mask(extra, size))
         except (SwapError, sam_codec.MaskError):
             pass
+    wood = outs[2]
+    if wood and not isinstance(wood, Exception):
+        try:
+            wood_mask = sam_mask(wood, size)
+            share = _mask_coverage(wood_mask, size) / max(
+                1e-6, _mask_coverage(mask, size))
+            if share <= WOOD_MAX_SHARE:
+                mask = ImageChops.subtract(mask, wood_mask)
+        except (SwapError, sam_codec.MaskError):
+            pass
     if keep_pillows:
-        pillows = outs[2]
+        pillows = outs[3]
         if pillows and not isinstance(pillows, Exception):
             try:
                 mask = ImageChops.subtract(mask, sam_mask(pillows, size))
@@ -927,7 +954,7 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                               "checks": checks}
                 if best is None or _rank(cand_entry) > _rank(best):
                     best = cand_entry
-                if checks["ok"] and min(scores.values()) >= 7:
+                if not needs_retry(checks, scores):
                     break
             except Exception as exc:  # noqa: BLE001 - one bad item
                 last_err = str(exc)  # must become a skip, never a 500
