@@ -7,9 +7,14 @@
   // 52 kg CO2e for life-cycle stages A1-A3 (manufacturing).
   var CO2_PER_SOFA_KG = 52;
 
-  // Real hero swap: living sample, 3-item multi (sofa + cushions +
-  // curtains); caption names the sofa fabric, score is its verify min.
-  var HERO = { code: "FA-AC-01", score: 9 };
+  // Hero looks: generated on the living sample by the multi-swap engine
+  // (scripts/generate_hero_looks.py); only results that passed the
+  // colour + coverage checks are saved. hero-looks.json carries every
+  // item -> fabric with its own score; FALLBACK keeps the old single
+  // swap if the file is missing.
+  var FALLBACK = { code: "FA-AC-01", score: 9 };
+  var LOOKS = null;
+  var currentLook = "warm";
 
   var RTL = ["ar", "ur", "fa"];
 
@@ -62,23 +67,111 @@
     loadCaption();
   }
 
+  function esc(s) {
+    return String(s === undefined || s === null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function itemLabel(item) {
+    if (lang === "ar" && item.label_ar) return item.label_ar;
+    if (lang !== "ar" && item.label_en) return item.label_en;
+    var words = t("lookTargets") || {};
+    return words[item.target] || item.target;
+  }
+
+  function minScore(scores) {
+    var vals = ["color", "pattern", "scale", "isolation"].map(function (k) {
+      return (scores || {})[k] || 0;
+    });
+    return Math.min.apply(null, vals);
+  }
+
+  function renderLooks() {
+    var pills = document.getElementById("heroLooks");
+    var cap = document.getElementById("heroCap");
+    if (!pills || !cap) return;
+    if (!LOOKS || !LOOKS.looks || !LOOKS.looks.length) {
+      pills.innerHTML = "";
+      pills.hidden = true;
+      return;
+    }
+    pills.hidden = false;
+    var names = { warm: t("lookWarm"), calm: t("lookCalm"),
+                  mix: t("lookMix") };
+    pills.innerHTML = '<span class="lp-looks-label">' +
+      esc(t("looksLabel")) + "</span>" +
+      LOOKS.looks.map(function (lk) {
+        var on = lk.id === currentLook;
+        return '<button type="button" role="tab" class="lp-look' +
+          (on ? " on" : "") + '" data-look="' + esc(lk.id) +
+          '" aria-selected="' + (on ? "true" : "false") + '">' +
+          esc(names[lk.id] || lk.id) + "</button>";
+      }).join("");
+    var look = null;
+    LOOKS.looks.forEach(function (lk) { if (lk.id === currentLook) look = lk; });
+    if (!look) look = LOOKS.looks[0];
+    var after = document.getElementById("heroAfter");
+    if (after && after.getAttribute("src") !== look.image) {
+      after.src = look.image;
+    }
+    cap.innerHTML = (look.items || []).map(function (it) {
+      var name = lang === "ar" ? it.name_ar : it.name_en;
+      var badge = t("verifiedBadge").replace("%d", minScore(it.scores));
+      if (it.delta_e !== undefined && it.delta_e !== null) {
+        badge += " · " + t("deltaE").replace("%s", it.delta_e);
+      }
+      return '<div class="lp-cap-row">' +
+        '<img class="lp-cap-sw" src="/' +
+        esc(String(it.image || "").replace(/^\/+/, "")) + '" alt="' +
+        esc(name) + '">' +
+        '<div class="lp-cap-meta"><div class="lp-cap-item">' +
+        esc(itemLabel(it)) + "</div>" +
+        '<div class="lp-cap-name">' + esc(name) + "</div>" +
+        '<div class="lp-cap-code">' + esc(it.code) +
+        (it.material ? " · " + esc(it.material) : "") +
+        (it.price_sar_per_m ? " · " + esc(it.price_sar_per_m) + " SAR/m"
+                            : "") + "</div></div>" +
+        '<span class="lp-cap-badge">' + esc(badge) + "</span></div>";
+    }).join("");
+  }
+
   function loadCaption() {
-    fetch("/api/fabric/" + encodeURIComponent(HERO.code))
+    if (LOOKS) { renderLooks(); return; }
+    fetch("/landing/hero-looks.json")
+      .then(function (r) {
+        if (!r.ok) throw new Error("looks");
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || !data.looks || !data.looks.length) throw new Error("empty");
+        LOOKS = data;
+        currentLook = data.looks[0].id;
+        renderLooks();
+      })
+      .catch(function () { loadFallbackCaption(); });
+  }
+
+  function loadFallbackCaption() {
+    fetch("/api/fabric/" + encodeURIComponent(FALLBACK.code))
       .then(function (r) {
         if (!r.ok) throw new Error("fabric");
         return r.json();
       })
       .then(function (f) {
+        var cap = document.getElementById("heroCap");
+        if (!cap) return;
         var name = lang === "ar" ? f.name_ar : f.name_en;
-        document.getElementById("capName").textContent = name || "";
-        document.getElementById("capCode").textContent = f.code || "";
-        document.getElementById("capSpecs").textContent =
-          (f.material || "") + " · " + (f.price_sar_per_m || "") + " SAR/m";
-        var img = document.getElementById("capImg");
-        img.src = "/" + String(f.image || "").replace(/^\/+/, "");
-        img.alt = name || "";
-        document.getElementById("capBadge").textContent =
-          t("verifiedBadge").replace("%d", HERO.score);
+        cap.innerHTML = '<div class="lp-cap-row"><img class="lp-cap-sw" src="/' +
+          esc(String(f.image || "").replace(/^\/+/, "")) + '" alt="' +
+          esc(name) + '"><div class="lp-cap-meta">' +
+          '<div class="lp-cap-name">' + esc(name) + "</div>" +
+          '<div class="lp-cap-code">' + esc(f.code) + " · " +
+          esc(f.material || "") + " · " + esc(f.price_sar_per_m || "") +
+          " SAR/m</div></div>" +
+          '<span class="lp-cap-badge">' +
+          esc(t("verifiedBadge").replace("%d", FALLBACK.score)) +
+          "</span></div>";
       })
       .catch(function () {});
   }
@@ -137,6 +230,16 @@
     }
     slider();
     darkLogo();
+    var pills = document.getElementById("heroLooks");
+    if (pills) {
+      pills.addEventListener("click", function (e) {
+        var b = e.target && e.target.closest ?
+          e.target.closest("[data-look]") : null;
+        if (!b) return;
+        currentLook = b.getAttribute("data-look");
+        renderLooks();
+      });
+    }
     loadCaption();
     loadMetrics();
     icons();

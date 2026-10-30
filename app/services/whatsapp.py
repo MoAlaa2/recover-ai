@@ -580,8 +580,15 @@ def run_try_swap(wa_id, code, target=""):
     if not target or target not in swap_mod.TARGET_CONCEPTS:
         target = "sofa"
     send_typing(wa_id)
+    lang = session.get("lang") or "en"
     try:
         res = swap_mod.swap(image_path, code, target)
+    except swap_mod.CheckFailed as exc:
+        # Honest: the fabric was NOT applied; say which item and why,
+        # and never record it as a pick.
+        send_payload(text_payload(wa_id, not_applied_text(
+            target, code, exc.reason, lang)))
+        return
     except swap_mod.SwapError as exc:
         send_payload(text_payload(wa_id, str(exc)))
         return
@@ -597,11 +604,16 @@ def run_try_swap(wa_id, code, target=""):
         log_wa("media_upload_error", wa_id, kind="try_swap", code=code,
                error="%s: %s" % (type(exc).__name__, exc))
         media_id = ""
-    lang = session.get("lang") or "en"
+    checks = res.get("checks") or {}
+    score = min((res.get("scores") or {}).values() or [0])
     if lang == "ar":
-        caption = "قبل ← بعد · %s" % code
+        caption = "قبل ← بعد · %s → %s · تطابق %s/10" % (
+            TARGET_WORDS_AR.get(target, target), code, score)
     else:
-        caption = "Before → after · %s" % code
+        caption = "Before → after · %s → %s · match %s/10" % (
+            target, code, score)
+    if checks.get("delta_e") is not None:
+        caption += " · ΔE %s" % checks["delta_e"]
     if media_id:
         send_payload(image_payload(wa_id, media_id=media_id,
                                    caption=caption))
@@ -797,6 +809,21 @@ def handle_interactive(wa_id, payload):
         return
 
 
+TARGET_WORDS_AR = {"sofa": "الكنبة", "cushions": "الوسائد",
+                   "curtains": "الستائر", "armchair": "الكرسي"}
+REASON_AR = {"colour mismatch": "اللون ما طابق",
+             "low coverage": "القماش ما غطّى القطعة كاملة"}
+
+
+def not_applied_text(target, code, reason, lang):
+    if lang == "ar":
+        return "%s · %s — ما تركّب (%s). جرّب مرة ثانية أو اختر قماش " \
+               "ثاني." % (TARGET_WORDS_AR.get(target, target), code,
+                          REASON_AR.get(reason, reason))
+    return "%s · %s — not applied (%s). Try again or pick another " \
+           "fabric." % (target, code, reason)
+
+
 def run_apply_all(wa_id):
     """Multi-swap every assignment, then the summary block."""
     from app.services import swap as swap_mod
@@ -823,11 +850,47 @@ def run_apply_all(wa_id):
         media_id = upload_media(path)
     except Exception:  # noqa: BLE001 - degraded image send
         media_id = ""
+    applied = res.get("results", [])
+    skipped = res.get("skipped", []) or []
+    # Only applied items stay as picks; a skipped one is not a result.
+    for item in skipped:
+        session.get("assignments", {}).pop(item.get("target"), None)
+    persist_session(wa_id)
     if media_id:
-        caption = "All applied" if lang != "ar" else "كلها تركبت"
         send_payload(image_payload(wa_id, media_id=media_id,
-                                   caption=caption))
+                                   caption=apply_caption(applied, skipped,
+                                                         lang)))
+    elif skipped:
+        send_payload(text_payload(wa_id, apply_caption(applied, skipped,
+                                                       lang)))
     send_payload(text_payload(wa_id, summary_text(wa_id, lang)))
+
+
+def apply_caption(applied, skipped, lang):
+    """Caption listing only applied items (each with its own score),
+    then the items that were not applied and why."""
+    lines = []
+    for r in applied:
+        score = min((r.get("scores") or {}).values() or [0])
+        tgt = TARGET_WORDS_AR.get(r["target"], r["target"]) \
+            if lang == "ar" else r["target"]
+        if lang == "ar":
+            lines.append("✓ %s → %s · تطابق %s/10" % (tgt, r["code"],
+                                                   score))
+        else:
+            lines.append("✓ %s → %s · match %s/10" % (tgt, r["code"],
+                                                   score))
+    for item in skipped:
+        reason = item.get("reason", "")
+        tgt = item.get("target", "")
+        if lang == "ar":
+            lines.append("✗ %s · %s — ما تركّب (%s)" % (
+                TARGET_WORDS_AR.get(tgt, tgt), item.get("code", ""),
+                REASON_AR.get(reason, reason)))
+        else:
+            lines.append("✗ %s · %s — not applied (%s)" % (
+                tgt, item.get("code", ""), reason))
+    return "\n".join(lines)[:1024]
 
 
 def process_message(wa_id, message):

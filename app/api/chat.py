@@ -254,9 +254,20 @@ def swap_multi_fabrics(req: SwapMultiRequest):
         before = item.get("result_url", before)
     session = consultant.SESSIONS.setdefault(req.session_id,
                                              {"messages": []})
-    session.setdefault("assignments", {}).update(
-        {i["target"]: i["code"] for i in cleaned})
+    _record_applied(session, res)
     return res
+
+
+def _record_applied(session, res):
+    """Only items that were applied and passed stay assigned: the quote
+    and the summary never count a skipped item as done."""
+    assignments = session.setdefault("assignments", {})
+    for item in res.get("results", []):
+        assignments[item["target"]] = item["code"]
+    for item in res.get("skipped", []) or []:
+        assignments.pop(item.get("target"), None)
+    session["applied"] = {i["target"]: i["code"]
+                          for i in res.get("results", [])}
 
 
 @router.post("/swap/multi/stream")
@@ -264,6 +275,7 @@ def swap_multi_stream(req: SwapMultiRequest):
     """Same as /api/swap/multi but streams backend progress as SSE."""
     from app.services.swap import SwapError as _SwapError
     from app.services.swap import TimeoutSwapError as _TimeoutSwapError
+    from app.services.swap import CheckFailed as _CheckFailed
     from app.services.swap import swap_multi
     try:
         _check_image(req.image_path)
@@ -289,8 +301,7 @@ def swap_multi_stream(req: SwapMultiRequest):
                 before = item.get("result_url", before)
             session = consultant.SESSIONS.setdefault(
                 req.session_id, {"messages": []})
-            session.setdefault("assignments", {}).update(
-                {i["target"]: i["code"] for i in cleaned})
+            _record_applied(session, res)
             events.put({"type": "done", "result": res})
         except _SwapError as exc:
             events.put({"type": "error", "message": str(exc),
@@ -540,6 +551,7 @@ def swap_stream(req: SwapRequest):
     target = _swap_target(req)
     events = queue.Queue()
     from app.services.swap import TimeoutSwapError as _TimeoutSwapError
+    from app.services.swap import CheckFailed as _CheckFailed
 
     def run():
         try:
@@ -563,8 +575,14 @@ def swap_stream(req: SwapRequest):
                          req.image_path or "")
             events.put({"type": "done", "result": res})
         except SwapError as exc:
-            events.put({"type": "error", "message": str(exc),
-                        "timeout": isinstance(exc, _TimeoutSwapError)})
+            evt = {"type": "error", "message": str(exc),
+                   "timeout": isinstance(exc, _TimeoutSwapError)}
+            if isinstance(exc, _CheckFailed):
+                # Honest failure: the item was NOT applied; say why.
+                evt["reason"] = exc.reason
+                evt["checks"] = exc.checks
+                evt["target"] = exc.target
+            events.put(evt)
         except RuntimeError as exc:
             events.put({"type": "error", "message": str(exc),
                         "timeout": False})

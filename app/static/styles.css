@@ -1744,3 +1744,27 @@ body.modal-open { overflow: hidden; }
 body.chat-busy .chips button,
 body.chat-busy .ol-tap,
 body.chat-busy [data-action="try"] { pointer-events: none; opacity: .55; }
+
+/* Honest results: each score sits next to its own item; a skipped item
+   is "not applied" with its reason and a Try again. */
+.chat-swap-target {
+  font-size: var(--rc-fs-xs);
+  font-weight: 600;
+  color: var(--rc-ink-muted);
+  background: var(--rc-chalk);
+  border-radius: var(--rc-r-pill);
+  padding: 1px 8px;
+  margin-inline-start: 4px;
+  vertical-align: middle;
+}
+.sum-row .match-badge.small { margin-inline-start: 6px; vertical-align: middle; }
+.sum-skip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0 0;
+  font-size: var(--rc-fs-sm);
+  color: var(--rc-warn, #9a4a1a);
+}
+.sum-skip .sum-retry { min-height: 36px; padding: 6px 12px; }

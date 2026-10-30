@@ -27,6 +27,10 @@
       takePhoto: "Take or upload a photo",
       tryOn: "Try on my photo",
       skipNote: "Couldn't change %s — left as is",
+      notApplied: "%s — not applied",
+      checkColour: "colour mismatch",
+      checkCoverage: "fabric didn't cover the whole item",
+      traceChecks: "colour ΔE %s · coverage %s",
       tryOnTarget: "Try on the %s",
       tryWord: { sofa: "sofa", armchair: "armchair", curtains: "curtains", cushions: "cushions" },
       tapToChange: "Tap what you'd like to change",
@@ -126,6 +130,10 @@
       takePhoto: "صوّر أو ارفع صورة",
       tryOn: "جرّبه على صورتي",
       skipNote: "ما قدرنا نغيّر %s — خلّيناه زي ما هو",
+      notApplied: "%s — ما تركّب",
+      checkColour: "اللون ما طابق",
+      checkCoverage: "القماش ما غطّى القطعة كاملة",
+      traceChecks: "اللون ΔE %s · التغطية %s",
       tryOnTarget: "جرّبه على %s",
       tryWord: { sofa: "الكنبة", armchair: "الكرسي", curtains: "الستائر", cushions: "المخدات" },
       tapToChange: "اضغط على اللي ودك تغّيره",
@@ -223,6 +231,10 @@
       takePhoto: "फोटो लें या अपलोड करें",
       tryOn: "मेरी फोटो पर देखें",
       skipNote: "%s नहीं बदल पाए — जैसा है वैसा रखा",
+      notApplied: "%s — लागू नहीं हुआ",
+      checkColour: "रंग मेल नहीं खाया",
+      checkCoverage: "कपड़े ने पूरा हिस्सा नहीं ढका",
+      traceChecks: "रंग ΔE %s · कवरेज %s",
       tryOnTarget: "%s पर आज़माएँ",
       tryWord: { sofa: "सोफ़ा", armchair: "कुर्सी", curtains: "परदे", cushions: "तकिए" },
       tapToChange: "जो बदलना है उस पर दबाएँ",
@@ -322,6 +334,10 @@
       takePhoto: "Prendre ou envoyer une photo",
       tryOn: "Voir sur ma photo",
       skipNote: "Impossible de changer %s — laissé tel quel",
+      notApplied: "%s — non appliqué",
+      checkColour: "couleur non conforme",
+      checkCoverage: "le tissu n'a pas couvert toute la pièce",
+      traceChecks: "couleur ΔE %s · couverture %s",
       tryOnTarget: "Essayer sur %s",
       tryWord: { sofa: "canapé", armchair: "fauteuil", curtains: "rideaux", cushions: "coussins" },
       tapToChange: "Touchez ce que vous voulez changer",
@@ -421,6 +437,10 @@
       takePhoto: "Toma o sube una foto",
       tryOn: "Ver en mi foto",
       skipNote: "No se pudo cambiar %s — se dejó como estaba",
+      notApplied: "%s — no aplicado",
+      checkColour: "color no coincide",
+      checkCoverage: "la tela no cubrió toda la pieza",
+      traceChecks: "color ΔE %s · cobertura %s",
       tryOnTarget: "Probar en %s",
       tryWord: { sofa: "sofá", armchair: "sillón", curtains: "cortinas", cushions: "cojines" },
       tapToChange: "Toca lo que quieras cambiar",
@@ -1754,17 +1774,28 @@
                           code: r.code,
                           meters: q.meters, price: meta.price,
                           line: q.line_total });
+            var sc = r.scores || {};
+            var itemMatch = Math.min.apply(null, [
+              sc.color, sc.pattern, sc.scale, sc.isolation
+            ].map(function (v) { return v || 0; }));
+            var scoreHtml = '<span class="match-badge small">' +
+              esc(t("matchBadge").replace("%d", itemMatch)) + "</span>";
             return '<div class="sum-row"><img class="swap-thumb" src="/' +
               esc((r.result_url || "").replace(/^\/+/, "")) + '" alt="' +
               esc(name) + '" data-code="' + esc(r.code) + '">' +
               "<div><div><b>" + esc(targetLabel(r.target)) + "</b> → " +
-              esc(name) + "</div><div>" + bits + "</div></div></div>";
+              esc(name) + " " + scoreHtml + "</div><div>" + bits +
+              "</div></div></div>";
           }).join("");
           var skipHtml = skipped.map(function (s) {
-            var what = s.code ? s.code : targetLabel(s.target);
-            return '<p class="sum-skip" dir="auto">' +
-              esc((t("skipNote") || "Skipped %s").replace(
-                "%s", targetLabel(s.target) + " · " + what)) + "</p>";
+            var what = targetLabel(s.target) + (s.code ? " · " + s.code : "");
+            var why = s.reason ? " (" + reasonLabel(s.reason) + ")" : "";
+            return '<div class="sum-skip" dir="auto"><span>' +
+              esc(t("notApplied").replace("%s", what) + why) + "</span>" +
+              (s.code ? '<button type="button" class="ghost-btn sum-retry" ' +
+                'data-try="' + esc(s.code) + '" data-target="' +
+                esc(s.target) + '">' + esc(t("tryAgain")) + "</button>" : "") +
+              "</div>";
           }).join("");
           var extra = "";
           var co2txt = "";
@@ -1861,10 +1892,16 @@
       return;
     }
     var before = state.roomPhoto || "";
+    (res.skipped || []).forEach(function (sk) {
+      // Not applied: never shown as a pick, never counted in the quote.
+      if (sk && sk.target) delete state.assignments[sk.target];
+    });
+    renderAssignRow();
     results.forEach(function (r) {
       var entry = { fabric_code: r.code, result_url: r.result_url,
                     mask_url: r.mask_url, before_url: before,
                     scores: r.scores || {}, attempts: r.attempts || 1,
+                    checks: r.checks || null, target: r.target || "",
                     created_at: Date.now() / 1000, meta: null };
       before = r.result_url || before;
       state.prevList.push(entry);
@@ -2266,7 +2303,13 @@
 
   var SWAP_DEADLINE_MS = 115000;
 
-  function showSwapTimeout() {
+  function reasonLabel(reason) {
+    if (reason === "colour mismatch") return t("checkColour");
+    if (reason === "low coverage") return t("checkCoverage");
+    return reason || "";
+  }
+
+  function showSwapTimeout(message) {
     clearSwapTimers();
     state.pendingSwap = null;
     state.pendingSwapLabel = null;
@@ -2274,7 +2317,7 @@
     $("swapSteps").hidden = true;
     $("swapStill").hidden = true;
     var m = $("swapTimeoutMsg");
-    m.textContent = t("swapTimeout");
+    m.textContent = message || t("swapTimeout");
     m.hidden = false;
     var b = $("swapRetryBtn");
     b.textContent = t("tryAgain");
@@ -2355,6 +2398,17 @@
         releaseCtrl();
         try { if (reader) reader.cancel(); } catch (e) {}
         finalizeSwap(code, meta, evt.result || {});
+      } else if (evt.type === "error" && evt.reason && !evt.timeout) {
+        if (settled || isStale()) return;
+        settled = true;
+        stopWatch();
+        releaseCtrl();
+        try { if (reader) reader.cancel(); } catch (e) {}
+        var what = targetLabel(evt.target || target) + " · " + code;
+        showSwapTimeout(t("notApplied").replace("%s", what) + " (" +
+                        reasonLabel(evt.reason) + ")");
+        addMsg(t("notApplied").replace("%s", what) + " (" +
+               reasonLabel(evt.reason) + ")", "them");
       } else if (evt.type === "error") {
         onAttemptFailed(!!evt.timeout);
       }
@@ -2416,6 +2470,14 @@
         modelBadge(s.model) +
         '<span class="trace-secs">' + secs.toFixed(1) + "s</span></div>";
     });
+    var checks = (res && res.checks) || null;
+    if (checks && checks.delta_e !== undefined && checks.delta_e !== null) {
+      html += '<div class="trace-row"><span dir="auto">' +
+        esc(t("traceChecks").replace("%s", String(checks.delta_e))
+          .replace("%s", Math.round((checks.coverage || 0) * 100) + "%")) +
+        "</span><span class=\"trace-secs\">" +
+        (checks.ok ? "✓" : "✗") + "</span></div>";
+    }
     var scores = (res && res.scores) || {};
     html += '<div class="trace-row total"><span>match ' +
       [scores.color, scores.pattern, scores.scale, scores.isolation]
@@ -2454,6 +2516,8 @@
                   mask_url: res.mask_url || "",
                   before_url: state.roomPhoto || "",
                   scores: scores, attempts: res.attempts || 1,
+                  checks: res.checks || null,
+                  target: res.target || state.swapTarget || "",
                   created_at: Date.now() / 1000, meta: meta };
     state.prevList.push(entry);
     state.swaps[code] = entry;
@@ -2587,8 +2651,10 @@
       esc((entry.result_url || "").replace(/^\/+/, "")) + '" alt="' +
       esc(name) + '" data-code="' + esc(entry.fabric_code) + '">' +
       '<div class="chat-swap-row">' + fabricImg +
-      "<div><div><b>" + esc(name) + "</b></div><div>" +
-      esc(entry.fabric_code) +
+      "<div><div><b>" + esc(name) + "</b>" +
+      (entry.target ? ' <span class="chat-swap-target">' +
+        esc(targetLabel(entry.target)) + "</span>" : "") +
+      "</div><div>" + esc(entry.fabric_code) +
       (meta.price !== undefined ? " · " + esc(formatPrice(meta.price)) : "") +
       "</div></div>" +
       '<span class="match-badge small">' +

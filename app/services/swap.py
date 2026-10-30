@@ -20,7 +20,9 @@ import urllib.request
 import uuid
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
+
+from app.services import swap_checks
 
 from app.core.config import (BASE_DIR, CHAT_URL, SPARK_MODEL, UPLOAD_DIR,
                              require_api_key)
@@ -32,11 +34,15 @@ SAM_MODEL = "sam-3.1"
 EDIT_URL = "https://api.meta.ai/v1/images/edits"
 EDIT_MODEL = "muse-image-1.0"
 
+# The swap concept must match the tap/outline concept (targets.
+# CONCEPT_PROMPTS): a bare "cushions" also segments the seat and back
+# cushions, so a "cushions" swap recoloured the whole sofa seat while
+# the picker thumbnail showed the throw pillows.
 TARGET_CONCEPTS = {
     "sofa": "sofa",
     "armchair": "armchair",
-    "curtains": "curtains",
-    "cushions": "cushions",
+    "curtains": "window curtains",
+    "cushions": "throw pillows on the sofa",
 }
 
 VERIFY_LABELS = ("color", "pattern", "scale", "isolation")
@@ -56,6 +62,16 @@ TIMEOUT_LOG = None
 
 class SwapError(RuntimeError):
     """Swap failed (bad input, segmentation, edit or verify error)."""
+
+
+class CheckFailed(SwapError):
+    """A deterministic check failed twice: the item is not applied."""
+
+    def __init__(self, reason, checks=None, target=""):
+        super().__init__("%s — not applied" % reason)
+        self.reason = reason
+        self.checks = checks or {}
+        self.target = target
 
 
 class TimeoutSwapError(SwapError):
@@ -257,7 +273,62 @@ def sam_mask(records, size):
         raise SwapError("no usable segmentation mask")
     if _mask_coverage(merged, size) > MAX_MERGED_COVERAGE:
         raise SwapError("target covers the whole photo, not detected")
-    return merged
+    return drop_small_components(merged)
+
+
+MIN_COMPONENT_FRAC = 0.03
+
+
+def drop_small_components(mask, frac=MIN_COMPONENT_FRAC, work_side=320):
+    """Erase blobs smaller than frac of the mask's largest blob.
+
+    SAM leaves stray specks (a curtains mask with a blob over a
+    cushion); those would be tinted and re-fabricked with the item.
+    Components are found on a downscaled copy (4-connectivity) and the
+    keep-map is scaled back with nearest sampling.
+    """
+    from collections import deque
+    mask = mask.convert("L")
+    w0, h0 = mask.size
+    small = mask.copy()
+    small.thumbnail((work_side, work_side))
+    w, h = small.size
+    px = small.load()
+    seen = bytearray(w * h)
+    comps = []
+    for y in range(h):
+        for x in range(w):
+            idx = y * w + x
+            if seen[idx] or px[x, y] < 128:
+                continue
+            seen[idx] = 1
+            queue = deque([idx])
+            members = []
+            while queue:
+                cur = queue.popleft()
+                members.append(cur)
+                cx, cy = cur % w, cur // w
+                for nx, ny in ((cx - 1, cy), (cx + 1, cy),
+                               (cx, cy - 1), (cx, cy + 1)):
+                    if 0 <= nx < w and 0 <= ny < h:
+                        nidx = ny * w + nx
+                        if not seen[nidx] and px[nx, ny] >= 128:
+                            seen[nidx] = 1
+                            queue.append(nidx)
+            comps.append(members)
+    if len(comps) < 2:
+        return mask
+    largest = max(len(c) for c in comps)
+    drop = [c for c in comps if len(c) < frac * largest]
+    if not drop:
+        return mask
+    keep = Image.new("L", (w, h), 255)
+    kp = keep.load()
+    for members in drop:
+        for cur in members:
+            kp[cur % w, cur // w] = 0
+    keep = keep.resize((w0, h0), Image.NEAREST)
+    return ImageChops.multiply(mask, keep)
 
 
 def edit_prompt(fabric, piece_label, corrective=None):
@@ -389,7 +460,9 @@ def verify(swatch_bytes, result_image, fabric, piece_label, api_key=None,
         raise SwapError("swap verification failed: %s" % exc)
 
 
-def _corrective(scores, concept):
+def _corrective(scores, concept, checks=None):
+    if checks and not checks.get("ok"):
+        return swap_checks.corrective_for(checks.get("fail"), concept)
     worst = min(scores, key=scores.get)
     hints = {
         "color": ("match the swatch color exactly on every cushion and "
@@ -466,7 +539,8 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
     for round_no in range(2):
         corrective = None
         if best is not None:
-            corrective = _corrective(best["scores"], concept)
+            corrective = _corrective(best["scores"], concept,
+                                     best.get("checks"))
             step("retry")
         step("edit")
         need_budget("edit")
@@ -483,13 +557,16 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
         scores = verify(swatch_bytes, result, fabric, concept, key,
                         timeout=call_timeout())
         attempts = round_no + 1
-        cand = {"result": result, "mask": mask, "scores": scores}
-        if best is None or (min(scores.values()), sum(scores.values())) > (
-                min(best["scores"].values()),
-                sum(best["scores"].values())):
+        checks = swap_checks.run_checks(room, result, raw_mask,
+                                        swatch_bytes)
+        cand = {"result": result, "mask": mask, "scores": scores,
+                "checks": checks}
+        if best is None or _rank(cand) > _rank(best):
             best = cand
-        if min(scores.values()) >= 7:
+        if checks["ok"] and min(scores.values()) >= 7:
             break
+    if not best["checks"]["ok"]:
+        raise CheckFailed(best["checks"]["fail"], best["checks"], target)
 
     result_name = "swap-%s.jpg" % tag
     mask_name = "swapmask-%s.png" % tag
@@ -499,7 +576,15 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
     base = os.path.relpath(out_dir, BASE_DIR)
     return {"result_url": os.path.join(base, result_name),
             "mask_url": os.path.join(base, mask_name),
-            "scores": best["scores"], "attempts": attempts}
+            "scores": best["scores"], "attempts": attempts,
+            "checks": best["checks"], "target": target}
+
+
+def _rank(cand):
+    """Passing checks first, then the Spark minimum and sum."""
+    scores = cand["scores"]
+    return (bool(cand.get("checks", {}).get("ok")),
+            min(scores.values()), sum(scores.values()))
 
 
 def _room_tag(room_bytes):
@@ -528,7 +613,7 @@ def _union_of(records, size):
 
 # Bump when mask semantics change: stale on-disk items (garbage
 # full-frame masks) must be recomputed, never composited again.
-MASK_CACHE_VERSION = 3
+MASK_CACHE_VERSION = 4
 
 
 def swap_multi(room_path, assignments, api_key=None, out_dir=None,
@@ -650,7 +735,8 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                 step("edit")
                 corrective = None
                 if best is not None:
-                    corrective = _corrective(best["scores"], concept)
+                    corrective = _corrective(best["scores"], concept,
+                                             best.get("checks"))
                     step("retry")
                 edited = edit_room(room_bytes, swatch_bytes, fabric,
                                    concept, key, corrective,
@@ -669,18 +755,27 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                                 concept, key,
                                 timeout=call_timeout())
                 attempts += 1
-                if best is None or (
-                        min(scores.values()),
-                        sum(scores.values())) > (
-                        min(best["scores"].values()),
-                        sum(best["scores"].values())):
-                    best = {"result": cand, "mask": mask,
-                            "scores": scores, "area": area}
-                if min(scores.values()) >= 7:
+                checks = swap_checks.run_checks(base_img, cand, mask,
+                                                swatch_bytes)
+                cand_entry = {"result": cand, "mask": mask,
+                              "scores": scores, "area": area,
+                              "checks": checks}
+                if best is None or _rank(cand_entry) > _rank(best):
+                    best = cand_entry
+                if checks["ok"] and min(scores.values()) >= 7:
                     break
             except Exception as exc:  # noqa: BLE001 - one bad item
                 last_err = str(exc)  # must become a skip, never a 500
                 continue
+        if best is not None and not best["checks"]["ok"]:
+            # Deterministic check failed twice: honest skip with the
+            # reason, never composited as if it worked.
+            return (None,
+                    {"target": target, "code": code,
+                     "reason": best["checks"]["fail"],
+                     "checks": best["checks"],
+                     "scores": best["scores"], "attempts": attempts},
+                    None, None, -1)
         if best is None:
             return (None,
                     {"target": target, "code": code,
@@ -690,6 +785,7 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
         with open(meta_path, "w", encoding="utf-8") as f:
             json.dump({"scores": best["scores"],
                        "attempts": attempts,
+                       "checks": best["checks"],
                        "v": MASK_CACHE_VERSION}, f)
         base = os.path.relpath(out_dir, BASE_DIR)
         entry = {"target": target, "code": code,
@@ -698,7 +794,7 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                  "mask_url": os.path.join(
                      base, os.path.basename(mask_path)),
                  "scores": best["scores"], "attempts": attempts,
-                 "cached": False}
+                 "checks": best["checks"], "cached": False}
         return entry, None, best["result"], best["mask"], best["area"]
 
     # One failing item must not kill the whole room: segmentation or
@@ -716,8 +812,9 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                     meta = json.load(f)
                 scores = meta.get("scores", {})
                 attempts = int(meta.get("attempts", 0))
+                checks = meta.get("checks") or {}
             except (ValueError, TypeError):
-                scores, attempts = {}, 0
+                scores, attempts, checks = {}, 0, {}
             base = os.path.relpath(out_dir, BASE_DIR)
             results.append({
                 "target": job["target"], "code": job["code"],
@@ -726,7 +823,7 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                 "mask_url": os.path.join(
                     base, os.path.basename(mask_path)),
                 "scores": scores, "attempts": attempts,
-                "cached": True})
+                "checks": checks, "cached": True})
             pieces.append((item_img, item_mask, job["area"],
                            job["target"]))
     pending = [j for j in jobs if j["cache"] is None]

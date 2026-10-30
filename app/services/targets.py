@@ -30,7 +30,7 @@ TARGET_LABELS = {
 
 # Bump when mask semantics change: old session entries (garbage
 # full-frame masks) must never be served again.
-TARGETS_CACHE_VERSION = 3
+TARGETS_CACHE_VERSION = 4
 
 CHOICE_WORDS = {
     # "sofa" also covers the armchair sample: list_types only ever

@@ -13,6 +13,14 @@ from app.services import swap as s
 TMP = "/tmp/recover-swapmulti-test"
 
 
+@pytest.fixture(autouse=True)
+def _checks_pass(monkeypatch):
+    """These fakes paint grey solids: the deterministic colour/coverage
+    checks are covered in test_swap_checks.py, so pass them here."""
+    monkeypatch.setattr(s.swap_checks, "run_checks", lambda *a, **k: {
+        "delta_e": 1.0, "coverage": 1.0, "ok": True, "fail": None})
+
+
 def setup_function(_):
     os.makedirs(TMP, exist_ok=True)
 
@@ -66,7 +74,8 @@ def test_multi_largest_first_and_files(tmp_path, fakes):
                        api_key="k", out_dir=str(out))
     # Edits run in parallel (completion order varies); results stay
     # largest-first.
-    assert sorted(fakes["edit"]) == ["cushions", "sofa"]
+    assert sorted(fakes["edit"]) == sorted(
+        [s.TARGET_CONCEPTS["cushions"], "sofa"])
     assert [r["target"] for r in res["results"]] == ["sofa", "cushions"]
     assert all(r["attempts"] == 1 and r["cached"] is False
                for r in res["results"])
@@ -118,7 +127,7 @@ def test_multi_skips_failed_item_keeps_rest(tmp_path, monkeypatch):
     room = make_room(tmp_path)
 
     def fake_segment(room_bytes, concept, key=None, timeout=120):
-        if concept == "cushions":
+        if concept == s.TARGET_CONCEPTS["cushions"]:
             return []
         return [{"box": (0, 0, 90, 90), "frame_size": (100, 100)}]
 
@@ -149,7 +158,7 @@ def test_multi_skips_edit_failure(tmp_path, monkeypatch):
 
     def fake_edit(room_bytes, swatch_bytes, fabric, concept, key=None,
                   corrective=None, timeout=300):
-        if concept == "cushions":
+        if concept == s.TARGET_CONCEPTS["cushions"]:
             raise s.SwapError("fabric edit failed: boom")
         return solid((9, 9, 9))
 
@@ -218,7 +227,7 @@ def test_multi_unexpected_error_becomes_skip(tmp_path, monkeypatch):
 
     def fake_edit(room_bytes, swatch_bytes, fabric, concept, key=None,
                   corrective=None, timeout=300):
-        if concept == "cushions":
+        if concept == s.TARGET_CONCEPTS["cushions"]:
             raise ValueError("images do not match")
         return solid((9, 9, 9))
 
