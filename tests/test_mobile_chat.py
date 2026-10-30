@@ -626,10 +626,12 @@ def test_double_try_fires_one_swap(server, page):
     hits = []
 
     def slow_swap(route):
+        # A genuinely slow swap: the request stays pending for the whole
+        # test. (A fulfilled one-event body closes the stream, which the
+        # client rightly reads as a dropped connection: it retries once
+        # and then fails, so the "in-flight" window would be gone before
+        # the second tap.)
         hits.append(1)
-        route.fulfill(status=200, content_type="text/event-stream",
-                      body="data: %s\n\n" % json.dumps(
-                          {"type": "step", "label": "segment"}))
 
     page.route("**/api/swap/stream", slow_swap)
     page.goto(server + "/consult", wait_until="networkidle")

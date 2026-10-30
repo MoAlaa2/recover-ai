@@ -684,6 +684,11 @@
     return String(value).replace(/\d/g, function (d) { return "٠١٢٣٤٥٦٧٨٩"[+d]; });
   }
 
+  function matchBadgeText(match) {
+    var text = t("matchBadge").replace("%d", match);
+    return state.lang === "ar" ? toArabicDigits(text) : text;
+  }
+
   function formatPrice(sar) {
     if (state.lang === "ar") return toArabicDigits(sar) + " ر.س/م";
     return sar + " " + t("perMeter");
@@ -1773,11 +1778,11 @@
     var lines = rows.map(function (r) {
       return "• " + r.target + " → " + r.name + " (" + r.code + "): " +
         (r.meters !== undefined && r.meters !== null ?
-          r.meters + " m × " + r.price + " = " + r.line :
+          fmtMeters(r.meters) + " × " + fmtMoney(r.price) + " = " +
+            fmtMoney(r.line) :
           t("needsMeasure"));
     });
-    lines.push(t("totalLabel") + " (" + t("preliminaryNote") + "): " +
-               total);
+    lines.push(t("totalLabel") + ": " + total);
     lines.push(t("preliminaryNote"));
     if (co2line) lines.push(co2line);
     // The preview travels as a public 14-day share link (the site
@@ -1848,7 +1853,7 @@
                 sc.color, sc.pattern, sc.scale, sc.isolation
               ].map(function (v) { return v || 0; }));
               scoreHtml = '<span class="match-badge small">' +
-                esc(t("matchBadge").replace("%d", itemMatch)) + "</span>";
+                esc(matchBadgeText(itemMatch)) + "</span>";
             }
             var thumb = r.result_url ?
               '<img class="swap-thumb" src="/' +
@@ -2618,7 +2623,7 @@
     $("baRange").value = 50;
     baUpdate(50);
     var badge = $("matchBadge");
-    badge.textContent = t("matchBadge").replace("%d", match);
+    badge.textContent = matchBadgeText(match);
     badge.title = "color " + vals[0] + " · pattern " + vals[1] +
                   " · scale " + vals[2] + " · isolation " + vals[3];
     var dl = $("swapDownload");
@@ -2737,7 +2742,7 @@
       (meta.price !== undefined ? " · " + esc(formatPrice(meta.price)) : "") +
       "</div></div>" +
       '<span class="match-badge small">' +
-      esc(t("matchBadge").replace("%d", match)) + "</span></div>" +
+      esc(matchBadgeText(match)) + "</span></div>" +
       (followHtml ? '<div class="chat-follow">' + followHtml + "</div>"
                   : '<p class="chat-follow">' + esc(t("followSwap")) +
                     "</p>") +
@@ -3549,6 +3554,15 @@
 
     renderCanvas();
     var params = new URLSearchParams(location.search);
+    // ?lang= and the landing-page pick are explicit choices: pin them so
+    // the very first turn (sample photo or greeting) is in that language
+    // instead of leaving it to detection on an empty message.
+    var savedLang = null;
+    try { savedLang = window.localStorage.getItem("recover_lang"); } catch (e) {}
+    if ((params.get("lang") && STRINGS[params.get("lang")]) ||
+        (savedLang && STRINGS[savedLang] && savedLang === state.lang)) {
+      state.pinned = true;
+    }
     var sample = params.get("sample");
     var hasSample = ["living", "majlis", "armchair"].indexOf(sample) >= 0;
     if (params.get("new") === "1") {

@@ -176,3 +176,14 @@ def test_visible_user_text_strips_annotations():
         "options.]") == "Cushions"
     assert c.visible_user_text("hi\nSuggested features from my needs: x") \
         == "hi"
+
+
+def test_arabic_skip_phrases_recommend_now():
+    from app.services import targets as t
+    for phrase in ("ورّني على طول", "ورني", "اعرض لي مباشرة", "وريني الحين"):
+        _, flags = t.match_targets(phrase, ["sofa", "cushions"])
+        assert flags.get("skip"), phrase
+        assert c.wants_recommendations(phrase), phrase
+    # The model's own Arabic skip chip is recognised: no duplicate chip.
+    opts = ["أطفال", "حيوانات أليفة", "استخدام عادي", "اعرض لي مباشرة"]
+    assert c.ensure_just_show_option(opts, "ar") == opts

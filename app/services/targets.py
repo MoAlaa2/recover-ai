@@ -53,7 +53,8 @@ CHOICE_WORDS = {
 ALL_WORDS = ("all", "everything", "كل", "كلهم", "both", "الكل",
              "tout", "tous", "toutes", "todo", "todos", "todas",
              "सभी", "सब कुछ", "mix")
-SKIP_WORDS = ("just show me", "skip", "show me", "وريني", "تخط",
+SKIP_WORDS = ("just show me", "skip", "show me", "وريني", "ورّني", "ورني",
+              "على طول", "اعرض لي", "مباشرة", "تخط",
               "montrez-moi", "muéstrame",
               "بدون أسئلة", "no questions", "montre-moi", "passer",
               "muéstrame", "muestrame", "omitir", "दिखाओ", "छोड़ो")

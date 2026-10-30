@@ -1516,7 +1516,7 @@ def agent_turn(messages, chat_fn, turn, on_token=None, on_step=None):
 
 WANTS_RECS_RE = re.compile(
     r"recommend|recommendation|show me options|show options|"
-    r"رشح|رشّح|اقترح|وريني|اعرض|الخيارات|"
+    r"رشح|رشّح|اقترح|وريني|ورّني|ورني|اعرض|الخيارات|"
     r"सुझा|recommand|recomiend",
     re.IGNORECASE)
 
@@ -1615,10 +1615,12 @@ JUST_SHOW_LINES = {
 
 def ensure_just_show_option(options, lang):
     """Append the localized Just-show-me chip when it is missing."""
+    from app.services.targets import SKIP_WORDS
     line = JUST_SHOW_LINES.get(lang or "en", JUST_SHOW_LINES["en"])
     opts = list(options or [])
     low = [str(o).strip().lower() for o in opts]
-    if any(line.lower() == o or "just show" in o or "show me" == o
+    # The model's own skip chip in any language counts as present.
+    if any(line.lower() == o or any(w in o for w in SKIP_WORDS)
            for o in low):
         return opts
     if len(opts) >= 4:
