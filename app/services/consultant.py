@@ -100,9 +100,11 @@ cushions, curtains), ask once right after the photo is analyzed which \
 to change — "I can see a sofa, cushions and curtains — what would you \
 like to change?" — with one option per item plus All and Just show me. \
 Never repeat that question on later turns or recommendation turns. A \
-tap, a chip and a voice answer mean the same thing. Ask only the \
-missing needs for the chosen type; if they say Just show me, skip the \
-questions. When the user picks \
+tap, a chip and a voice answer mean the same thing. Once an item is \
+chosen, ask at most ONE more question (the single most useful missing \
+need), always offering "Just show me" among its options, then recommend \
+on the very next turn; if they say Just show me, skip the questions and \
+recommend immediately. When the user picks \
 curtains, search with usage curtains so every pick is curtain-suitable. \
 After 3 recommendations for a chosen target, the top pick is applied \
 automatically; record every pick with assign_fabric. When fabrics are \
@@ -1341,6 +1343,7 @@ def _execute_tool(name, args, turn, on_step=None):
                     "seen": [c for c in turn.get("seen", [])
                              if get_fabric(c)][:12]}
         target = (args or {}).get("target") or ""
+        target = _user_target_wins(turn.get("session"), target)
         if not target:
             chosen = turn.get("chosen_targets", []) or []
             target = chosen[0] if len(chosen) == 1 else ""
@@ -1358,7 +1361,11 @@ def _execute_tool(name, args, turn, on_step=None):
         session = turn.get("session")
         if session is None:
             session = {}
+        # The item the user tapped or named is the one that gets the
+        # fabric: a model guess ("sofa") never re-targets the pick.
+        target = _user_target_wins(session, target) or target
         session.setdefault("assignments", {})[target] = code
+        turn.setdefault("assigned_now", {})[target] = code
         chosen = session.setdefault("chosen_targets", [])
         if target not in chosen:
             chosen.append(target)
@@ -1543,7 +1550,9 @@ def _maybe_prefetch_search(history, turn, message, on_step):
     # none (e.g. "sadu cushions"), an empty-args search returns generic
     # top fabrics and the model copies them; let it search with its own
     # pattern/style filters instead.
-    if not wants_recommendations(message) or not _needs_ready(turn):
+    explicit = (wants_recommendations(message) or turn.get("skip_needs")
+                or turn.get("force_recs"))
+    if not explicit or not _needs_ready(turn):
         return
     seed_args = {"usage": "curtains"} if turn.get(
         "curtains_only") else {}
@@ -1571,6 +1580,47 @@ def _maybe_prefetch_search(history, turn, message, on_step):
                          "relaxed_constraints":
                              result["relaxed_constraints"]},
                         ensure_ascii=False)})
+
+
+def _user_target_wins(session, target):
+    """Return the user's own chosen item when it conflicts with target.
+
+    ``user_targets`` is set only from the user's words or taps (never
+    from model tool calls). With exactly one user-chosen item, every
+    preview / assignment lands on it, whatever target the model passed.
+    """
+    if not session:
+        return target
+    user = session.get("user_targets") or []
+    if len(user) == 1 and target != user[0]:
+        return user[0]
+    return target
+
+
+# "Just show me" chip, offered on every question after the item is
+# chosen. Each phrase is matched by targets.SKIP_WORDS so a tap on the
+# chip skips the remaining questions and recommends immediately.
+JUST_SHOW_LINES = {
+    "en": "Just show me",
+    "ar": "وريني الحين",
+    "hi": "बस दिखाओ",
+    "fr": "Montrez-moi",
+    "es": "Solo muéstrame",
+}
+
+
+def ensure_just_show_option(options, lang):
+    """Append the localized Just-show-me chip when it is missing."""
+    line = JUST_SHOW_LINES.get(lang or "en", JUST_SHOW_LINES["en"])
+    opts = list(options or [])
+    low = [str(o).strip().lower() for o in opts]
+    if any(line.lower() == o or "just show" in o or "show me" == o
+           for o in low):
+        return opts
+    if len(opts) >= 4:
+        opts = opts[:3]
+    opts.append(line)
+    return opts
 
 
 def valid_recommendations(data, seen):
@@ -1855,6 +1905,8 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
         if image_path != session.get("image_path"):
             session["available_targets"] = []
             session["chosen_targets"] = []
+            session["user_targets"] = []
+            session["asked_after_choice"] = 0
             session["assignments"] = {}
             session.pop("detected_piece", None)
         session["image_path"] = image_path
@@ -1893,10 +1945,25 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
         analysis_failed = bool(box.get("failed"))
     chosen, choice_flags = targets_mod.match_targets(
         message, available) if available else ([], {})
+    if chosen and choice_flags.get("skip") and session.get("user_targets"):
+        # "Just show me" after an item was picked keeps that item; it
+        # only skips the remaining questions.
+        chosen = []
     if chosen:
         session["chosen_targets"] = chosen
+        # Remember what the USER picked (tap, chip or words). Model tool
+        # calls may add assignments but never change this list.
+        if session.get("user_targets") != chosen:
+            session["user_targets"] = list(chosen)
+            session["asked_after_choice"] = 0
     turn["chosen_targets"] = session.get("chosen_targets", [])
     turn["skip_needs"] = bool(choice_flags.get("skip"))
+    # After the item is chosen the consultant asks at most one more
+    # question; the second turn without recommendations is forced.
+    if (session.get("user_targets") and turn.get("image")
+            and not turn["skip_needs"]
+            and session.get("asked_after_choice", 0) >= 1):
+        turn["force_recs"] = True
     turn["curtains_only"] = (session.get("chosen_targets", [])
                              == ["curtains"])
     # The "which item to change" question is asked once, right after
@@ -1908,6 +1975,14 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     elif session.get("chosen_targets"):
         user_text += ("\n[Chosen items: %s.]" % ", ".join(
             session["chosen_targets"]))
+        if turn.get("skip_needs") or turn.get("force_recs"):
+            user_text += ("\n[Recommend now: call search_catalog and end "
+                          "this reply with exactly 3 recommendations. "
+                          "Do not ask another question.]")
+        elif session.get("asked_after_choice", 0) == 0:
+            user_text += ("\n[You may ask ONE question at most before "
+                          "recommending; include \"Just show me\" among "
+                          "the options.]")
     confirm = ""
     if image_path:
         # room_analysis/analysis_failed were computed in parallel with
@@ -2005,17 +2080,26 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
                       [r["code"] for r in recommendations])
 
     chosen_targets = session.get("chosen_targets", [])
+    user_targets = session.get("user_targets") or []
+    if len(user_targets) == 1:
+        # The user's tap is authoritative for the auto-applied pick.
+        chosen_targets = user_targets + [
+            tg for tg in chosen_targets if tg != user_targets[0]]
     if (turn.get("preview") and not turn["preview"].get("target")
             and len(chosen_targets) == 1):
         turn["preview"]["target"] = chosen_targets[0]
     # Auto-apply rides the session photo, not just the current request:
     # a follow-up text turn ("sofa") after the photo turn must still
     # top-pick into the chosen item.
+    assigned_now = turn.get("assigned_now") or {}
     if (recommendations and chosen_targets and turn.get("image")
             and not turn.get("preview")
-            and chosen_targets[0]
-            not in session.get("assignments", {})):
-        top_code = recommendations[0]["code"]
+            and (chosen_targets[0] not in session.get("assignments", {})
+                 or chosen_targets[0] in assigned_now)):
+        # A pick the model recorded this turn is previewed as-is; else
+        # the top recommendation is applied to the chosen item.
+        top_code = assigned_now.get(chosen_targets[0]) or \
+            recommendations[0]["code"]
         session.setdefault("assignments", {})[chosen_targets[0]] = top_code
         turn["preview"] = {"code": top_code,
                            "target": chosen_targets[0]}
@@ -2023,6 +2107,13 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     reply = strip_block(final_text)
     options = extract_options(reply) or []
     reply = strip_options(reply)
+    if session.get("user_targets") and turn.get("image"):
+        if recommendations:
+            session["asked_after_choice"] = 0
+        else:
+            session["asked_after_choice"] = \
+                session.get("asked_after_choice", 0) + 1
+            options = ensure_just_show_option(options, _reply_lang(turn))
     if not recommendations:
         reply = strip_tip(reply)
     if not reply.strip():

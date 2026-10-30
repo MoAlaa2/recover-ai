@@ -6,7 +6,6 @@
     en: {
       tagline: "Change the look, not the furniture.",
       forYou: "For you",
-      emptyRecs: "Your recommended fabrics will appear here.",
       dropHint: "Drop a room photo here, or tap to choose one",
       placeholder: "Ask about fabrics…",
       analyzing: "Analyzing your room…",
@@ -31,6 +30,8 @@
       tryOnTarget: "Try on the %s",
       tryWord: { sofa: "sofa", armchair: "armchair", curtains: "curtains", cushions: "cushions" },
       tapToChange: "Tap what you'd like to change",
+      allItems: "All",
+      recsUnderPhoto: "Your 3 picks are under the photo — tap one to try it.",
       fewQualify: "Only %d fabrics qualified — here they are:",
       thinking: "Thinking…",
       pieceYou: { sofa: "sofa", armchair: "armchair", curtains: "curtains", cushions: "cushions" },
@@ -104,7 +105,6 @@
     ar: {
       tagline: "غيّر القماش، لا الأثاث.",
       forYou: "اخترنا لك",
-      emptyRecs: "ستظهر أقمشتك المقترحة هنا.",
       dropHint: "أسقط صورة غرفتك هنا، أو اضغط لاختيار صورة",
       placeholder: "اسأل عن الأقمشة…",
       analyzing: "جارٍ تحليل غرفتك…",
@@ -129,6 +129,8 @@
       tryOnTarget: "جرّبه على %s",
       tryWord: { sofa: "الكنبة", armchair: "الكرسي", curtains: "الستائر", cushions: "المخدات" },
       tapToChange: "اضغط على اللي ودك تغّيره",
+      allItems: "الكل",
+      recsUnderPhoto: "اختياراتك الثلاثة تحت الصورة — اضغط على واحد لتجربته.",
       fewQualify: "بس %d أقمشة تناسب — هذي هي:",
       thinking: "لحظة…",
       tailoring: "نفصّل %s بقماشك…",
@@ -202,7 +204,6 @@
     hi: {
       tagline: "लुक बदलें, फर्नीचर नहीं।",
       forYou: "आपके लिए",
-      emptyRecs: "आपके सुझाए कपड़े यहाँ दिखेंगे।",
       dropHint: "कमरे की फोटो यहाँ डालें, या चुनने के लिए टैप करें",
       placeholder: "कपड़ों के बारे में पूछें…",
       analyzing: "आपका कमरा देख रहा हूँ…",
@@ -225,6 +226,8 @@
       tryOnTarget: "%s पर आज़माएँ",
       tryWord: { sofa: "सोफ़ा", armchair: "कुर्सी", curtains: "परदे", cushions: "तकिए" },
       tapToChange: "जो बदलना है उस पर दबाएँ",
+      allItems: "सभी",
+      recsUnderPhoto: "आपके 3 सुझाव फ़ोटो के नीचे हैं — आज़माने के लिए एक पर दबाएँ।",
       fewQualify: "सिर्फ़ %d कपड़े सही बैठे — ये रहे:",
       applyAll: "सब पर लागू करें",
       resetPicks: "रीसेट",
@@ -300,7 +303,6 @@
     fr: {
       tagline: "Changez le look, pas le mobilier.",
       forYou: "Pour vous",
-      emptyRecs: "Vos tissus recommandés apparaîtront ici.",
       dropHint: "Déposez une photo de la pièce, ou touchez pour choisir",
       placeholder: "Posez vos questions tissus…",
       analyzing: "J'analyse votre pièce…",
@@ -323,6 +325,8 @@
       tryOnTarget: "Essayer sur %s",
       tryWord: { sofa: "canapé", armchair: "fauteuil", curtains: "rideaux", cushions: "coussins" },
       tapToChange: "Touchez ce que vous voulez changer",
+      allItems: "Tout",
+      recsUnderPhoto: "Vos 3 choix sont sous la photo — touchez-en un pour l'essayer.",
       fewQualify: "Seuls %d tissus conviennent — les voici :",
       applyAll: "Tout appliquer",
       resetPicks: "Réinitialiser",
@@ -398,7 +402,6 @@
     es: {
       tagline: "Cambia el look, no el sofá.",
       forYou: "Para ti",
-      emptyRecs: "Tus telas recomendadas aparecerán aquí.",
       dropHint: "Suelta una foto de la habitación, o toca para elegir",
       placeholder: "Pregunta por telas…",
       analyzing: "Estoy analizando tu espacio…",
@@ -421,6 +424,8 @@
       tryOnTarget: "Probar en %s",
       tryWord: { sofa: "sofá", armchair: "sillón", curtains: "cortinas", cushions: "cojines" },
       tapToChange: "Toca lo que quieras cambiar",
+      allItems: "Todo",
+      recsUnderPhoto: "Tus 3 opciones están bajo la foto — toca una para probarla.",
       fewQualify: "Solo %d telas sirven — aquí están:",
       applyAll: "Aplicar a todo",
       resetPicks: "Restablecer",
@@ -773,6 +778,7 @@
     state.assignments = {};
     state.chosenTargets = [];
     state.selectedTarget = null;
+    state.pickerThumbs = {};
     state.browseList = [];
     state.browseFor = null;
     state.multiRunning = false;
@@ -1170,14 +1176,33 @@
     return null;
   }
 
+  function allOption() {
+    var opts = state.lastOptions || [];
+    for (var i = 0; i < opts.length; i++) {
+      var low = String(opts[i]).toLowerCase().trim();
+      for (var j = 0; j < ALL_WORDS.length; j++) {
+        if (low === ALL_WORDS[j] || low.indexOf(ALL_WORDS[j] + " ") === 0) {
+          return opts[i];
+        }
+      }
+    }
+    return null;
+  }
+
   function selectTarget(id, fromTap) {
+    if (id === "all") {
+      // Every item: no single swap target; the server expands "All".
+      state.selectedTarget = "all";
+      renderOutlines();
+      renderAssignRow();
+      syncPickerSelection("all");
+      if (fromTap) send(allOption() || t("allItems"));
+      return;
+    }
     state.selectedTarget = id;
     renderOutlines();
     renderAssignRow();
-    var taps = document.querySelectorAll("[data-outline]");
-    for (var i = 0; i < taps.length; i++) {
-      taps[i].classList.toggle("sel", taps[i].dataset.outline === id);
-    }
+    syncPickerSelection(id);
     var bar = $("roomBar");
     if (bar) bar.classList.toggle("sel", !!id);
     if (fromTap) {
@@ -1185,6 +1210,18 @@
       if (opt) send(opt);
       else openBrowse(id);
     }
+  }
+
+  function syncPickerSelection(id) {
+    var taps = document.querySelectorAll("[data-outline]");
+    for (var i = 0; i < taps.length; i++) {
+      var on = taps[i].dataset.outline === id;
+      taps[i].classList.toggle("sel", on);
+      if (taps[i].classList.contains("item-thumb")) {
+        taps[i].setAttribute("aria-pressed", on ? "true" : "false");
+      }
+    }
+    refreshChatPicker();
   }
 
   function fetchOutlines(again) {
@@ -1250,6 +1287,7 @@
       fill.style.height = pct(dh, eh);
       fill.style.webkitMaskImage = url;
       fill.style.maskImage = url;
+      fill.dataset.fill = o.id;
       layer.appendChild(fill);
       var list = (o.boxes && o.boxes.length) ? o.boxes :
         [o.box || [0, 0, rw, rh]];
@@ -1271,10 +1309,144 @@
           tap.addEventListener("click", function () {
             selectTarget(id, true);
           });
+          tap.addEventListener("mouseenter", function () {
+            hoverFill(id, true);
+          });
+          tap.addEventListener("mouseleave", function () {
+            hoverFill(id, false);
+          });
         })(o.id);
         layer.appendChild(tap);
       });
     });
+    renderItemPicker();
+  }
+
+  function hoverFill(id, on) {
+    var fills = document.querySelectorAll('.ol-fill[data-fill="' +
+                                          id + '"]');
+    for (var i = 0; i < fills.length; i++) {
+      fills[i].classList.toggle("hover", !!on);
+    }
+  }
+
+  // Item picker: one square thumbnail per detected item, cropped from
+  // the room photo around the item's box, plus "All". Tapping one is the
+  // same selection as a chip or an outline tap.
+  var ALL_WORDS = ["all", "الكل", "كل", "tout", "tous", "todo", "todos",
+                   "सभी", "everything", "mix"];
+
+  function pickerItems() {
+    return (state.outlines || []).filter(function (o) {
+      return o && o.id && (o.box || (o.boxes && o.boxes.length)) && o.size;
+    }).slice().sort(function (a, b) { return boxArea(b) - boxArea(a); });
+  }
+
+  function pickerImage() {
+    var path = state.roomPhoto;
+    if (!path) return null;
+    if (state.pickerImg && state.pickerImg.dataset.path === path) {
+      return state.pickerImg;
+    }
+    var img = new Image();
+    img.dataset.path = path;
+    img.addEventListener("load", function () {
+      if (state.roomPhoto === path) {
+        state.pickerThumbs = {};
+        renderItemPicker();
+        refreshChatPicker();
+      }
+    });
+    img.src = "/" + String(path).replace(/^\/+/, "");
+    state.pickerImg = img;
+    return img;
+  }
+
+  function pickerThumb(o) {
+    var key = state.roomPhoto + "|" + o.id;
+    state.pickerThumbs = state.pickerThumbs || {};
+    if (state.pickerThumbs[key]) return state.pickerThumbs[key];
+    var img = pickerImage();
+    if (!img || !img.complete || !img.naturalWidth) return "";
+    // Crop around the largest single region (a union box of two
+    // pillows would show the whole sofa), falling back to the item box.
+    var box = null;
+    (o.boxes || []).forEach(function (bx) {
+      if (bx && (!box || boxArea({ box: bx }) > boxArea({ box: box }))) {
+        box = bx;
+      }
+    });
+    box = box || o.box;
+    if (!box) return "";
+    var iw = img.naturalWidth, ih = img.naturalHeight;
+    var sx = iw / ((o.size && o.size[0]) || iw);
+    var sy = ih / ((o.size && o.size[1]) || ih);
+    var bw = (box[2] - box[0]) * sx, bh = (box[3] - box[1]) * sy;
+    var cx = (box[0] * sx) + bw / 2, cy = (box[1] * sy) + bh / 2;
+    var side = Math.max(bw, bh) * 1.2;
+    side = Math.max(24, Math.min(side, Math.min(iw, ih)));
+    var x0 = Math.max(0, Math.min(iw - side, cx - side / 2));
+    var y0 = Math.max(0, Math.min(ih - side, cy - side / 2));
+    var out = "";
+    try {
+      var cv = document.createElement("canvas");
+      cv.width = 160;
+      cv.height = 160;
+      var ctx = cv.getContext("2d");
+      ctx.drawImage(img, x0, y0, side, side, 0, 0, 160, 160);
+      out = cv.toDataURL("image/jpeg", 0.82);
+    } catch (e) {
+      out = "";
+    }
+    if (out) state.pickerThumbs[key] = out;
+    return out;
+  }
+
+  function itemPickerHTML() {
+    var items = pickerItems();
+    if (!items.length) return "";
+    var selected = state.selectedTarget;
+    var html = items.map(function (o) {
+      var src = pickerThumb(o);
+      var code = state.assignments[o.id];
+      return '<button type="button" class="item-thumb' +
+        (selected === o.id ? " sel" : "") + '" data-outline="' +
+        esc(o.id) + '" aria-label="' + esc(targetLabel(o.id)) +
+        '" aria-pressed="' + (selected === o.id ? "true" : "false") +
+        '"><span class="it-img">' +
+        (src ? '<img src="' + src + '" alt="">' : "") + "</span>" +
+        '<span class="it-l" dir="auto">' + esc(targetLabel(o.id)) +
+        (code ? '<small>' + esc(code) + "</small>" : "") +
+        "</span></button>";
+    }).join("");
+    if (items.length > 1) {
+      html += '<button type="button" class="item-thumb all' +
+        (selected === "all" ? " sel" : "") +
+        '" data-outline="all" aria-label="' + esc(t("allItems")) +
+        '"><span class="it-img it-all"><i data-lucide="layers" ' +
+        'aria-hidden="true"></i></span><span class="it-l">' +
+        esc(t("allItems")) + "</span></button>";
+    }
+    return '<div class="item-picker" role="group" aria-label="' +
+      esc(t("tapToChange")) + '">' + html + "</div>";
+  }
+
+  function renderItemPicker() {
+    var wrap = $("itemPicker");
+    if (!wrap) return;
+    var html = state.roomPhoto ? itemPickerHTML() : "";
+    wrap.hidden = !html;
+    wrap.innerHTML = html;
+    if (html) icons();
+  }
+
+  function refreshChatPicker() {
+    var slots = messagesEl ? messagesEl.querySelectorAll(
+      ".outline-msg .picker-slot") : [];
+    if (!slots.length) return;
+    var html = itemPickerHTML();
+    for (var i = 0; i < slots.length; i++) slots[i].innerHTML = html;
+    if (html) icons();
   }
 
   function renderAssignRow() {
@@ -1735,79 +1907,11 @@
   }
 
   function renderRecs(recs) {
+    // Desktop recommendations live under the photo (renderCanvasRow);
+    // the old chat-pane card panel stays empty and hidden.
+    if (!recsEl) return;
     recsEl.innerHTML = "";
-    if (!recs || !recs.length) {
-      var p = document.createElement("p");
-      p.className = "empty";
-      p.textContent = t("emptyRecs");
-      recsEl.appendChild(p);
-      return;
-    }
-    if (recs.length < 3) {
-      var note = document.createElement("p");
-      note.className = "few-qualify";
-      note.setAttribute("dir", "auto");
-      note.textContent = (t("fewQualify") || "Only %d fabrics qualified.")
-        .replace("%d", String(recs.length));
-      recsEl.appendChild(note);
-    }
-    recs.forEach(function (r) {
-      var card = document.createElement("div");
-      card.className = "card";
-      var name = state.lang === "ar" ? r.name_ar : r.name_en;
-      var desc = state.lang === "ar" ? (r.description_ar || "") : (r.description_en || "");
-      var feats = (r.features || []).map(function (f) {
-        var icon = FEATURE_ICONS[f] || "sparkles";
-        var label = featLabel(f);
-        return '<span class="feat" title="' + esc(label) + '" aria-label="' + esc(label) +
-          '"><i data-lucide="' + icon + '" aria-hidden="true"></i></span>';
-      }).join("");
-      var matched = (r.matched || []).map(function (m) {
-        return '<li class="yes"><span>✓</span> ' + esc(featLabel(m)) + "</li>";
-      }).join("");
-      var relaxed = (r.relaxed || []).map(function (m) {
-        return '<li class="warn"><span>⚠</span> ' + esc(relaxLabel(m)) + "</li>";
-      }).join("");
-      var relaxedFeats = (r.relaxed_features || []).map(function (f) {
-        return '<li class="warn"><span>⚠</span> ' + esc(notFeatureLabel(f)) + "</li>";
-      }).join("");
-      if (r.relaxed_budget) {
-        relaxed += '<li class="warn"><span>⚠</span> ' + esc(budgetPill(r.relaxed_budget)) + "</li>";
-      }
-      // One short receipt line only (see receipt_summary server-side).
-      var receipts = receiptLine(r);
-      var done = state.swaps[r.code];
-      var action;
-      if (done && done.result_url) {
-        action = '<div class="swap-done">' +
-          '<img class="swap-thumb" src="/' + esc(done.result_url) + '" alt="' + esc(name) + '" data-code="' + esc(r.code) + '">' +
-          '<div class="swap-done-btns">' +
-          '<button class="seeit review" type="button" data-code="' + esc(r.code) + '"><span>' + esc(t("viewAgain")) + "</span></button>" +
-          '<button class="ghost rephoto" type="button" data-code="' + esc(r.code) + '"><span>' + esc(t("rephoto")) + "</span></button>" +
-          "</div></div>";
-      } else {
-        var tgt = r.target || state.selectedTarget || "";
-        var label = tgt && SWAP_TARGETS.indexOf(tgt) >= 0 ?
-          tryOnLabel(tgt) : t("seeIt");
-        action = '<button class="seeit" type="button" data-code="' + esc(r.code) + '"' +
-          (tgt ? ' data-target="' + esc(tgt) + '"' : "") + ">" +
-          '<i data-lucide="wand-sparkles" aria-hidden="true"></i><span>' + esc(label) + "</span></button>";
-      }
-      card.innerHTML =
-        '<div class="swatch"><img src="/' + esc(r.image) + '" alt="' + esc(name) + '" loading="lazy">' +
-        '<span class="code-pill">' + esc(r.code) + "</span></div>" +
-        '<div class="body" dir="auto">' +
-        '<div class="name">' + esc(name) + "</div>" +
-        '<div class="meta"><i data-lucide="ruler" aria-hidden="true"></i><span>' +
-        esc(formatPrice(r.price_sar_per_m)) + "</span></div>" +
-        (desc ? '<p class="desc">' + esc(desc) + "</p>" : "") +
-        '<div class="featrow">' + feats +
-        '<span class="' + snagClass(r.snag_risk) + '">' + esc(t("snag")[r.snag_risk] || r.snag_risk) + "</span></div>" +
-        (r.reason ? '<p class="why">' + esc(r.reason) + "</p>" : "") +
-        receipts + action + "</div>";
-      recsEl.appendChild(card);
-    });
-    icons();
+    recsEl.hidden = true;
   }
 
   function tryOnLabel(target) {
@@ -1860,10 +1964,24 @@
     return div;
   }
 
+  function appendRecsLine() {
+    var div = document.createElement("div");
+    div.className = "msg them recs-line";
+    div.innerHTML = AVATAR + '<div><p class="ptext" dir="auto">' +
+      esc(t("recsUnderPhoto")) + "</p></div>";
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+  }
+
   function showRecs(recs) {
     if (!recs || !recs.length) return;
-    if (isNarrow()) appendRecsToChat(recs);
-    else renderRecs(recs);
+    if (isNarrow()) {
+      appendRecsToChat(recs);
+    } else {
+      renderCanvasRow();
+      appendRecsLine();
+    }
   }
 
   function maybeAutoPreview(res) {
@@ -2107,6 +2225,11 @@
     var target = SWAP_TARGETS.indexOf(opts.target) >= 0 ? opts.target :
       (SWAP_TARGETS.indexOf(state.selectedTarget) >= 0 ?
         state.selectedTarget : swapTarget());
+    if (!opts.target && state.selectedTarget === "all" &&
+        (state.chosenTargets || []).length === 1 &&
+        SWAP_TARGETS.indexOf(state.chosenTargets[0]) >= 0) {
+      target = state.chosenTargets[0];
+    }
     var words = t("pieceYou") || {};
     $("swapTitle").textContent =
       t("tailoring").replace("%s", words[target] || target);
@@ -2206,6 +2329,8 @@
     function onEvt(evt) {
       if (isStale()) return;
       if (evt.type === "step") {
+        $("swapTryAgain").hidden = true;
+        $("swapRetryBtn").hidden = true;
         state.pendingSwapLabel = canvasStepLabel(evt.label);
         state.pendingSwapModel = evt.model || null;
         (state.swapTrace = state.swapTrace || []).push(
@@ -2732,58 +2857,18 @@
   }
 
   function postOutlineMessage() {
-    // After the photo is analyzed, post the photo itself into the chat
-    // with tappable item regions, once per image: one tap per mask
-    // blob, largest first.
-    var avail = (state.outlines || []).filter(function (o) {
-      return o && o.id && (o.box || (o.boxes && o.boxes.length)) &&
-        o.size;
-    });
-    if (!avail.length || !state.roomPhoto) return;
+    // After the photo is analyzed, the chat gets one item-picker row
+    // (thumbnail per detected item + All), once per image. On desktop
+    // the same picker sits under the photo, so the chat stays short.
+    if (!state.roomPhoto || !isNarrow()) return;
     if (state.outlinePostedFor === state.roomPhoto) return;
-    var src = "/" + String(state.roomPhoto).replace(/^\/+/, "");
-    // No boxes means no trustworthy region: the item stays choosable
-    // through its chip, and no full-photo tap is ever rendered.
-    var taps = [];
-    avail.forEach(function (o) {
-      // One tag per item in the chat photo (the largest region): per-box
-      // tags stack identical labels on top of each other. The canvas
-      // layer keeps every box.
-      var list = (o.boxes && o.boxes.length) ? o.boxes : [];
-      var best = null;
-      list.forEach(function (bx) {
-        if (bx && (!best || boxArea({ box: bx }) > boxArea({ box: best }))) {
-          best = bx;
-        }
-      });
-      if (best) taps.push({ id: o.id, box: best, size: o.size });
-    });
-    taps.sort(function (a, b) { return boxArea(b) - boxArea(a); });
-    if (!taps.length) return;
-    var tags = taps.map(function (tp) {
-      var w = (tp.size && tp.size[0]) || 1;
-      var h = (tp.size && tp.size[1]) || 1;
-      var left = Math.max(0, tp.box[0] / w * 100);
-      var top = Math.max(0, tp.box[1] / h * 100);
-      var width = Math.min(100 - left, (tp.box[2] - tp.box[0]) / w * 100);
-      var height = Math.min(100 - top, (tp.box[3] - tp.box[1]) / h * 100);
-      return '<button type="button" class="ol-chat-tap' +
-        (state.selectedTarget === tp.id ? " sel" : "") +
-        '" data-outline="' + esc(tp.id) + '" style="left:' +
-        left.toFixed(1) + "%;top:" + top.toFixed(1) + "%;width:" +
-        Math.max(6, width).toFixed(1) + "%;height:" +
-        Math.max(6, height).toFixed(1) + '%" aria-label="' +
-        esc(targetLabel(tp.id)) + '"><span>' + esc(targetLabel(tp.id)) +
-        "</span></button>";
-    }).join("");
+    var html = itemPickerHTML();
+    if (!html) return;
     var div = document.createElement("div");
     div.className = "msg them outline-msg";
     div.innerHTML = AVATAR + '<div class="chat-outline" dir="auto">' +
-      '<div class="chat-outline-photo"><img src="' + esc(src) +
-      '" alt="' + esc(t("roomSub")) + '" loading="lazy">' + tags +
-      "</div>" +
       '<p class="chat-outline-cap">' + esc(t("tapToChange")) + "</p>" +
-      "</div>";
+      '<div class="picker-slot">' + html + "</div></div>";
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
     state.outlinePostedFor = state.roomPhoto;
@@ -3104,7 +3189,11 @@
       if (fab && fab.dataset.fabric) openFabricSheet(fab.dataset.fabric);
       var card = e.target && e.target.closest ?
         e.target.closest("#canvasRow .ccard") : null;
-      if (card && card.dataset.code) tryFabric(card.dataset.code);
+      if (card && card.dataset.code) {
+        var doneSwap = state.swaps[card.dataset.code];
+        if (doneSwap && doneSwap.result_url) openSwapReview(doneSwap);
+        else tryFabric(card.dataset.code);
+      }
     });
     $("compareBtn").addEventListener("click", function () {
       var list = state.prevList || [];

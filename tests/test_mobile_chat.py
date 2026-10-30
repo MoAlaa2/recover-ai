@@ -697,7 +697,7 @@ def test_view_again_opens_result_without_reswap(server, page):
     assert len(hits) == 1
     page.set_viewport_size({"width": 1440, "height": 900})
     page.wait_for_timeout(400)
-    page.click("#recs .card .seeit.review")
+    page.click("#canvasRow .ccard.previewing")
     page.wait_for_selector("#swapResult:not([hidden])", timeout=15000)
     page.wait_for_timeout(800)
     assert len(hits) == 1, "View again must not start a new swap"
@@ -730,3 +730,42 @@ def test_canvas_image_retries_once_after_404(server, page):
         "document.querySelector('#canvasImg').naturalWidth > 0",
         timeout=15000)
     assert len(hits) >= 2, "canvas must refetch after the first 404"
+
+
+def test_auto_preview_swaps_chosen_target(server, page):
+    """Chosen target = cushions -> the auto-applied pick and the Try
+    buttons call /api/swap/stream with target cushions, never sofa."""
+    bodies = []
+    with_preview = dict(IMG_TURN)
+    with_preview["preview"] = {"code": "FA-NL-07", "target": "cushions"}
+    with_preview["targets"] = {"available": ["sofa", "cushions"],
+                               "chosen": ["cushions"], "assignments": {}}
+
+    def chat_route(route):
+        data = route.request.post_data_json or {}
+        body = with_preview if data.get("message") else IMG_TURN
+        route.fulfill(status=200, content_type="text/event-stream",
+                      body="data: %s\n\n" % json.dumps(
+                          {"type": "done", "result": body}))
+
+    def swap_route(route):
+        bodies.append(route.request.post_data_json or {})
+        route.fulfill(status=200, content_type="text/event-stream",
+                      body=swap_stream(SWAP_MOCK))
+
+    page.route("**/api/chat/stream", chat_route)
+    page.route("**/api/swap/stream", swap_route)
+    page.goto(server + "/consult", wait_until="networkidle")
+    upload_photo(page)
+    page.fill("#composerInput", "Cushions")
+    page.click('.composer button[type="submit"]')
+    page.wait_for_selector("#swapResult:not([hidden])", timeout=30000)
+    assert bodies and bodies[0].get("target") == "cushions", bodies
+    assert "Try again" not in (page.text_content("#swapLoading") or "") \
+        or page.get_attribute("#swapRetryBtn", "hidden") is not None
+    page.click("#swapClose")
+    page.wait_for_timeout(300)
+    # A manual Try on another fabric keeps the chosen item too.
+    page.evaluate("document.querySelector('#messages [data-try]').click()")
+    page.wait_for_timeout(1200)
+    assert all(b.get("target") == "cushions" for b in bodies), bodies

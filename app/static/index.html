@@ -56,6 +56,7 @@
         <div id="canvasChips" class="canvas-chips"></div>
         <button id="holdBefore" class="hold-before" type="button" hidden><span data-i18n="holdBefore">Hold for before</span></button>
       </div>
+      <div id="itemPicker" class="item-picker-wrap" hidden></div>
       <div id="canvasRow" class="canvas-row" hidden></div>
       <div id="assignRow" class="assign-row" hidden></div>
       <div id="browsePanel" class="browse-panel" hidden></div>
@@ -82,9 +83,7 @@
     </div>
     <div id="messages" class="messages" role="log" aria-live="polite"></div>
     <div id="chips" class="chips" hidden></div>
-    <div id="recs" class="recs recs-compact">
-      <p class="empty" data-i18n="emptyRecs">Your recommended fabrics will appear here.</p>
-    </div>
+    <div id="recs" class="recs recs-compact" hidden></div>
     <form id="composer" class="composer">
       <button id="photoBtn" type="button" class="mic" aria-label="Upload photo"><i data-lucide="image-plus" aria-hidden="true"></i></button>
       <input id="fileInput" type="file" accept="image/*" hidden>
