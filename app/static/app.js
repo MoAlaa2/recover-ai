@@ -1280,7 +1280,11 @@
     if (fromTap) {
       var opt = optionForTarget(id);
       if (opt) send(opt);
-      else openBrowse(id);
+      else if ((state.chosenTargets || []).indexOf(id) >= 0) openBrowse(id);
+      // No option mentions this item and it is not chosen yet (a
+      // restored session, or a turn with no options): the tap IS the
+      // choice, so tell the consultant in words.
+      else send(targetLabel(id));
     }
   }
 
@@ -3628,7 +3632,7 @@
           }
         }
         state.lastRecs = st.last_recs || [];
-        state.lastOptions = [];
+        state.lastOptions = st.options || [];
         state.prevList = (st.previews || []).slice();
         state.swaps = {};
         state.prevList.forEach(function (p) {
@@ -3653,6 +3657,8 @@
           postSummaryCard(null, [], st.quote).then(function () {
             renderActionChips(quoteActions(st.quote));
           });
+        } else if (state.lastOptions.length) {
+          renderOptions(state.lastOptions);
         }
         messagesEl.scrollTop = messagesEl.scrollHeight;
         return true;

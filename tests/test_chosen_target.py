@@ -166,6 +166,9 @@ def test_quote_turn_has_no_relaxation_note_or_chips(tmp_path, monkeypatch):
     assert st["targets"]["assignments"] == {"sofa": "FA-AC-12"}
     assert st["quoted"] and st["quote"]["items"][0]["meters"]
     assert len(st["last_recs"]) == 3
+    # The last turn's chips come back too, so a refreshed session
+    # resumes with the same choices on screen.
+    assert st["options"] == ["Show me more", "Just show me"]
     assert c.session_state("nope-never") is None
 
 

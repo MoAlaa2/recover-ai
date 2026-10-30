@@ -875,3 +875,64 @@ def test_refresh_restores_session(server, page):
     assert page.is_visible("#roomBar")
     assert page.evaluate("document.getElementById('welcomeMsg') === null")
     assert greets == [], "no greeting on a restored session"
+
+
+def test_restored_picker_tap_sends_item_name(server, page):
+    """After a refresh the picker is rebuilt from the server; a tap on
+    an item that has no matching option and is not chosen yet must
+    send the item's name as a message (the tap IS the choice), and the
+    last turn's chips must be back on screen."""
+    state_body = {
+        "session_id": "x", "lang": "en",
+        "image_path": "data/samples/living.jpg",
+        "room_analysis": IMG_TURN["room_analysis"],
+        "detected_piece": "sofa",
+        "options": ["Upholstery", "Curtains", "Cushions", "A mix"],
+        "messages": [{"who": "them", "text": "What would you change?"}],
+        "targets": {"available": ["sofa", "curtains", "cushions"],
+                    "chosen": [], "assignments": {}},
+        "last_recs": [], "quote": None, "quoted": False, "previews": []}
+    sent = []
+
+    def chat_route(route):
+        sent.append(json.loads(route.request.post_data or "{}"))
+        route.fulfill(status=200, content_type="text/event-stream",
+                      body="data: %s\n\n" % json.dumps(
+                          {"type": "done", "result": GREET}))
+
+    page.route("**/api/chat/stream", chat_route)
+    page.route("**/api/chat", chat_route)
+    page.route("**/api/session/*/state", lambda r: r.fulfill(
+        status=200, content_type="application/json",
+        body=json.dumps(state_body)))
+    page.route("**/api/session/*/targets*", lambda r: r.fulfill(
+        status=200, content_type="application/json",
+        body=json.dumps({"targets": [
+            {"id": "sofa", "box": [100, 300, 700, 600],
+             "size": [800, 600]},
+            {"id": "curtains", "box": [200, 50, 600, 300],
+             "size": [800, 600]}]})))
+    page.goto(server + "/consult", wait_until="networkidle")
+    page.wait_for_selector("#messages .item-thumb", timeout=30000)
+    chips = page.eval_on_selector_all(
+        "#chips button", "els => els.map(e => e.textContent)")
+    assert chips == ["Upholstery", "Curtains", "Cushions", "A mix"]
+    # The option that names the item wins when there is one...
+    page.click('#messages .item-thumb[data-outline="curtains"]')
+    page.wait_for_function("() => document.querySelectorAll('#messages .msg.me').length >= 1", timeout=10000)
+    assert sent and sent[-1]["message"] == "Curtains"
+    # ...and an item no option mentions is sent by its own name
+    # (before the fix this opened the fabric browser: a dead tap).
+    page.wait_for_function("() => !document.body.classList.contains('chat-busy')", timeout=10000)
+    page.click('#messages .item-thumb[data-outline="sofa"]')
+    page.wait_for_function("() => document.querySelectorAll('#messages .msg.me').length >= 2", timeout=10000)
+    assert sent[-1]["message"].lower() == "sofa"
+    # With no options at all the same holds.
+    state_body["options"] = []
+    page.goto(server + "/consult", wait_until="networkidle")
+    page.wait_for_selector("#messages .item-thumb", timeout=30000)
+    assert page.evaluate("document.getElementById('chips').hidden")
+    page.click('#messages .item-thumb[data-outline="curtains"]')
+    page.wait_for_function("() => document.querySelectorAll('#messages .msg.me').length >= 1", timeout=10000)
+    assert sent[-1]["message"].lower() == "curtains"
+    assert page.evaluate("document.getElementById('browsePanel') === null || document.getElementById('browsePanel').hidden")

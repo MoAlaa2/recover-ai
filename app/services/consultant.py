@@ -1911,8 +1911,15 @@ def session_state(session_id):
         quote = meterage_mod.quote(assignments, fabrics,
                                    session.get("curtain_dims"),
                                    session.get("pillow_counts", {}))
+    last_options = []
+    for msg in reversed(history):
+        if msg.get("role") == "assistant" and isinstance(
+                msg.get("content"), str):
+            last_options = extract_options(msg["content"]) or []
+            break
     return {"session_id": session_id,
             "lang": session.get("lang"),
+            "options": last_options,
             "image_path": session.get("image_path"),
             "room_analysis": session.get("room_analysis"),
             "detected_piece": session.get("detected_piece"),

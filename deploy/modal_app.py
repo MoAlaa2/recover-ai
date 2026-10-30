@@ -146,6 +146,28 @@ class VolumeSyncMiddleware:
         return (method == "GET" and path.startswith("/api/session/")
                 and path.endswith("/targets"))
 
+    @staticmethod
+    def _replay(body, receive):
+        """A receive() that hands the drained body to the app ONCE,
+        then defers to the real channel.
+
+        Starlette's StreamingResponse keeps calling receive() while it
+        streams, waiting for http.disconnect; a replay that returned
+        the same http.request forever made the base middleware raise
+        "Unexpected message received: http.request" mid-stream, so
+        every chat/swap stream on the demo died after the first bytes.
+        """
+        played = []
+
+        async def replay():
+            if not played:
+                played.append(True)
+                return {"type": "http.request", "body": body,
+                        "more_body": False}
+            return await receive()
+
+        return replay
+
     async def __call__(self, scope, receive, send):
         import asyncio
         if scope.get("type") != "http":
@@ -173,11 +195,7 @@ class VolumeSyncMiddleware:
             if disk is not None:
                 await self._ensure_visible(disk)
 
-            async def replay_img(_sentinel=body):
-                return {"type": "http.request", "body": _sentinel,
-                        "more_body": False}
-
-            receive = replay_img
+            receive = self._replay(body, receive)
         if method == "POST" and path == "/api/share":
             # Minting a link stats a file another request just wrote
             # (multi composite): wait it into visibility first, or the
@@ -203,11 +221,7 @@ class VolumeSyncMiddleware:
             if disk is not None:
                 await self._ensure_visible(disk)
 
-            async def replay(_sentinel=body):
-                return {"type": "http.request", "body": _sentinel,
-                        "more_body": False}
-
-            await self.inner(scope, replay, send)
+            await self.inner(scope, self._replay(body, receive), send)
             return
         if method == "GET":
             disk = self._disk_path(path)

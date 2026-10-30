@@ -43,9 +43,15 @@ def run(path, method, chunks=(b"ok",), upload_dir=None,
 
     sent_body = [body]
 
+    drained = []
+
     async def receive():
-        chunk, sent_body[0] = sent_body[0], b""
-        return {"type": "http.request", "body": chunk,
+        if drained:
+            # A real ASGI server yields http.disconnect once the body
+            # is consumed and the client goes away.
+            return {"type": "http.disconnect"}
+        drained.append(True)
+        return {"type": "http.request", "body": sent_body[0],
                 "more_body": False}
 
     async def send(message):
@@ -215,3 +221,79 @@ def test_chat_stream_sample_path_no_wait():
                      body=payload, echo_body=True)
     assert calls == ["reload"]
     assert out[-1]["body"] == payload
+
+
+def test_replayed_body_is_followed_by_disconnect():
+    """After the middleware replays the drained body, a streaming
+    response that keeps listening on receive() (Starlette's
+    listen_for_disconnect) must get http.disconnect, never a second
+    http.request: the latter killed every chat stream on the demo."""
+    import json
+    seen = []
+
+    async def inner(_scope, receive, send):
+        first = await receive()
+        second = await receive()
+        seen.extend([first["type"], second["type"]])
+        await send({"type": "http.response.start", "status": 200,
+                    "headers": []})
+        await send({"type": "http.response.body", "body": b"",
+                    "more_body": False})
+
+    drained = []
+
+    async def receive():
+        if drained:
+            return {"type": "http.disconnect"}
+        drained.append(True)
+        return {"type": "http.request",
+                "body": json.dumps({"image_path": "data/x.jpg"}).encode(),
+                "more_body": False}
+
+    async def send(_message):
+        pass
+
+    for path in ("/api/chat/stream", "/api/swap/stream", "/api/share"):
+        seen.clear()
+        scope = {"type": "http", "path": path, "method": "POST",
+                 "headers": []}
+        asyncio.run(VolumeSyncMiddleware(
+            inner, FakeVolume(), upload_dir="/nonexistent")(
+                scope, receive, send))
+        assert seen == ["http.request", "http.disconnect"], (path, seen)
+
+
+def test_streaming_response_survives_replay_with_real_starlette():
+    """End-to-end through Starlette: an @app.middleware("http") layer
+    (the app has one) plus a StreamingResponse that reads the JSON
+    body. Starlette's base middleware keeps polling receive() while
+    the stream runs; the demo crashed here with "Unexpected message
+    received: http.request" until the replay deferred to the real
+    channel after its single shot."""
+    from fastapi import FastAPI, Request
+    from fastapi.responses import StreamingResponse
+    from starlette.testclient import TestClient
+
+    api = FastAPI()
+
+    @api.middleware("http")
+    async def passthrough(request, call_next):
+        return await call_next(request)
+
+    @api.post("/api/chat/stream")
+    async def stream(request: Request):
+        data = await request.json()
+
+        async def gen():
+            yield "data: %s\n\n" % data["image_path"]
+            yield "data: done\n\n"
+        return StreamingResponse(gen(), media_type="text/event-stream")
+
+    wrapped = VolumeSyncMiddleware(api, FakeVolume(),
+                                   upload_dir="/nonexistent")
+    with TestClient(wrapped, raise_server_exceptions=True) as client:
+        res = client.post("/api/chat/stream",
+                          json={"image_path": "data/samples/living.jpg"})
+    assert res.status_code == 200
+    assert res.text == ("data: data/samples/living.jpg\n\n"
+                        "data: done\n\n")
