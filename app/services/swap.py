@@ -196,15 +196,46 @@ def _mask_coverage(layer, size):
     return white / (size[0] * size[1])
 
 
+def _place_record(raster, w, h, record, size):
+    """Place one decoded SAM raster on an empty room-sized canvas.
+
+    SAM 3.1 masks are cropped to the record's box (inclusive, so the
+    raster is box w+1 by h+1) and mask x,y is an offset from the box's
+    top-left corner, not a frame position. Scale frame coords to room
+    coords and paste there; never stretch the crop over the frame.
+    """
+    width, height = size
+    arr = np.frombuffer(bytes(raster), dtype=np.uint8).reshape(h, w)
+    layer = Image.frombytes(
+        "L", (w, h), (arr * 255).astype(np.uint8).tobytes())
+    try:
+        fw, fh = record["frame_size"]
+        x1, y1 = record["box"][:2]
+        ox, oy = record.get("mask_origin") or (0, 0)
+        sx, sy = width / float(fw), height / float(fh)
+    except (KeyError, TypeError, ValueError, ZeroDivisionError):
+        # No geometry at all: the raster is the whole frame.
+        return layer.resize(size, Image.BILINEAR).point(
+            lambda v: 255 if v > 127 else 0)
+    tw = max(1, int(round(w * sx)))
+    th = max(1, int(round(h * sy)))
+    layer = layer.resize((tw, th), Image.BILINEAR).point(
+        lambda v: 255 if v > 127 else 0)
+    canvas = Image.new("L", size, 0)
+    canvas.paste(layer, (int(round((x1 + ox) * sx)),
+                         int(round((y1 + oy) * sy))))
+    return canvas
+
+
 def sam_mask(records, size):
     """Merge record masks into one room-sized L image (0/255).
 
+    Each record's cropped mask is pasted at its scaled box position.
     Low-confidence records and any record covering most of the frame
     are dropped: a full-frame "mask" is a failed detection, not a
     segmentation. A merged mask still covering most of the frame
     raises instead of tinting the whole photo.
     """
-    width, height = size
     merged = None
     for record in records:
         try:
@@ -217,11 +248,7 @@ def sam_mask(records, size):
             raster, w, h = sam_codec.decode_record(record)
         except sam_codec.MaskError:
             continue
-        arr = np.frombuffer(bytes(raster), dtype=np.uint8).reshape(h, w)
-        layer = Image.frombytes(
-            "L", (w, h), (arr * 255).astype(np.uint8).tobytes())
-        layer = layer.resize(size, Image.BILINEAR).point(lambda v: 255
-                                                         if v > 127 else 0)
+        layer = _place_record(raster, w, h, record, size)
         if _mask_coverage(layer, size) > MAX_RECORD_COVERAGE:
             continue
         merged = layer if merged is None else Image.composite(
@@ -501,7 +528,7 @@ def _union_of(records, size):
 
 # Bump when mask semantics change: stale on-disk items (garbage
 # full-frame masks) must be recomputed, never composited again.
-MASK_CACHE_VERSION = 2
+MASK_CACHE_VERSION = 3
 
 
 def swap_multi(room_path, assignments, api_key=None, out_dir=None,

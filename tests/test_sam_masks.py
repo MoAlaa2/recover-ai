@@ -7,10 +7,12 @@ from app.services import targets as t
 from app.services.swap import sam_mask, SwapError
 
 
-def _rec(score=1.0):
-    return {"id": 0, "frame": 0, "box": (0, 0, 10, 10),
-            "frame_size": (100, 100), "score": score,
-            "mask_origin": (0, 0), "mask_size": (10, 10),
+def _rec(score=1.0, box=(0, 0, 19, 19), frame=(20, 20), origin=(0, 0)):
+    # Default box spans the whole 20x20 frame so the fake 20x20 rasters
+    # below land on the full canvas and the coverage caps are exercised.
+    return {"id": 0, "frame": 0, "box": box,
+            "frame_size": frame, "score": score,
+            "mask_origin": origin, "mask_size": (20, 20),
             "mask_encoding": "one_bit", "mask_payload": "!x"}
 
 
@@ -74,6 +76,46 @@ def test_sane_small_mask_kept(monkeypatch):
     mask = sam_mask([_rec()], (20, 20))
     white = sum(mask.histogram()[128:])
     assert 0 < white / 400 <= 0.60
+
+
+def _white(w, h):
+    return bytes([1] * (w * h)), w, h
+
+
+def _assert_placed(mask, size):
+    width, height = size
+    white = sum(mask.histogram()[128:])
+    assert white == 50 * 40
+    assert white / (width * height) == pytest.approx(0.0025)
+    px = mask.load()
+    assert px[100, 200] == 255 and px[149, 239] == 255
+    assert px[99, 200] == 0 and px[100, 199] == 0
+    assert px[150, 239] == 0 and px[149, 240] == 0
+    assert px[0, 0] == 0 and px[width - 1, height - 1] == 0
+
+
+def test_cropped_record_pasted_at_box_origin(monkeypatch):
+    # Real SAM shape: raster is box-sized (w+1 x h+1), mask x,y = 0.
+    monkeypatch.setattr(sam_codec, "decode_record", lambda r: _white(50, 40))
+    rec = _rec(box=(100, 200, 149, 239), frame=(1000, 800))
+    _assert_placed(sam_mask([rec], (1000, 800)), (1000, 800))
+
+
+def test_mask_origin_offsets_from_box_corner(monkeypatch):
+    monkeypatch.setattr(sam_codec, "decode_record", lambda r: _white(50, 40))
+    rec = _rec(box=(0, 0, 999, 799), frame=(1000, 800), origin=(100, 200))
+    _assert_placed(sam_mask([rec], (1000, 800)), (1000, 800))
+
+
+def test_cropped_record_scales_to_room_size(monkeypatch):
+    monkeypatch.setattr(sam_codec, "decode_record", lambda r: _white(50, 40))
+    rec = _rec(box=(100, 200, 149, 239), frame=(1000, 800))
+    mask = sam_mask([rec], (500, 400))
+    white = sum(mask.histogram()[128:])
+    assert white / (500 * 400) == pytest.approx(0.0025, rel=0.05)
+    px = mask.load()
+    assert px[50, 100] == 255 and px[74, 119] == 255
+    assert px[49, 100] == 0 and px[75, 119] == 0
 
 
 def test_subtract_skipped_when_cushions_garbage():
