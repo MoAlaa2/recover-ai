@@ -1190,16 +1190,22 @@
   function fetchOutlines(again) {
     var path = state.roomPhoto;
     if (!path) return;
+    // One in-flight outlines fetch per photo: the upload + canvas-init
+    // call sites race, and every duplicate is a full SAM segmentation.
+    if (state.outlinesFetching === path) return;
+    state.outlinesFetching = path;
     fetchReq("/api/session/" + encodeURIComponent(state.sessionId) +
              "/targets?image_path=" + encodeURIComponent(path),
              { method: "GET", timeoutMs: 180000, retries: 0 })
       .then(function (data) {
+        if (state.outlinesFetching === path) state.outlinesFetching = "";
         if (path !== state.roomPhoto) return;
         state.outlines = (data && data.targets) || [];
         renderOutlines();
         renderAssignRow();
         postOutlineMessage();
       }).catch(function () {
+        if (state.outlinesFetching === path) state.outlinesFetching = "";
         // One delayed retry: SAM segmentation can outlast the first
         // budget on a cold container. Never loops.
         if (!again) {
