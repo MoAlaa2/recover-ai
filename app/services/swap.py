@@ -186,11 +186,33 @@ def segment(image_bytes, concept, api_key=None, timeout=MODEL_TIMEOUT):
         raise SwapError("bad segmentation response: %s" % exc)
 
 
+MIN_RECORD_SCORE = 0.5
+MAX_RECORD_COVERAGE = 0.60
+MAX_MERGED_COVERAGE = 0.60
+
+
+def _mask_coverage(layer, size):
+    white = sum(layer.histogram()[128:])
+    return white / (size[0] * size[1])
+
+
 def sam_mask(records, size):
-    """Merge record masks into one room-sized L image (0/255)."""
+    """Merge record masks into one room-sized L image (0/255).
+
+    Low-confidence records and any record covering most of the frame
+    are dropped: a full-frame "mask" is a failed detection, not a
+    segmentation. A merged mask still covering most of the frame
+    raises instead of tinting the whole photo.
+    """
     width, height = size
     merged = None
     for record in records:
+        try:
+            score = float((record or {}).get("score", 1.0))
+        except (TypeError, ValueError):
+            score = 1.0
+        if score < MIN_RECORD_SCORE:
+            continue
         try:
             raster, w, h = sam_codec.decode_record(record)
         except sam_codec.MaskError:
@@ -200,10 +222,14 @@ def sam_mask(records, size):
             "L", (w, h), (arr * 255).astype(np.uint8).tobytes())
         layer = layer.resize(size, Image.BILINEAR).point(lambda v: 255
                                                          if v > 127 else 0)
+        if _mask_coverage(layer, size) > MAX_RECORD_COVERAGE:
+            continue
         merged = layer if merged is None else Image.composite(
             Image.new("L", size, 255), merged, layer)
     if merged is None:
         raise SwapError("no usable segmentation mask")
+    if _mask_coverage(merged, size) > MAX_MERGED_COVERAGE:
+        raise SwapError("target covers the whole photo, not detected")
     return merged
 
 
@@ -473,6 +499,11 @@ def _union_of(records, size):
             max(b[2] for b in boxes), max(b[3] for b in boxes))
 
 
+# Bump when mask semantics change: stale on-disk items (garbage
+# full-frame masks) must be recomputed, never composited again.
+MASK_CACHE_VERSION = 2
+
+
 def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                on_step=None, budget=60, _now=None):
     """Swap several items in one photo, largest item first.
@@ -524,6 +555,14 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
             out_dir, rtag, job["target"], job["code"])
         if (os.path.exists(img_path) and os.path.exists(mask_path)
                 and os.path.exists(meta_path)):
+            try:
+                with open(meta_path, encoding="utf-8") as _mf:
+                    _meta_v = json.load(_mf).get("v", 1)
+            except (ValueError, OSError):
+                _meta_v = 0
+            if _meta_v != MASK_CACHE_VERSION:
+                job["cache"] = None
+                continue
             box = Image.open(mask_path).convert("L").getbbox() or (
                 0, 0, width, height)
             job["area"] = max(0, box[2] - box[0]) * max(
@@ -623,7 +662,8 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
         best["mask"].save(mask_path)
         with open(meta_path, "w", encoding="utf-8") as f:
             json.dump({"scores": best["scores"],
-                       "attempts": attempts}, f)
+                       "attempts": attempts,
+                       "v": MASK_CACHE_VERSION}, f)
         base = os.path.relpath(out_dir, BASE_DIR)
         entry = {"target": target, "code": code,
                  "result_url": os.path.join(

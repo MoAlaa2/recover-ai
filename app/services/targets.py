@@ -18,7 +18,7 @@ from PIL import Image, ImageChops
 from app.core.config import (BASE_DIR, CHAT_URL, SPARK_MODEL, UPLOAD_DIR,
                              require_api_key)
 from app.services import sam_codec
-from app.services.swap import sam_mask, segment
+from app.services.swap import SwapError, sam_mask, segment
 
 TARGET_TYPES = ("sofa", "cushions", "curtains")
 
@@ -27,6 +27,10 @@ TARGET_LABELS = {
     "cushions": ("Cushions", "الوسائد"),
     "curtains": ("Curtains", "الستائر"),
 }
+
+# Bump when mask semantics change: old session entries (garbage
+# full-frame masks) must never be served again.
+TARGETS_CACHE_VERSION = 2
 
 CHOICE_WORDS = {
     # "sofa" also covers the armchair sample: list_types only ever
@@ -225,7 +229,9 @@ def masks_for(image_path, types, api_key=None):
             continue
         try:
             masks[target] = sam_mask(records, room.size)
-        except sam_codec.MaskError:
+        except (sam_codec.MaskError, SwapError):
+            # Unusable (e.g. full-frame) mask: hide the target rather
+            # than overlaying or swapping the whole photo.
             continue
     if "sofa" in masks and "cushions" in masks:
         masks["sofa"] = _subtract_cushions(masks["sofa"],
@@ -238,7 +244,12 @@ def _subtract_cushions(sofa, cushions):
 
     When the cushions mask covers (nearly) the whole sofa mask, the
     subtraction leaves nothing tappable; keep the original sofa.
+    A cushions mask covering most of the photo is garbage: skip the
+    subtraction entirely so the sofa keeps its real shape.
     """
+    area = cushions.size[0] * cushions.size[1]
+    if sum(cushions.histogram()[128:]) > 0.40 * area:
+        return sofa
     cut = ImageChops.subtract(sofa, cushions)
     hist = cut.histogram()
     if sum(hist[128:]) >= 0.10 * cut.size[0] * cut.size[1]:

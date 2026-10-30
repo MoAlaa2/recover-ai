@@ -301,7 +301,7 @@ def decode_one_bit(payload, width, height):
 
 _RECORD = re.compile(
     r"(\d+)<\|box;x1=(\d+);y1=(\d+);x2=(\d+);y2=(\d+);w=(\d+);h=(\d+)"
-    r"(?:;c=[\d.]+)?\|><\|mask;x=(\d+);y=(\d+)(?:;c=[\d.]+)?;"
+    r"(?:;c=([\d.]+))?\|><\|mask;x=(\d+);y=(\d+)(?:;c=([\d.]+))?;"
     r"data=(\d+),(\d+),([~!])(.*?)\|>")
 
 FRAME = re.compile(r"<(\d+)f>")
@@ -310,8 +310,9 @@ FRAME = re.compile(r"<(\d+)f>")
 def parse_output_text(text):
     """Parse SAM output_text into records.
 
-    Returns a list of dicts: frame, id, box, mask_w, mask_h,
-    mask_encoding (one_bit/lossless), mask_payload (with marker).
+    Returns a list of dicts: frame, id, box, score (mask confidence,
+    else box confidence, else 1.0 when SAM emits none), mask_w,
+    mask_h, mask_encoding (one_bit/lossless), mask_payload (marker).
     """
     records = []
     for line in (text or "").splitlines():
@@ -322,13 +323,22 @@ def parse_output_text(text):
         frame_id = int(frame.group(1)) if frame else 0
         body = line[frame.end():] if frame else line
         for m in _RECORD.finditer(body):
-            (obj_id, x1, y1, x2, y2, fw, fh, mx, my, mh, mw, enc,
-             payload) = m.groups()
+            (obj_id, x1, y1, x2, y2, fw, fh, box_c, mx, my,
+             mask_c, mh, mw, enc, payload) = m.groups()
+            score = 1.0
+            for raw in (mask_c, box_c):
+                if raw is not None:
+                    try:
+                        score = float(raw)
+                    except ValueError:
+                        continue
+                    break
             records.append({
                 "id": int(obj_id),
                 "frame": frame_id,
                 "box": (int(x1), int(y1), int(x2), int(y2)),
                 "frame_size": (int(fw), int(fh)),
+                "score": score,
                 "mask_origin": (int(mx), int(my)),
                 "mask_size": (int(mh), int(mw)),
                 "mask_encoding": ("lossless" if enc == "~"

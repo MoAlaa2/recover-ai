@@ -483,8 +483,9 @@ def session_targets(session_id: str, image_path: str = ""):
     """
     session = consultant.SESSIONS.setdefault(session_id, {"messages": []})
     cached = session.get("targets")
-    if cached and (not image_path
-                   or cached.get("image_path") == image_path):
+    if cached and cached.get("v") == targets_mod.TARGETS_CACHE_VERSION \
+            and (not image_path
+                 or cached.get("image_path") == image_path):
         return cached
     if not image_path:
         raise HTTPException(400, "image_path is required")
@@ -493,7 +494,8 @@ def session_targets(session_id: str, image_path: str = ""):
         items = targets_mod.detect_targets(image_path)
     except RuntimeError as exc:
         raise HTTPException(502, str(exc))
-    entry = {"image_path": image_path, "targets": items}
+    entry = {"image_path": image_path, "targets": items,
+             "v": targets_mod.TARGETS_CACHE_VERSION}
     session["targets"] = entry
     return entry
 
