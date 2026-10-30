@@ -195,7 +195,11 @@ def _wait_for_image(path, tries=4):
         if os.path.exists(path) and _image_readable(path):
             return True
         _time.sleep(1)
-    return os.path.exists(path) and _image_readable(path)
+    # A present-but-undecodable file still reaches the turn, which
+    # answers with the friendly "couldn't read that photo" line (the
+    # undecodable sample and its eval scenario rely on that); only a
+    # missing file 400s.
+    return os.path.exists(path)
 
 
 IMAGE_MAX_BYTES = 20 * 1024 * 1024
