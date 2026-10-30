@@ -462,10 +462,15 @@ img.avatar {
   color: var(--rc-indigo);
   border-radius: var(--rc-r-pill);
   padding: 6px 14px;
-  display: inline-flex;
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 8px;
   align-items: center;
   gap: 8px;
 }
+.chat-pane .agent-step:empty { display: none; }
+.chat-pane .msg .ptext { display: block; }
 .chat-pane .agent-step .typing { padding: 0; }
 .chat-pane .receipts {
   background: var(--rc-paper);
@@ -1486,7 +1491,22 @@ body.modal-open { overflow: hidden; }
     height: var(--app-height, 100dvh);
     overflow: hidden;
   }
-  body.consult-page .topbar { flex: none; }
+  body.consult-page .topbar { flex: none; padding: 8px 14px; }
+  /* Density: the top bar already carries the brand, so the chat
+     header goes; the room bar is one slim line; chips scroll on one
+     row; the messages get the space. */
+  .chat-pane .chat-head { display: none; }
+  .chat-pane .messages { padding: 12px 14px; }
+  .chat-pane #chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 0 14px 2px;
+    margin: 6px 0 0;
+    scrollbar-width: none;
+  }
+  .chat-pane #chips::-webkit-scrollbar { display: none; }
+  .chat-pane #chips button { flex: none; white-space: nowrap; }
+  .chat-pane .composer { padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }
   .consult {
     display: block;
     flex: 1;
@@ -1531,8 +1551,8 @@ body.modal-open { overflow: hidden; }
     display: flex;
     align-items: center;
     gap: 10px;
-    min-height: 64px;
-    padding: 8px 12px;
+    min-height: 52px;
+    padding: 6px 12px;
     background: var(--rc-paper);
     border-bottom: 1px solid var(--rc-line);
     position: sticky;
@@ -1541,8 +1561,8 @@ body.modal-open { overflow: hidden; }
   }
   .room-bar[hidden] { display: none; }
   .room-thumb {
-    width: 48px;
-    height: 48px;
+    width: 38px;
+    height: 38px;
     border-radius: var(--rc-r-sm);
     overflow: hidden;
     padding: 0;

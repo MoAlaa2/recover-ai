@@ -519,12 +519,16 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
 
     step("segment")
     need_budget("segment")
+    # Vision and edit calls get a capped copy (a 12 MP phone photo is
+    # 4-5 MB of base64 per call); masks and the composite stay at full
+    # room resolution.
+    seg_bytes = _small_copy(room_bytes, 1600)
     if concept == TARGET_CONCEPTS["sofa"]:
         records, full_mask = sofa_full_mask(
-            room_bytes, (width, height), key, call_timeout())
+            seg_bytes, (width, height), key, call_timeout())
     else:
         full_mask = None
-        records = segment(room_bytes, concept, key,
+        records = segment(seg_bytes, concept, key,
                           timeout=call_timeout())
     if not records:
         raise SwapError("could not find the %s in this photo" % concept)
@@ -554,7 +558,7 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
             step("retry")
         step("edit")
         need_budget("edit")
-        edited = edit_room(room_bytes, swatch_bytes, fabric, concept,
+        edited = edit_room(seg_bytes, swatch_bytes, fabric, concept,
                            key, corrective,
                            timeout=call_timeout()).resize(
                                (width, height), Image.BILINEAR)
@@ -564,7 +568,11 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
         result.paste(edited, (0, 0), mask)
         step("verify")
         need_budget("verify")
-        scores = verify(swatch_bytes, result, fabric, concept, key,
+        small_result = result
+        if max(small_result.size) > 1024:
+            small_result = result.copy()
+            small_result.thumbnail((1024, 1024), Image.LANCZOS)
+        scores = verify(swatch_bytes, small_result, fabric, concept, key,
                         timeout=call_timeout())
         attempts = round_no + 1
         checks = swap_checks.run_checks(room, result, raw_mask,
@@ -611,26 +619,40 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
     pillows swap keeps them in (the pillow layer lands on top and any
     gap behind a narrower new pillow shows the new sofa fabric).
     """
-    records = segment(seg_bytes, TARGET_CONCEPTS["sofa"], key,
-                      timeout=timeout)
+    from concurrent.futures import ThreadPoolExecutor
+    concepts = [TARGET_CONCEPTS["sofa"], SOFA_CUSHIONS_CONCEPT]
+    if keep_pillows:
+        concepts.append(TARGET_CONCEPTS["cushions"])
+
+    def one(concept):
+        try:
+            return segment(seg_bytes, concept, key, timeout=timeout)
+        except SwapError as exc:
+            if concept == TARGET_CONCEPTS["sofa"]:
+                raise
+            return exc
+
+    # The three SAM calls are independent: run them side by side (one
+    # call's latency instead of three).
+    with ThreadPoolExecutor(max_workers=len(concepts)) as pool:
+        outs = list(pool.map(one, concepts))
+    records = outs[0]
     if not records:
         raise SwapError("could not find the sofa in this photo")
     mask = sam_mask(records, size)
-    try:
-        extra = segment(seg_bytes, SOFA_CUSHIONS_CONCEPT, key,
-                        timeout=timeout)
-        if extra:
-            mask = ImageChops.lighter(mask, sam_mask(extra, size))
-    except (SwapError, sam_codec.MaskError):
-        pass
-    if keep_pillows:
+    extra = outs[1]
+    if extra and not isinstance(extra, Exception):
         try:
-            pillows = segment(seg_bytes, TARGET_CONCEPTS["cushions"], key,
-                              timeout=timeout)
-            if pillows:
-                mask = ImageChops.subtract(mask, sam_mask(pillows, size))
+            mask = ImageChops.lighter(mask, sam_mask(extra, size))
         except (SwapError, sam_codec.MaskError):
             pass
+    if keep_pillows:
+        pillows = outs[2]
+        if pillows and not isinstance(pillows, Exception):
+            try:
+                mask = ImageChops.subtract(mask, sam_mask(pillows, size))
+            except (SwapError, sam_codec.MaskError):
+                pass
     return records, mask
 
 
@@ -851,9 +873,9 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                     corrective = _corrective(best["scores"], concept,
                                              best.get("checks"))
                     step("retry")
-                edited = edit_room(base_bytes, swatch_bytes, fabric,
-                                   concept, key, corrective,
-                                   timeout=call_timeout())
+                edited = edit_room(_small_copy(base_bytes, 1600),
+                                   swatch_bytes, fabric, concept, key,
+                                   corrective, timeout=call_timeout())
                 step("composite")
                 base_img = Image.open(
                     io.BytesIO(base_bytes)).convert("RGB")

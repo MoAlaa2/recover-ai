@@ -179,3 +179,39 @@ def test_share_post_bad_body_passes_through():
                      echo_body=True)
     assert calls == []
     assert out[-1]["body"] == b"not-json{{{"
+
+
+def test_chat_stream_reloads_and_waits_for_the_referenced_upload():
+    """A chat stream right after an upload must see the file: the
+    volume is reloaded before the handler and the referenced uploads/
+    image is waited into visibility, then the body is replayed."""
+    import json
+    payload = json.dumps({"session_id": "s", "message": "",
+                          "image_path": "uploads/fresh.jpg"}).encode()
+    calls, out = run("/api/chat/stream", "POST",
+                     upload_dir="/nonexistent-xyz",
+                     sync_kwargs={"sync_tries": 2, "sync_sleep": 0.01},
+                     body=payload, echo_body=True)
+    assert calls[0] == "reload"           # the pre-handler reload
+    assert calls.count("reload") == 3     # + 2 wait tries for the file
+    assert "commit" not in calls
+    assert out[-1]["body"] == payload
+
+
+def test_chat_stream_present_upload_no_extra_wait(tmp_path):
+    import json
+    (tmp_path / "ok.jpg").write_bytes(b"x")
+    payload = json.dumps({"image_path": "uploads/ok.jpg"}).encode()
+    calls, out = run("/api/chat/stream", "POST", upload_dir=str(tmp_path),
+                     body=payload, echo_body=True)
+    assert calls == ["reload"]
+    assert out[-1]["body"] == payload
+
+
+def test_chat_stream_sample_path_no_wait():
+    import json
+    payload = json.dumps({"image_path": "data/samples/living.jpg"}).encode()
+    calls, out = run("/api/chat/stream", "POST", upload_dir="/nonexistent",
+                     body=payload, echo_body=True)
+    assert calls == ["reload"]
+    assert out[-1]["body"] == payload

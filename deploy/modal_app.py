@@ -77,6 +77,28 @@ class VolumeSyncMiddleware:
                 if self.upload_dir else None
         return None
 
+    IMAGE_BODY_PATHS = ("/api/chat", "/api/chat/stream", "/api/swap",
+                        "/api/swap/stream", "/api/swap/multi",
+                        "/api/swap/multi/stream")
+
+    def _image_disk_path(self, body):
+        """Disk path of the uploads/ image a JSON body refers to."""
+        if not self.upload_dir:
+            return None
+        try:
+            import json
+            data = json.loads(body.decode("utf-8") or "{}")
+        except Exception:  # noqa: BLE001 - the app validates the body
+            return None
+        raw = (data or {}).get("image_path") if isinstance(data, dict) \
+            else None
+        if not isinstance(raw, str) or not raw.startswith("uploads/"):
+            return None
+        rel = raw[len("uploads/"):]
+        if not rel or rel.startswith(".") or ".." in rel.split("/"):
+            return None
+        return os.path.join(self.upload_dir, rel)
+
     async def _ensure_visible(self, disk_path):
         """Wait until a just-written file is servable.
 
@@ -112,7 +134,8 @@ class VolumeSyncMiddleware:
             # WhatsApp sessions and media live on the volume.
             return True
         return method == "POST" and (
-            path == "/api/chat" or path.startswith("/api/swap"))
+            path in ("/api/chat", "/api/chat/stream")
+            or path.startswith("/api/swap"))
 
     def writes_volume(self, path, method):
         if method in ("POST", "PUT", "DELETE") and any(
@@ -132,6 +155,29 @@ class VolumeSyncMiddleware:
         method = scope.get("method", "")
         if self.reads_volume(path, method):
             await asyncio.to_thread(self.volume.reload)
+        if method == "POST" and path in self.IMAGE_BODY_PATHS:
+            # A chat / swap right after an upload references a file
+            # this container committed a moment ago; the committed view
+            # can lag, and the turn then fails with "image not found"
+            # (measured: a 52-85 ms chat stream right after a phone
+            # upload). Wait the referenced upload into visibility.
+            body = b""
+            while True:
+                message = await receive()
+                if message.get("type") != "http.request":
+                    break
+                body += message.get("body", b"")
+                if not message.get("more_body"):
+                    break
+            disk = self._image_disk_path(body)
+            if disk is not None:
+                await self._ensure_visible(disk)
+
+            async def replay_img(_sentinel=body):
+                return {"type": "http.request", "body": _sentinel,
+                        "more_body": False}
+
+            receive = replay_img
         if method == "POST" and path == "/api/share":
             # Minting a link stats a file another request just wrote
             # (multi composite): wait it into visibility first, or the
