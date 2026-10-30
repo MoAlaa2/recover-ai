@@ -422,6 +422,17 @@ def serve_share(token: str):
                                  "public, max-age=1209600"})
 
 
+@router.get("/session/{session_id}/state")
+def session_state(session_id: str):
+    """Rebuild data for a page refresh (messages, photo, targets, picks,
+    last recs, quote). 404 for an unknown session."""
+    state = consultant.session_state(session_id)
+    if state is None:
+        raise HTTPException(404, "unknown session")
+    state["previews"] = get_previews(session_id)
+    return state
+
+
 @router.get("/session/{session_id}/quote")
 def session_quote(session_id: str):
     """Meterage + price for the session's assignments (LOOP 4)."""

@@ -1768,3 +1768,11 @@ body.chat-busy [data-action="try"] { pointer-events: none; opacity: .55; }
   color: var(--rc-warn, #9a4a1a);
 }
 .sum-skip .sum-retry { min-height: 36px; padding: 6px 12px; }
+
+/* Quote-turn action chips and swatch thumbnails in the summary card. */
+.chips .action-chip {
+  background: var(--rc-indigo);
+  color: #fff;
+  border-color: var(--rc-indigo);
+}
+.sum-row .sum-swatch { object-fit: cover; }

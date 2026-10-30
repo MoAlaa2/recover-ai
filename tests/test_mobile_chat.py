@@ -769,3 +769,107 @@ def test_auto_preview_swaps_chosen_target(server, page):
     page.evaluate("document.querySelector('#messages [data-try]').click()")
     page.wait_for_timeout(1200)
     assert all(b.get("target") == "cushions" for b in bodies), bodies
+
+
+QUOTE_TURN = {
+    "reply": "About 16.5 m at 95 SAR/m — 1,567.5 SAR, preliminary.",
+    "recommendations": [], "options": [], "detected_lang": "en",
+    "quote": {"target": "sofa", "code": "FA-NL-07", "meters": 16.5,
+              "price_sar_per_m": 155, "line_total": 2557.5},
+    "targets": {"available": ["sofa"], "chosen": ["sofa"],
+                "assignments": {"sofa": "FA-NL-07"}}}
+
+QUOTE_BODY = {"items": [{"target": "sofa", "code": "FA-NL-07",
+                         "fabric_name_en": "Nordic Linen",
+                         "fabric_name_ar": "كتان نورديك",
+                         "meters": 16.5, "price_sar_per_m": 155,
+                         "line_total": 2557.5, "note": ""}],
+              "total": 2557.5, "missing": [], "currency": "SAR",
+              "preliminary": True,
+              "co2": {"kg": 52, "waste_kg": 48, "source": "EPD NEPD-1805-759"}}
+
+
+def test_single_quote_posts_summary_card_and_actions(server, page):
+    """Any quote (one item, no Apply-all) shows the summary card with
+    meters, total, CO2 and Send / Copy, plus action chips — and no
+    picks pointer or recommendation chips."""
+    def chat_route(route):
+        data = route.request.post_data_json or {}
+        msg = data.get("message") or ""
+        body = QUOTE_TURN if "meters" in msg else (
+            IMG_TURN if data.get("image_path") or msg not in ("Hello", "")
+            else GREET)
+        route.fulfill(status=200, content_type="text/event-stream",
+                      body="data: %s\n\n" % json.dumps(
+                          {"type": "done", "result": body}))
+
+    page.route("**/api/chat/stream", chat_route)
+    page.route("**/api/session/*/quote", lambda r: r.fulfill(
+        status=200, content_type="application/json",
+        body=json.dumps(QUOTE_BODY)))
+    page.goto(server + "/consult", wait_until="networkidle")
+    upload_photo(page)
+    cards_before = page.eval_on_selector_all("#messages .mini-card",
+                                             "e => e.length")
+    page.fill("#composerInput", "how many meters / how much?")
+    page.click('.composer button[type="submit"]')
+    page.wait_for_selector("#messages .sum-card", timeout=30000)
+    card = page.eval_on_selector("#messages .sum-card", "e => e.innerText")
+    assert "16.5 m" in card and "2557.5 SAR" in card
+    assert "Total" in card and "52" in card
+    assert page.query_selector("#messages .sum-card .sum-actions a")
+    assert page.query_selector("#messages .sum-card .sum-copy")
+    chips = page.eval_on_selector_all(
+        "#chips button", "els => els.map(e => e.textContent.trim())")
+    assert chips == ["Send to upholsterer", "Try another fabric"], chips
+    # The quote turn re-posts neither the mini cards nor the picks line.
+    assert page.eval_on_selector_all("#messages .mini-card",
+                                     "e => e.length") == cards_before
+    assert page.eval_on_selector_all("#messages .recs-line",
+                                     "e => e.length") == 0
+
+
+def test_refresh_restores_session(server, page):
+    """A reload rebuilds chat, photo, picks and last recs from
+    /api/session/<id>/state instead of greeting again."""
+    state_body = {
+        "session_id": "x", "lang": "en",
+        "image_path": "data/samples/living.jpg",
+        "room_analysis": IMG_TURN["room_analysis"],
+        "detected_piece": "sofa",
+        "messages": [{"who": "me", "text": "Sofa"},
+                     {"who": "them", "text": "Here are three picks."}],
+        "targets": {"available": ["sofa"], "chosen": ["sofa"],
+                    "assignments": {"sofa": "FA-NL-07"}},
+        "last_recs": IMG_TURN["recommendations"],
+        "quote": QUOTE_BODY, "quoted": True, "previews": []}
+    greets = []
+
+    def chat_route(route):
+        greets.append(1)
+        route.fulfill(status=200, content_type="text/event-stream",
+                      body="data: %s\n\n" % json.dumps(
+                          {"type": "done", "result": GREET}))
+
+    page.route("**/api/chat/stream", chat_route)
+    page.route("**/api/chat", chat_route)
+    page.route("**/api/session/*/state", lambda r: r.fulfill(
+        status=200, content_type="application/json",
+        body=json.dumps(state_body)))
+    page.route("**/api/session/*/quote", lambda r: r.fulfill(
+        status=200, content_type="application/json",
+        body=json.dumps(QUOTE_BODY)))
+    page.route("**/api/session/*/targets*", lambda r: r.fulfill(
+        status=200, content_type="application/json",
+        body=json.dumps({"targets": []})))
+    page.goto(server + "/consult", wait_until="networkidle")
+    page.wait_for_selector("#messages .sum-card", timeout=30000)
+    texts = page.eval_on_selector_all(
+        "#messages .msg", "els => els.map(e => e.innerText.slice(0, 40))")
+    assert any("Sofa" in x for x in texts)
+    assert any("Here are three picks" in x for x in texts)
+    assert page.eval_on_selector_all("#messages .mini-card",
+                                     "e => e.length") == 1
+    assert page.is_visible("#roomBar")
+    assert page.evaluate("document.getElementById('welcomeMsg') === null")
+    assert greets == [], "no greeting on a restored session"

@@ -1427,6 +1427,10 @@ def _execute_tool(name, args, turn, on_step=None):
                   "currency": "SAR", "preliminary": True, "note": note}
         if target == "cushions":
             result["pillows"] = pillows
+        # A quoted fabric is the item's pick: the session quote and the
+        # summary card include it even without an Apply-all.
+        session.setdefault("assignments", {}).setdefault(target, code)
+        turn["quoted"] = dict(result)
         return result
 
 
@@ -1831,6 +1835,74 @@ def decline_reply(topic, lang="en"):
     return DECLINE_LINES.get(lang, DECLINE_LINES["en"])
 
 
+ANNOTATION_RE = re.compile(r"\n?\[[^\]]*\]\s*$")
+GREET_WORDS = ("hello", "مرحبا", "नमस्ते", "bonjour", "hola")
+
+
+def visible_user_text(content):
+    """User text as typed: server annotations ([...] lines) removed."""
+    text = content or ""
+    while True:
+        cut = ANNOTATION_RE.sub("", text)
+        if cut == text:
+            break
+        text = cut
+    text = re.sub(r"\nSuggested features from my needs:.*$", "", text,
+                  flags=re.S)
+    return text.strip()
+
+
+def session_state(session_id):
+    """Everything the web client needs to rebuild a session after a
+    page refresh: visible messages, photo, targets, picks, last recs,
+    the last quote. None when the session is unknown."""
+    session = SESSIONS.get(session_id)
+    if not session:
+        return None
+    messages = []
+    history = session.get("messages", [])
+    first_user = True
+    for msg in history:
+        role = msg.get("role")
+        content = msg.get("content")
+        if not isinstance(content, str) or not content.strip():
+            continue
+        if role == "user":
+            text = visible_user_text(content)
+            if first_user:
+                first_user = False
+                if text.lower() in GREET_WORDS:
+                    continue
+            if not text or text.startswith("[") and text.endswith("]"):
+                continue
+            messages.append({"who": "me", "text": text})
+        elif role == "assistant":
+            text = strip_options(strip_block(content)).strip()
+            if text:
+                messages.append({"who": "them", "text": text})
+    quote = None
+    assignments = session.get("assignments", {}) or {}
+    if assignments:
+        from app.services import meterage as meterage_mod
+        fabrics = {code: get_fabric(code) for code in set(
+            assignments.values()) if get_fabric(code)}
+        quote = meterage_mod.quote(assignments, fabrics,
+                                   session.get("curtain_dims"),
+                                   session.get("pillow_counts", {}))
+    return {"session_id": session_id,
+            "lang": session.get("lang"),
+            "image_path": session.get("image_path"),
+            "room_analysis": session.get("room_analysis"),
+            "detected_piece": session.get("detected_piece"),
+            "messages": messages,
+            "targets": {"available": session.get("available_targets", []),
+                        "chosen": session.get("chosen_targets", []),
+                        "assignments": assignments},
+            "last_recs": session.get("last_recs", []),
+            "quote": quote,
+            "quoted": bool(session.get("quoted_once"))}
+
+
 def chat(session_id, message, image_path=None, chat_fn=None,
          on_token=None, on_step=None, lang=None):
     """One user turn. Returns {reply, recommendations, room_analysis?}."""
@@ -2107,7 +2179,11 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     reply = strip_block(final_text)
     options = extract_options(reply) or []
     reply = strip_options(reply)
-    if session.get("user_targets") and turn.get("image"):
+    if turn.get("quoted"):
+        # Quote turns offer actions (send to upholsterer / try another
+        # fabric) instead of recommendation chips.
+        options = []
+    elif session.get("user_targets") and turn.get("image"):
         if recommendations:
             session["asked_after_choice"] = 0
         else:
@@ -2172,7 +2248,7 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     # On recommendation turns the card's one-line receipt carries the
     # relaxed info, so the prose disclosure stays only on turns
     # without recommendations (never the same feature list twice).
-    if missing and not recommendations:
+    if missing and not recommendations and not turn.get("quoted"):
         needs = turn.get("needs_all", []) + turn.get("needs_any", [])
         reply = (reply + "\n\n" + disclosure_note(
             missing, is_arabic(user_text), max_over, needs)).strip()
@@ -2193,9 +2269,16 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     history.append({"role": "assistant", "content": final_text})
     trim_history(history)
 
+    if enriched_early:
+        session["last_recs"] = enriched_early
+    if turn.get("quoted"):
+        session["quoted_once"] = True
+    if room_analysis is not None:
+        session["room_analysis"] = room_analysis
     result = {"reply": reply,
               "recommendations": enriched_early,
               "options": options,
+              "quote": turn.get("quoted"),
               "preview": turn.get("preview"),
               "targets": {"available": session.get("available_targets",
                                                     []),

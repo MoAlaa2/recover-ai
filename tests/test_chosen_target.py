@@ -127,3 +127,52 @@ def test_just_show_me_is_localized():
     for lang, line in c.JUST_SHOW_LINES.items():
         _, flags = t.match_targets(line, ["sofa", "cushions"])
         assert flags.get("skip"), (lang, line)
+
+
+def test_quote_turn_has_no_relaxation_note_or_chips(tmp_path, monkeypatch):
+    """A meters/cost turn returns the quote, no relaxation disclosure,
+    no recommendation chips; the quoted fabric becomes the item's pick."""
+    monkeypatch.setattr(c, "run_search", spy_search)
+    sid = "t-quote-turn"
+    session_with_photo(tmp_path, sid)
+    c.SESSIONS[sid]["chosen_targets"] = ["sofa"]
+    c.SESSIONS[sid]["user_targets"] = ["sofa"]
+    asked = {"n": 0}
+
+    def fake(messages, tools=None):
+        asked["n"] += 1
+        if asked["n"] == 1:
+            return tool_call("search_catalog", {"usage": "upholstery"})
+        if asked["n"] == 2:
+            return final_text(RECS)
+        if asked["n"] == 3:
+            return tool_call("estimate_cost", {"target": "sofa"}, "t9")
+        return final_text("About 16.5 m at 95 SAR/m, 1567.5 SAR.\n"
+                          "```options\n[\"Show me more\", \"Just show me\"]"
+                          "\n```")
+
+    c.chat(sid, "Just show me", chat_fn=fake)
+    turn = c.SESSIONS[sid]
+    out = c.chat(sid, "how many meters / how much?", chat_fn=fake)
+    assert out["quote"] and out["quote"]["target"] == "sofa"
+    assert out["quote"]["code"] == "FA-AC-12"
+    assert out["options"] == []
+    assert "widened" not in out["reply"] and "relaxed" not in out["reply"]
+    assert turn["assignments"]["sofa"] == "FA-AC-12"
+    # Page refresh: the session state carries the chat, picks and quote.
+    st = c.session_state(sid)
+    assert [m["who"] for m in st["messages"]][:2] == ["me", "them"]
+    assert all("[" not in m["text"] for m in st["messages"] if m["who"] == "me")
+    assert st["targets"]["assignments"] == {"sofa": "FA-AC-12"}
+    assert st["quoted"] and st["quote"]["items"][0]["meters"]
+    assert len(st["last_recs"]) == 3
+    assert c.session_state("nope-never") is None
+
+
+def test_visible_user_text_strips_annotations():
+    assert c.visible_user_text(
+        "Cushions\n[Chosen items: cushions.]\n[You may ask ONE question "
+        "at most before recommending; include \"Just show me\" among the "
+        "options.]") == "Cushions"
+    assert c.visible_user_text("hi\nSuggested features from my needs: x") \
+        == "hi"

@@ -59,6 +59,7 @@
       sarUnit: "SAR",
       totalLabel: "Total",
       sendUpholsterer: "Send to upholsterer",
+      tryAnother: "Try another fabric",
       copySummary: "Copy summary",
       copiedTick: "Copied",
       needsMeasure: "needs measurements",
@@ -180,6 +181,7 @@
       sarUnit: "ر.س",
       totalLabel: "الإجمالي",
       sendUpholsterer: "أرسل للمنجّد",
+      tryAnother: "جرّب قماش ثاني",
       copySummary: "انسخ الملخص",
       copiedTick: "تم النسخ",
       needsMeasure: "يحتاج مقاسات",
@@ -253,6 +255,7 @@
       sarUnit: "SAR",
       totalLabel: "कुल",
       sendUpholsterer: "मिस्त्री को भेजें",
+      tryAnother: "दूसरा कपड़ा आज़माएँ",
       copySummary: "सारांश कॉपी करें",
       copiedTick: "कॉपी हुआ",
       needsMeasure: "नाप चाहिए",
@@ -356,6 +359,7 @@
       sarUnit: "SAR",
       totalLabel: "Total",
       sendUpholsterer: "Envoyer au tapissier",
+      tryAnother: "Essayer un autre tissu",
       copySummary: "Copier le résumé",
       copiedTick: "Copié",
       needsMeasure: "mesures requises",
@@ -459,6 +463,7 @@
       sarUnit: "SAR",
       totalLabel: "Total",
       sendUpholsterer: "Enviar al tapicero",
+      tryAnother: "Probar otra tela",
       copySummary: "Copiar resumen",
       copiedTick: "Copiado",
       needsMeasure: "faltan medidas",
@@ -752,6 +757,48 @@
       chipsEl.appendChild(b);
     });
     if (!state.booted) chipsEl.hidden = false;
+  }
+
+  function renderActionChips(actions) {
+    chipsEl.innerHTML = "";
+    (actions || []).forEach(function (a) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "action-chip";
+      b.textContent = a.label;
+      b.addEventListener("click", a.run);
+      chipsEl.appendChild(b);
+    });
+    chipsEl.hidden = !(actions && actions.length);
+  }
+
+  function quoteActions(quote) {
+    var target = (quote && quote.target) ||
+      (state.chosenTargets || [])[0] || state.selectedTarget || "";
+    return [
+      { label: t("sendUpholsterer"), run: function () {
+          var links = messagesEl.querySelectorAll(".sum-card .sum-actions a");
+          var a = links[links.length - 1];
+          if (a) { window.open(a.href, "_blank", "noopener"); return; }
+          var cards = messagesEl.querySelectorAll(".sum-card");
+          var card = cards[cards.length - 1];
+          if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+        } },
+      { label: t("tryAnother"), run: function () {
+          if (isNarrow()) openSheet();
+          if (target) openBrowse(target);
+        } }
+    ];
+  }
+
+  function afterQuote(res) {
+    // Any quote (single item too): the summary card with meters, SAR
+    // total, CO2 and the Send / Copy actions, then action chips.
+    if (!res || !res.quote) return false;
+    postSummaryCard(null).then(function () {
+      renderActionChips(quoteActions(res.quote));
+    });
+    return true;
   }
 
   function renderOptions(list) {
@@ -1739,15 +1786,35 @@
     return lines.join("\n");
   }
 
-  function postSummaryCard(results, skipped) {
+  function fetchQuote() {
+    return fetchReq("/api/session/" +
+                     encodeURIComponent(state.sessionId) + "/quote",
+                     { method: "GET", timeoutMs: 30000, retries: 1 })
+      .catch(function () { return null; });
+  }
+
+  function postSummaryCard(results, skipped, quotePre) {
+    // results: applied swap items (Apply-all). Without them the card is
+    // built from the session quote alone: every quoted item, with its
+    // swap thumbnail when one exists (any quote, single item too).
     skipped = skipped || [];
+    if (!results) {
+      return fetchQuote().then(function (quote) {
+        var items = (quote && quote.items) || [];
+        if (!items.length) return null;
+        var rows = items.map(function (it) {
+          var done = state.swaps[it.code] || {};
+          return { target: it.target, code: it.code,
+                   result_url: done.result_url || "",
+                   scores: done.scores || null };
+        });
+        return postSummaryCard(rows, [], quote);
+      });
+    }
     return Promise.all(results.map(function (r) {
       return metaFor(r.code);
     })).then(function (metas) {
-      return fetchReq("/api/session/" +
-                       encodeURIComponent(state.sessionId) + "/quote",
-                       { method: "GET", timeoutMs: 30000, retries: 1 })
-        .catch(function () { return null; })
+      return (quotePre ? Promise.resolve(quotePre) : fetchQuote())
         .then(function (quote) {
           var byTarget = {};
           (quote && quote.items || []).forEach(function (it) {
@@ -1774,15 +1841,22 @@
                           code: r.code,
                           meters: q.meters, price: meta.price,
                           line: q.line_total });
-            var sc = r.scores || {};
-            var itemMatch = Math.min.apply(null, [
-              sc.color, sc.pattern, sc.scale, sc.isolation
-            ].map(function (v) { return v || 0; }));
-            var scoreHtml = '<span class="match-badge small">' +
-              esc(t("matchBadge").replace("%d", itemMatch)) + "</span>";
-            return '<div class="sum-row"><img class="swap-thumb" src="/' +
-              esc((r.result_url || "").replace(/^\/+/, "")) + '" alt="' +
-              esc(name) + '" data-code="' + esc(r.code) + '">' +
+            var sc = r.scores || null;
+            var scoreHtml = "";
+            if (sc) {
+              var itemMatch = Math.min.apply(null, [
+                sc.color, sc.pattern, sc.scale, sc.isolation
+              ].map(function (v) { return v || 0; }));
+              scoreHtml = '<span class="match-badge small">' +
+                esc(t("matchBadge").replace("%d", itemMatch)) + "</span>";
+            }
+            var thumb = r.result_url ?
+              '<img class="swap-thumb" src="/' +
+                esc((r.result_url || "").replace(/^\/+/, "")) + '" alt="' +
+                esc(name) + '" data-code="' + esc(r.code) + '">' :
+              (meta.image ? '<img class="swap-thumb sum-swatch" src="/' +
+                esc(meta.image) + '" alt="' + esc(name) + '">' : "");
+            return '<div class="sum-row">' + thumb +
               "<div><div><b>" + esc(targetLabel(r.target)) + "</b> → " +
               esc(name) + " " + scoreHtml + "</div><div>" + bits +
               "</div></div></div>";
@@ -1819,10 +1893,13 @@
             }
           }
           var linkP = Promise.resolve("");
-          if (hasQuote && state.canvasView) {
+          var shareFrom = state.canvasView ||
+            (results.length && results[0].result_url ?
+              "/" + String(results[0].result_url).replace(/^\/+/, "") : "");
+          if (hasQuote && shareFrom) {
             linkP = fetchReq("/api/share", {
                 method: "POST",
-                json: { result_url: state.canvasView },
+                json: { result_url: shareFrom },
                 timeoutMs: 30000, retries: 1 })
               .then(function (shareRes) {
                 if (shareRes && shareRes.share_path) {
@@ -2059,8 +2136,10 @@
     renderCanvas();
     addMsg(leadIn(res), "them");
     postOutlineMessage();
-    if (state.lastRecs && state.lastRecs.length) showRecs(state.lastRecs);
-    renderOptions(state.lastOptions);
+    if (res.recommendations && res.recommendations.length) {
+      showRecs(res.recommendations);
+    }
+    if (!afterQuote(res)) renderOptions(state.lastOptions);
     maybeAutoPreview(res);
   }
 
@@ -2909,11 +2988,13 @@
     if (state.roomPhoto && !state.outlines.length) fetchOutlines();
     ensureBubbleText(res);
     postOutlineMessage();
-    if (state.lastRecs && state.lastRecs.length) {
-      showRecs(state.lastRecs);
+    // Only a turn that produced recommendations shows them; later
+    // turns (a quote, a question) must not re-post the picks.
+    if (res.recommendations && res.recommendations.length) {
+      showRecs(res.recommendations);
     }
     // Always re-render: a newer assistant message clears older chips.
-    renderOptions(state.lastOptions);
+    if (!afterQuote(res)) renderOptions(state.lastOptions);
     maybeAutoPreview(res);
   }
 
@@ -3467,16 +3548,102 @@
     })();
 
     renderCanvas();
-    var sample = new URLSearchParams(location.search).get("sample");
+    var params = new URLSearchParams(location.search);
+    var sample = params.get("sample");
     var hasSample = ["living", "majlis", "armchair"].indexOf(sample) >= 0;
-    if (hasSample) {
-      // The sample photo IS the first turn: it chats with the image, so
-      // analyze runs before the first reply. No imageless greeting.
-      state.expectFirst = "sample";
-      loadSample(sample);
-    } else {
-      bootGreeting();
+    if (params.get("new") === "1") {
+      // Landing CTAs start a fresh consultation; the flag is dropped
+      // from the URL so a later refresh restores this session instead.
+      state.sessionId = newSessionId();
+      saveSessionId(state.sessionId);
+      params.delete("new");
+      try {
+        var qs = params.toString();
+        window.history.replaceState(null, "", location.pathname +
+                                    (qs ? "?" + qs : ""));
+      } catch (e) {}
     }
+    function startFresh() {
+      if (hasSample) {
+        // The sample photo IS the first turn: it chats with the image,
+        // so analyze runs before the first reply. No imageless greeting.
+        state.expectFirst = "sample";
+        loadSample(sample);
+      } else {
+        bootGreeting();
+      }
+    }
+    // A refresh (any URL) restores the stored session first.
+    restoreSession().then(function (restored) {
+      if (!restored) startFresh();
+    });
+  }
+
+  function restoreSession() {
+    // A page refresh keeps the stored session id: rebuild the chat,
+    // photo, picker, picks and last recs from the server.
+    var sid = state.sessionId;
+    if (!sid) return Promise.resolve(false);
+    return fetchReq("/api/session/" + encodeURIComponent(sid) + "/state",
+                    { method: "GET", timeoutMs: 15000, retries: 0 })
+      .then(function (st) {
+        if (!st || sid !== state.sessionId) return false;
+        var msgs = st.messages || [];
+        if (!msgs.length && !st.image_path) return false;
+        if (st.lang && STRINGS[st.lang] && st.lang !== state.lang) {
+          state.lang = st.lang;
+          state.pinned = true;
+          applyI18n();
+        }
+        state.booted = true;
+        chipsEl.hidden = true;
+        msgs.forEach(function (m) {
+          addMsg(m.text || "", m.who === "me" ? "me" : "them");
+        });
+        if (st.room_analysis) state.lastRoom = st.room_analysis;
+        if (st.detected_piece) {
+          state.detectedPiece = st.detected_piece;
+          state.lastDetected = st.detected_piece;
+        }
+        if (st.targets) {
+          state.assignments = st.targets.assignments || {};
+          state.chosenTargets = st.targets.chosen || [];
+          if (state.chosenTargets.length === 1 &&
+              SWAP_TARGETS.indexOf(state.chosenTargets[0]) >= 0) {
+            state.selectedTarget = state.chosenTargets[0];
+          }
+        }
+        state.lastRecs = st.last_recs || [];
+        state.lastOptions = [];
+        state.prevList = (st.previews || []).slice();
+        state.swaps = {};
+        state.prevList.forEach(function (p) {
+          if (p && p.fabric_code) state.swaps[p.fabric_code] = p;
+        });
+        var lastPrev = state.prevList[state.prevList.length - 1];
+        if (st.image_path) {
+          state.roomPhoto = st.image_path;
+          state.outlinePostedFor = null;
+          if (lastPrev && lastPrev.result_url) {
+            state.canvasView = "/" + String(lastPrev.result_url)
+              .replace(/^\/+/, "");
+          }
+        }
+        renderRoomCard(state.lastRoom, state.lastDetected);
+        renderCanvas();
+        renderStrip();
+        if (state.roomPhoto) fetchOutlines();
+        if (state.lastRecs.length) showRecs(state.lastRecs);
+        if (st.quoted && st.quote && st.quote.items &&
+            st.quote.items.length) {
+          postSummaryCard(null, [], st.quote).then(function () {
+            renderActionChips(quoteActions(st.quote));
+          });
+        }
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        return true;
+      })
+      .catch(function () { return false; });
   }
 
   function bootGreeting() {
