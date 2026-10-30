@@ -238,3 +238,12 @@ def test_upload_caps_the_photo_side(tmp_path):
     im = chat_api._open_photo(str(big))
     assert max(im.size) == chat_api.PHOTO_MAX_SIDE == 2048
     assert im.size == (1536, 2048)
+
+
+def test_plain_fabric_ignores_spark_pattern_score():
+    ok = {"ok": True}
+    low = {"color": 9, "pattern": 0, "scale": 9, "isolation": 9}
+    assert not s.needs_retry(ok, low, {"plain_or_patterned": "plain"})
+    assert s.needs_retry(ok, low, {"plain_or_patterned": "patterned"})
+    assert s.needs_retry(ok, {"color": 9, "pattern": 0, "scale": 4,
+                              "isolation": 9}, {"plain_or_patterned": "plain"})

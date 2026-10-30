@@ -102,8 +102,9 @@ def test_multi_cache_reuses_without_calls(tmp_path, fakes):
 
 def test_multi_retry_once_on_low_scores(tmp_path, monkeypatch):
     room = make_room(tmp_path)
-    # A low motif score retries; colour alone would not (ΔE gate).
-    scores = [{"color": 8, "pattern": 5, "scale": 8, "isolation": 8},
+    # A low scale score retries; colour alone would not (ΔE gate), and
+    # for this plain fabric neither would the pattern score.
+    scores = [{"color": 8, "pattern": 8, "scale": 5, "isolation": 8},
               {"color": 8, "pattern": 8, "scale": 8, "isolation": 8}]
     edits = []
 
@@ -121,7 +122,7 @@ def test_multi_retry_once_on_low_scores(tmp_path, monkeypatch):
                        api_key="k", out_dir=str(tmp_path / "o"))
     assert res["results"][0]["attempts"] == 2
     assert len(edits) == 2
-    assert res["results"][0]["scores"]["pattern"] == 8
+    assert res["results"][0]["scores"]["scale"] == 8
 
 
 def test_multi_skips_failed_item_keeps_rest(tmp_path, monkeypatch):

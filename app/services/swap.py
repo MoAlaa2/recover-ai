@@ -604,7 +604,7 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
                 "checks": checks}
         if best is None or _rank(cand) > _rank(best):
             best = cand
-        if not needs_retry(checks, scores):
+        if not needs_retry(checks, scores, fabric):
             break
     if not best["checks"]["ok"]:
         raise CheckFailed(best["checks"]["fail"], best["checks"], target)
@@ -621,12 +621,20 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
             "checks": best["checks"], "target": target}
 
 
-def needs_retry(checks, scores):
+def needs_retry(checks, scores, fabric=None):
     """Second edit only when a deterministic check failed or Spark
-    rated the motif/scale below RETRY_MIN_SCORE (see RETRY_SCORES)."""
+    rated the motif/scale below RETRY_MIN_SCORE (see RETRY_SCORES).
+
+    For a plain fabric the "pattern" score asks "is it plain?", and
+    Spark answers 0 when patterned pillows or a rug are still in view
+    (majlis). The ΔE gate already proves a plain colour, so the score
+    is skipped there."""
     if not checks.get("ok"):
         return True
-    return min(int(scores.get(k, 0)) for k in RETRY_SCORES) < RETRY_MIN_SCORE
+    keys = RETRY_SCORES
+    if fabric is not None and fabric.get("plain_or_patterned") != "patterned":
+        keys = tuple(k for k in keys if k != "pattern")
+    return min(int(scores.get(k, 0)) for k in keys) < RETRY_MIN_SCORE
 
 
 def _rank(cand):
@@ -954,7 +962,7 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                               "checks": checks}
                 if best is None or _rank(cand_entry) > _rank(best):
                     best = cand_entry
-                if not needs_retry(checks, scores):
+                if not needs_retry(checks, scores, fabric):
                     break
             except Exception as exc:  # noqa: BLE001 - one bad item
                 last_err = str(exc)  # must become a skip, never a 500
