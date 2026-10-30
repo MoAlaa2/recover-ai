@@ -679,6 +679,26 @@ def vision_jpeg_bytes(path, max_side=1024):
     return buf.getvalue()
 
 
+def _log_photo_failure(stage, image_path, exc):
+    """A photo turn that falls back to "couldn't read that photo" must
+    leave the real cause in the server log (the user only sees the
+    generic line)."""
+    import sys
+    import traceback
+    try:
+        path = image_path if os.path.isabs(image_path) else \
+            os.path.join(BASE_DIR, image_path)
+        size = os.path.getsize(path) if os.path.exists(path) else None
+    except OSError:
+        size = None
+    print(json.dumps({"event": "photo_failure", "stage": stage,
+                      "image": os.path.basename(image_path or ""),
+                      "bytes": size, "error": "%s: %s" % (
+                          type(exc).__name__, exc),
+                      "trace": traceback.format_exc()[-1500:]},
+                     ensure_ascii=False), file=sys.stderr, flush=True)
+
+
 def analyze_room(image_path, lang=None):
     """Vision analysis of a room photo. Returns a JSON dict.
 
@@ -2003,16 +2023,18 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
         def _do_analysis():
             try:
                 box["room"] = analyze_room(image_path, turn.get("lang"))
-            except Exception:  # noqa: BLE001 - caller sends unreadable
+            except Exception as exc:  # noqa: BLE001 - caller sends unreadable
                 box["failed"] = True
+                _log_photo_failure("analyze_room", image_path, exc)
 
         analyzer = threading.Thread(target=_do_analysis, daemon=True)
         analyzer.start()
         if not available:
             try:
                 available = targets_mod.available_types(image_path)
-            except Exception:  # noqa: BLE001 - never break chat
+            except Exception as exc:  # noqa: BLE001 - never break chat
                 available = []
+                _log_photo_failure("available_types", image_path, exc)
             session["available_targets"] = available
         analyzer.join()
         room_analysis = box.get("room")

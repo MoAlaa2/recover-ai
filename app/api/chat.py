@@ -166,20 +166,36 @@ def swap_fabric(req: SwapRequest):
     return res
 
 
+def _image_readable(path):
+    """True when the file is a complete, decodable image (not a
+    partially synced one: a truncated JPEG opens as unreadable and the
+    photo turn would fall back to "couldn't read that photo")."""
+    from PIL import Image
+    try:
+        if os.path.getsize(path) <= 0:
+            return False
+        with Image.open(path) as im:
+            im.verify()
+        return True
+    except Exception:  # noqa: BLE001 - any decode problem = not ready
+        return False
+
+
 def _wait_for_image(path, tries=4):
-    """Tolerate a just-written file that is not visible yet.
+    """Tolerate a just-written file that is not visible or complete yet.
 
     Upload/swap/mask files can lag one volume sync behind the request
-    that references them (fresh container, commit in flight). The
-    happy path costs nothing; only a missing file waits, 1s at a
-    time, then the caller 400s as before.
+    that references them (fresh container, commit in flight), and a
+    file can be listed before all its bytes are. The happy path costs
+    one cheap header verify; only a missing or unreadable file waits,
+    1s at a time, then the caller 400s as before.
     """
     import time as _time
     for _ in range(tries):
-        if os.path.exists(path):
+        if os.path.exists(path) and _image_readable(path):
             return True
         _time.sleep(1)
-    return os.path.exists(path)
+    return os.path.exists(path) and _image_readable(path)
 
 
 IMAGE_MAX_BYTES = 20 * 1024 * 1024
