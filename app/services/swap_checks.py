@@ -321,11 +321,74 @@ def coverage_check(result_image, mask, swatch_bytes, cells=COVERAGE_CELLS):
     return {"coverage": round(cov, 3), "ok": cov >= COVERAGE_MIN}
 
 
+def mask_components(mask, work_side=320):
+    """Connected blobs of a mask as full-size L images (4-connectivity,
+    found on a downscaled copy and scaled back with nearest sampling)."""
+    from collections import deque
+    mask = mask.convert("L")
+    small = mask.copy()
+    small.thumbnail((work_side, work_side))
+    arr = np.asarray(small) > 127
+    h, w = arr.shape
+    labels = np.zeros((h, w), dtype=np.int32)
+    n = 0
+    for y0 in range(h):
+        for x0 in range(w):
+            if not arr[y0, x0] or labels[y0, x0]:
+                continue
+            n += 1
+            labels[y0, x0] = n
+            queue = deque([(y0, x0)])
+            while queue:
+                y, x = queue.popleft()
+                for ny, nx in ((y - 1, x), (y + 1, x), (y, x - 1),
+                               (y, x + 1)):
+                    if (0 <= ny < h and 0 <= nx < w and arr[ny, nx]
+                            and not labels[ny, nx]):
+                        labels[ny, nx] = n
+                        queue.append((ny, nx))
+    comps = []
+    for k in range(1, n + 1):
+        blob = Image.fromarray(((labels == k) * 255).astype(np.uint8))
+        blob = blob.resize(mask.size, Image.NEAREST)
+        # Clip to the real mask so the upscale never grows the blob.
+        comps.append(Image.fromarray(np.minimum(
+            np.asarray(blob), np.asarray(mask))))
+    return comps
+
+
+def covered_pieces(result_image, mask, swatch_bytes, pieces=None):
+    """Per-piece coverage for items made of separate objects (throw
+    pillows): the pieces that ARE in the new fabric, as one mask, plus
+    the count. pieces are the segmenter's per-object masks when known
+    (pillows overlap each other and the back cushions, so connected
+    blobs cannot split them); otherwise the mask's connected blobs.
+    None when there is only one piece."""
+    comps = list(pieces) if pieces else mask_components(mask)
+    if len(comps) < 2:
+        return None
+    kept = np.zeros(np.asarray(mask.convert("L")).shape, dtype=np.uint8)
+    covered = 0
+    for comp in comps:
+        if coverage_check(result_image, comp, swatch_bytes)["ok"]:
+            kept = np.maximum(kept, np.asarray(comp))
+            covered += 1
+    return Image.fromarray(kept), covered, len(comps)
+
+
 def run_checks(original, result_image, mask, swatch_bytes, base=None,
-               residue_mask=None, extra_swatches=()):
+               residue_mask=None, extra_swatches=(), pieces=False):
     """All checks. original is the untouched room photo; base is the
     image the edit was made on (the sofa result for chained pillows);
     residue_mask widens the residue search (sofa ∪ pillows).
+
+    pieces (throw pillows: True, or the segmenter's per-object masks)
+    judges coverage per piece when the whole mask fails: SAM's "pillows" mask routinely includes the
+    sofa's loose back cushions, and the edit model recolours only the
+    decorative pillows. The recoloured pieces then pass on their own,
+    the untouched ones stay as they were, and the result carries
+    "pieces": {covered, total} and "_mask": the kept mask (callers pop
+    it and composite with it).
 
     Returns {delta_e, delta_l, coverage, changed, residue, ok, fail}."""
     colour = colour_check(result_image, mask, swatch_bytes)
@@ -341,10 +404,24 @@ def run_checks(original, result_image, mask, swatch_bytes, base=None,
         fail = REASON_COVERAGE
     elif not residue["ok"]:
         fail = REASON_RESIDUE
-    return {"delta_e": colour["delta_e"], "delta_l": colour["delta_l"],
-            "coverage": cover["coverage"], "changed": changed,
-            "residue": residue["residue"],
-            "ok": fail is None, "fail": fail}
+    out = {"delta_e": colour["delta_e"], "delta_l": colour["delta_l"],
+           "coverage": cover["coverage"], "changed": changed,
+           "residue": residue["residue"],
+           "ok": fail is None, "fail": fail}
+    if pieces and fail in (REASON_COLOUR, REASON_COVERAGE):
+        found = covered_pieces(
+            result_image, mask, swatch_bytes,
+            pieces if isinstance(pieces, (list, tuple)) else None)
+        if found and found[1] >= 1:
+            kept, n_cov, n_all = found
+            sub = run_checks(original, result_image, kept, swatch_bytes,
+                             base=base, residue_mask=kept,
+                             extra_swatches=extra_swatches)
+            if sub["ok"]:
+                sub["pieces"] = {"covered": n_cov, "total": n_all}
+                sub["_mask"] = kept
+                return sub
+    return out
 
 
 def corrective_for(fail, concept):

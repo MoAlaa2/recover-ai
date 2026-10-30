@@ -3,6 +3,7 @@ import io
 import os
 
 import pytest
+import numpy as np
 from PIL import Image
 
 from app.services import swap as s
@@ -237,3 +238,91 @@ def test_residue_ignores_new_sofa_fabric_that_resembles_the_old():
     # Without the sofa swatch the sand sofa would (wrongly) read as old.
     naive = sc.residue_check(room, result, union, png_bytes(solid(YELLOW)))
     assert not naive["ok"]
+
+
+def test_pillow_pieces_pass_when_only_some_pieces_recoloured():
+    """Two separate pillows in the mask, the edit recolours one: the
+    whole-mask coverage fails, but with pieces=True (cushions) the
+    recoloured pillow passes on its own and the kept mask is just it.
+    Real case: SAM's pillow mask included the sofa's loose back
+    cushions and the edit left those beige (coverage 0.75)."""
+    size = (96, 48)
+    left = box_mask(size, (4, 8, 40, 40))
+    right = box_mask(size, (56, 8, 92, 40))
+    both = Image.fromarray(np.maximum(np.asarray(left), np.asarray(right)))
+    room = solid((120, 120, 120), size)
+    res = room.copy()
+    res.paste(solid(YELLOW, size), (0, 0), left)
+    whole = sc.run_checks(room, res, both, png_bytes(solid(YELLOW)))
+    assert whole["fail"] == sc.REASON_COVERAGE
+    out = sc.run_checks(room, res, both, png_bytes(solid(YELLOW)),
+                        pieces=True)
+    assert out["ok"] and out["fail"] is None
+    assert out["pieces"] == {"covered": 1, "total": 2}
+    # Overlapping pillows are ONE blob; the segmenter's per-object
+    # masks still split them.
+    overlap = box_mask(size, (30, 8, 70, 40))
+    one_blob = Image.fromarray(np.maximum(np.asarray(both),
+                                          np.asarray(overlap)))
+    assert len(sc.mask_components(one_blob)) == 1
+    res2 = room.copy()
+    res2.paste(solid(YELLOW, size), (0, 0), left)
+    res2.paste(solid(YELLOW, size), (0, 0), overlap)
+    assert sc.run_checks(room, res2, one_blob, png_bytes(solid(YELLOW)),
+                         pieces=True)["fail"] == sc.REASON_COVERAGE
+    out2 = sc.run_checks(room, res2, one_blob, png_bytes(solid(YELLOW)),
+                         pieces=[left, overlap, right])
+    assert out2["ok"] and out2["pieces"] == {"covered": 2, "total": 3}
+    kept = np.asarray(out["_mask"]) > 127
+    assert kept[20, 20] and not kept[20, 70]
+    # A single-blob mask (a sofa) never gets the per-piece leniency.
+    half = room.copy()
+    half.paste(solid(YELLOW, size), (0, 0), box_mask(size, (4, 8, 40, 24)))
+    assert sc.run_checks(room, half, left, png_bytes(solid(YELLOW)),
+                         pieces=True)["fail"] == sc.REASON_COVERAGE
+    # Nothing recoloured at all: still an honest failure.
+    assert not sc.run_checks(room, room, both, png_bytes(solid(YELLOW)),
+                             pieces=True)["ok"]
+
+
+def test_single_swap_cushions_keeps_only_recoloured_pillows(
+        tmp_path, room, monkeypatch):
+    """Through swap(): the cushions mask is two pillows, the edit
+    recolours one. The swap is applied, the saved mask covers only the
+    recoloured pillow and the other keeps the photo's pixels."""
+    mean_rgb, _ = swatch_mean("FA-AC-01")
+    monkeypatch.setattr(s, "require_api_key", lambda: "k")
+    monkeypatch.setattr(s, "segment", lambda *a, **k: [
+        {"box": (4, 8, 40, 40), "frame_size": (96, 48)},
+        {"box": (56, 8, 92, 40), "frame_size": (96, 48)}])
+    two = Image.fromarray(np.maximum(
+        np.asarray(box_mask((96, 48), (4, 8, 40, 40))),
+        np.asarray(box_mask((96, 48), (56, 8, 92, 40)))))
+    monkeypatch.setattr(s, "sam_mask", lambda records, size: two
+                        if len(records) > 1 else box_mask(
+                            size, tuple(records[0]["box"])))
+
+    def fake_edit(room_bytes, swatch_bytes, fabric, concept, key=None,
+                  corrective=None, timeout=300):
+        img = solid((120, 120, 120), (96, 48))
+        img.paste(solid(mean_rgb, (96, 48)), (0, 0),
+                  box_mask((96, 48), (4, 8, 40, 40)))
+        # The model re-rendered the untouched pillow slightly off.
+        img.paste(solid((110, 110, 110), (96, 48)), (0, 0),
+                  box_mask((96, 48), (56, 8, 92, 40)))
+        return img
+
+    monkeypatch.setattr(s, "edit_room", fake_edit)
+    monkeypatch.setattr(s, "verify", lambda *a, **k: {
+        "color": 9, "pattern": 9, "scale": 9, "isolation": 9})
+    wide = str(tmp_path / "wide.jpg")
+    solid((120, 120, 120), (96, 48)).save(wide)
+    res = s.swap(wide, "FA-AC-01", "cushions", out_dir=str(tmp_path))
+    assert res["checks"]["ok"]
+    assert res["checks"]["pieces"] == {"covered": 1, "total": 2}
+    assert "_mask" not in res["checks"]
+    saved_mask = np.asarray(Image.open(os.path.join(
+        os.getcwd(), res["mask_url"])).convert("L")) > 127
+    assert saved_mask[20, 20] and not saved_mask[20, 70]
+    out = Image.open(os.path.join(os.getcwd(), res["result_url"]))
+    assert out.getpixel((70, 20)) != (110, 110, 110)

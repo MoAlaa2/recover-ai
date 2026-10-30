@@ -276,6 +276,17 @@ def sam_mask(records, size):
     return drop_small_components(merged)
 
 
+def record_masks(records, size):
+    """One room-sized mask per usable segmenter record (per object)."""
+    out = []
+    for record in records:
+        try:
+            out.append(sam_mask([record], size))
+        except SwapError:
+            continue
+    return out
+
+
 MIN_COMPONENT_FRAC = 0.03
 
 
@@ -542,6 +553,9 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
              max(b[2] for b in boxes), max(b[3] for b in boxes))
     raw_mask = full_mask if full_mask is not None else sam_mask(
         records, (width, height))
+    # Pillows are judged per piece (see swap_checks.run_checks).
+    pieces = record_masks(records, (width, height)) \
+        if target == "cushions" else False
 
     out_dir = out_dir or os.path.join(UPLOAD_DIR, "swap")
     os.makedirs(out_dir, exist_ok=True)
@@ -576,7 +590,14 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
                         timeout=call_timeout())
         attempts = round_no + 1
         checks = swap_checks.run_checks(room, result, raw_mask,
-                                        swatch_bytes)
+                                        swatch_bytes, pieces=pieces)
+        kept = checks.pop("_mask", None)
+        if kept is not None:
+            # Only the recoloured pillows change; untouched ones keep
+            # the photo's own pixels, not the model's re-render.
+            mask = ImageChops.multiply(mask.convert("L"), kept.convert("L"))
+            result = room.copy()
+            result.paste(edited, (0, 0), mask)
         cand = {"result": result, "mask": mask, "scores": scores,
                 "checks": checks}
         if best is None or _rank(cand) > _rank(best):
@@ -893,7 +914,14 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                 checks = swap_checks.run_checks(
                     room, cand, mask, swatch_bytes, base=base_img,
                     residue_mask=union_mask,
-                    extra_swatches=job.get("extra_swatches") or ())
+                    extra_swatches=job.get("extra_swatches") or (),
+                    pieces=(record_masks(records, (width, height))
+                            if target == "cushions" else False))
+                kept = checks.pop("_mask", None)
+                if kept is not None:
+                    mask = ImageChops.multiply(mask.convert("L"),
+                                               kept.convert("L"))
+                    cand = paste_strict(base_img, edited, mask)
                 cand_entry = {"result": cand, "mask": mask,
                               "scores": scores, "area": area,
                               "checks": checks}
