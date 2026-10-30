@@ -104,8 +104,13 @@ def room(tmp_path):
 def _fake_pipeline(monkeypatch, edit_colors, verify_scores=None):
     calls = {"edit": 0, "corrective": []}
     monkeypatch.setattr(s, "require_api_key", lambda: "k")
-    monkeypatch.setattr(s, "segment", lambda *a, **k: [
-        {"box": (8, 8, 40, 40), "frame_size": (64, 48)}])
+    def fake_segment(room_bytes, concept, key=None, timeout=120):
+        # No throw pillows in this room: the sofa keeps its full mask.
+        if concept == s.TARGET_CONCEPTS["cushions"]:
+            return []
+        return [{"box": (8, 8, 40, 40), "frame_size": (64, 48)}]
+
+    monkeypatch.setattr(s, "segment", fake_segment)
     monkeypatch.setattr(s, "sam_mask", lambda records, size: box_mask(size))
 
     def fake_edit(room_bytes, swatch_bytes, fabric, concept, key=None,
@@ -181,3 +186,54 @@ def test_multi_colour_fail_is_honest_skip(tmp_path, room, monkeypatch):
     assert out["skipped"][0]["target"] == "cushions"
     assert out["skipped"][0]["reason"] == sc.REASON_COLOUR
     assert out["skipped"][0]["checks"]["delta_e"] > 20
+
+
+def test_residue_check_flags_leftover_old_fabric():
+    """A beige patch of the old sofa left inside the mask (1% of the
+    image) fails; a fully covered mask passes; like-for-like skips."""
+    BEIGE = (200, 180, 150)
+    size = (200, 200)
+    room = solid(BEIGE, size)
+    mask = box_mask(size, (20, 20, 180, 180))
+    full = room.copy()
+    full.paste(solid(PURPLE, size), (0, 0), mask)
+    ok = sc.run_checks(room, full, mask, png_bytes(solid(PURPLE)))
+    assert ok["ok"] and ok["residue"] == 0.0
+    leftover = full.copy()
+    leftover.paste(solid(BEIGE, size), (0, 0), box_mask(size, (60, 60, 80, 80)))
+    bad = sc.run_checks(room, leftover, mask, png_bytes(solid(PURPLE)))
+    assert bad["fail"] == sc.REASON_RESIDUE
+    assert bad["residue"] >= 0.006  # 1% patch, edges softened by blur
+    # Like-for-like (oat on beige): the residue test cannot tell them
+    # apart, so it is skipped rather than failing an honest swap.
+    like = sc.residue_check(room, room, mask, png_bytes(solid(BEIGE)))
+    assert like["skipped"] and like["ok"]
+
+
+def test_array_delta_e_matches_scalar():
+    import numpy as np
+    labs = np.array([sc.mean_lab(solid(c)) for c in
+                     [YELLOW, PURPLE, (10, 10, 10), (240, 240, 240)]])
+    ref = sc.mean_lab(solid((120, 90, 60)))
+    arr = sc._de2000_array(labs, ref)
+    for i, lab in enumerate(labs):
+        assert abs(arr[i] - sc.delta_e2000(lab, ref)) < 1e-6
+
+
+def test_residue_ignores_new_sofa_fabric_that_resembles_the_old():
+    """Mustard pillow on a sand sofa over a beige original: the sand
+    sofa pixels inside sofa ∪ pillow look like the old beige but ARE
+    the new sofa fabric (extra swatch), so they are not residue."""
+    BEIGE, SAND = (200, 180, 150), (205, 185, 160)
+    size = (200, 200)
+    room = solid(BEIGE, size)
+    union = box_mask(size, (20, 20, 180, 180))
+    pillow = box_mask(size, (60, 60, 100, 100))
+    result = solid(SAND, size)
+    result.paste(solid(YELLOW, size), (0, 0), pillow)
+    out = sc.residue_check(room, result, union, png_bytes(solid(YELLOW)),
+                           extra_swatches=[png_bytes(solid(SAND))])
+    assert out["ok"] and out["residue"] == 0.0
+    # Without the sofa swatch the sand sofa would (wrongly) read as old.
+    naive = sc.residue_check(room, result, union, png_bytes(solid(YELLOW)))
+    assert not naive["ok"]

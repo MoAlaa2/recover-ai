@@ -25,6 +25,7 @@ from app.services.catalog import get_fabric  # noqa: E402
 ROOM = os.path.join(BASE_DIR, "data/samples/living.jpg")
 OUT = os.path.join(BASE_DIR, "app/static/landing")
 WORK = os.path.join(BASE_DIR, "uploads/hero-work")
+QC = os.path.join(BASE_DIR, "storyboard/hero_qc")
 
 LOOKS = {
     "warm": {"sofa": "FA-AC-01", "cushions": "FA-AC-08"},
@@ -100,11 +101,25 @@ def run_multi(assign):
     return res
 
 
-def pillows_on(base_img, codes, key, room_bytes):
-    """Each pillow its own fabric; edited from the original, pasted
-    strictly inside that pillow's component; checks per pillow."""
+def pillows_on(base_img, codes, key, room_bytes, sofa_mask=None,
+               sofa_swatch=None):
+    """Each pillow its own fabric; edited ON the sofa result so the area
+    behind a narrower new pillow shows the new sofa fabric; pasted
+    strictly inside that pillow's component; checks per pillow with the
+    residue search over sofa ∪ pillow against the ORIGINAL."""
     from app.services.targets import CONCEPT_PROMPTS
+    # Segment on the sofa result only when the new sofa contrasts with
+    # the old pillows (see swap.pillows_contrast); else on the original.
     seg_bytes = sw._small_copy(room_bytes, 1600)
+    probe = sw.segment(seg_bytes, CONCEPT_PROMPTS.get("cushions", "cushions"),
+                       key)
+    if probe and sofa_swatch and sw.pillows_contrast(
+            Image.open(io.BytesIO(room_bytes)).convert("RGB"),
+            sw.sam_mask(probe, base_img.size), [sofa_swatch]):
+        seg_buf = io.BytesIO()
+        base_img.save(seg_buf, "JPEG", quality=95)
+        seg_bytes = sw._small_copy(seg_buf.getvalue(), 1600)
+        print("  pillows segmented on the sofa result", flush=True)
     parts = []
     for prompt in (CONCEPT_PROMPTS.get("cushions", "cushions"),
                    "cushions", "throw pillow"):
@@ -135,6 +150,7 @@ def pillows_on(base_img, codes, key, room_bytes):
     original = Image.open(io.BytesIO(room_bytes)).convert("RGB")
     current = base_img.copy()
     items = []
+    pillow_boxes = []
     labels = [("Left cushion", "الوسادة اليسرى"),
               ("Middle cushion", "الوسادة الوسطى"),
               ("Right cushion", "الوسادة اليمنى")]
@@ -145,13 +161,22 @@ def pillows_on(base_img, codes, key, room_bytes):
         with open(os.path.join(BASE_DIR, fabric["image"]), "rb") as f:
             swatch = f.read()
         comp = parts[i]
+        pillow_boxes.append(comp.getbbox())
         best = None
         corrective = None
+        residue_mask = (Image.composite(comp, sofa_mask, comp)
+                        if sofa_mask is not None else comp)
         for attempt in range(2):
-            edited = sw.edit_room(room_bytes, swatch, fabric, "cushion",
-                                  key, corrective)
+            buf = io.BytesIO()
+            current.save(buf, "JPEG", quality=95)
+            edited = sw.edit_room(buf.getvalue(), swatch, fabric,
+                                  sw.TARGET_CONCEPTS["cushions"], key,
+                                  corrective)
             cand = sw.paste_strict(current, edited, comp)
-            checks = sc.run_checks(original, cand, comp, swatch)
+            checks = sc.run_checks(
+                original, cand, comp, swatch, base=current,
+                residue_mask=residue_mask,
+                extra_swatches=[sofa_swatch] if sofa_swatch else ())
             small = cand.copy()
             small.thumbnail((1024, 1024))
             scores = sw.verify(swatch, small, fabric, "cushion", key)
@@ -171,7 +196,33 @@ def pillows_on(base_img, codes, key, room_bytes):
         items.append(item_record("cushions", code, best["scores"],
                                  best["checks"], labels[i][0],
                                  labels[i][1]))
-    return current, items
+    return current, items, pillow_boxes
+
+
+def qc_crops(look, final, pillow_boxes, sofa_box):
+    """2x crops of every pillow (with sofa around it) + the sofa, for a
+    human look before a hero is accepted."""
+    os.makedirs(QC, exist_ok=True)
+    paths = []
+    W, H = final.size
+
+    def crop2x(box, pad, name):
+        x0, y0, x1, y1 = box
+        bw, bh = x1 - x0, y1 - y0
+        px, py = int(bw * pad), int(bh * pad)
+        c = final.crop((max(0, x0 - px), max(0, y0 - py),
+                        min(W, x1 + px), min(H, y1 + py)))
+        c = c.resize((c.width * 2, c.height * 2), Image.LANCZOS)
+        path = os.path.join(QC, "%s-%s.jpg" % (look, name))
+        c.save(path, "JPEG", quality=90)
+        paths.append(os.path.relpath(path, BASE_DIR))
+
+    for i, box in enumerate(pillow_boxes):
+        if box:
+            crop2x(box, 0.6, "pillow-%d" % (i + 1))
+    if sofa_box:
+        crop2x(sofa_box, 0.08, "sofa")
+    return paths
 
 
 def build(look):
@@ -196,17 +247,29 @@ def build(look):
             raise sw.SwapError("%s failed checks" % r["target"])
     final = Image.open(os.path.join(BASE_DIR, res["final_url"])).convert(
         "RGB")
+    masks = {r["target"]: Image.open(os.path.join(
+        BASE_DIR, r["mask_url"])).convert("L") for r in res["results"]}
+    pillow_boxes = []
     if "pillows" in spec:
-        final, pillow_items = pillows_on(final, spec["pillows"], key,
-                                         room_bytes)
+        with open(os.path.join(BASE_DIR, get_fabric(spec["sofa"])["image"]),
+                  "rb") as f:
+            sofa_swatch = f.read()
+        final, pillow_items, pillow_boxes = pillows_on(
+            final, spec["pillows"], key, room_bytes,
+            sofa_mask=masks.get("sofa"), sofa_swatch=sofa_swatch)
         items += pillow_items
+    elif "cushions" in masks:
+        pillow_boxes = [m.getbbox() for m in components(masks["cushions"])]
+    sofa_box = masks["sofa"].getbbox() if "sofa" in masks else None
+    qc = qc_crops(look, final, pillow_boxes, sofa_box)
+    print("  QC crops: %s" % ", ".join(qc), flush=True)
     os.makedirs(OUT, exist_ok=True)
     out_path = os.path.join(OUT, "hero-%s.jpg" % look)
     final.save(out_path, "JPEG", quality=90)
     print("%s done in %.0fs -> %s" % (look, time.time() - t0, out_path),
           flush=True)
     return {"id": look, "image": "/landing/hero-%s.jpg" % look,
-            "items": items}
+            "items": items, "qc": qc}
 
 
 def main(argv):

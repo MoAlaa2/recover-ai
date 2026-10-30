@@ -344,6 +344,10 @@ def edit_prompt(fabric, piece_label, corrective=None):
                 fabric.get("material", "fabric"),
                 fabric.get("primary_color", ""),
                 pattern, piece_label))
+    if "pillow" in piece_label or "cushion" in piece_label:
+        text += (" Replace each existing pillow with exactly ONE pillow of "
+                 "the same size, shape and position. Do not add, duplicate "
+                 "or remove pillows.")
     if corrective:
         text += " Correction for this retry: %s" % corrective
     return text
@@ -515,8 +519,13 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
 
     step("segment")
     need_budget("segment")
-    records = segment(room_bytes, concept, key,
-                      timeout=call_timeout())
+    if concept == TARGET_CONCEPTS["sofa"]:
+        records, full_mask = sofa_full_mask(
+            room_bytes, (width, height), key, call_timeout())
+    else:
+        full_mask = None
+        records = segment(room_bytes, concept, key,
+                          timeout=call_timeout())
     if not records:
         raise SwapError("could not find the %s in this photo" % concept)
     boxes = []
@@ -527,7 +536,8 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
                       int(x2 / fw * width), int(y2 / fh * height)))
     union = (min(b[0] for b in boxes), min(b[1] for b in boxes),
              max(b[2] for b in boxes), max(b[3] for b in boxes))
-    raw_mask = sam_mask(records, (width, height))
+    raw_mask = full_mask if full_mask is not None else sam_mask(
+        records, (width, height))
 
     out_dir = out_dir or os.path.join(UPLOAD_DIR, "swap")
     os.makedirs(out_dir, exist_ok=True)
@@ -585,6 +595,65 @@ def _rank(cand):
     scores = cand["scores"]
     return (bool(cand.get("checks", {}).get("ok")),
             min(scores.values()), sum(scores.values()))
+
+
+SOFA_CUSHIONS_CONCEPT = "cushions"
+
+
+def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
+    """Sofa mask including its seat and back cushions.
+
+    SAM's "sofa" record leaves the loose back cushions out, so a sofa
+    swap left them in the old fabric. The bare "cushions" concept
+    segments every cushion (seat, back and throw pillows); the union is
+    the upholstered sofa. With keep_pillows the throw pillows are cut
+    back out so a sofa-only swap leaves them alone; a chained sofa +
+    pillows swap keeps them in (the pillow layer lands on top and any
+    gap behind a narrower new pillow shows the new sofa fabric).
+    """
+    records = segment(seg_bytes, TARGET_CONCEPTS["sofa"], key,
+                      timeout=timeout)
+    if not records:
+        raise SwapError("could not find the sofa in this photo")
+    mask = sam_mask(records, size)
+    try:
+        extra = segment(seg_bytes, SOFA_CUSHIONS_CONCEPT, key,
+                        timeout=timeout)
+        if extra:
+            mask = ImageChops.lighter(mask, sam_mask(extra, size))
+    except (SwapError, sam_codec.MaskError):
+        pass
+    if keep_pillows:
+        try:
+            pillows = segment(seg_bytes, TARGET_CONCEPTS["cushions"], key,
+                              timeout=timeout)
+            if pillows:
+                mask = ImageChops.subtract(mask, sam_mask(pillows, size))
+        except (SwapError, sam_codec.MaskError):
+            pass
+    return records, mask
+
+
+def pillows_contrast(room, pillow_mask, sofa_swatches):
+    """True when the new sofa fabric clearly contrasts with the old
+    pillows (hue/chroma ΔE > 12 or |ΔL| > 20), i.e. when segmenting
+    the pillows on the sofa result would be unambiguous."""
+    if not sofa_swatches:
+        return False
+    old = swap_checks.mean_lab(swap_checks._small(room, "RGB"),
+                               pillow_mask.convert("L").resize(
+                                   swap_checks._small(room, "RGB").size,
+                                   Image.NEAREST))
+    if old is None:
+        return False
+    for raw in sofa_swatches:
+        want = swap_checks.swatch_lab(raw)
+        if want is None:
+            continue
+        de, dl, _ = swap_checks.colour_match(old, want)
+        if de > 12 or abs(dl) > 20:
+            return True
+    return False
 
 
 def _room_tag(room_bytes):
@@ -662,9 +731,23 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
     out_dir = out_dir or os.path.join(UPLOAD_DIR, "swap")
     os.makedirs(out_dir, exist_ok=True)
 
+    # Layering: when the sofa and the pillows are both assigned, the
+    # pillows are edited ON the sofa result (not the original), so any
+    # old-pillow pixel the new pillow does not cover shows the new sofa
+    # fabric, never the old one. The pillow cache key carries the sofa
+    # code for that reason.
+    by_target = {j["target"]: j for j in jobs}
+    chained = "sofa" in by_target and "cushions" in by_target
+    for job in jobs:
+        job["ctag"] = rtag
+        job["chained"] = chained
+        if chained and job["target"] == "cushions":
+            job["ctag"] = "%s-on-%s" % (rtag, by_target["sofa"]["code"])
+        elif chained and job["target"] == "sofa":
+            job["ctag"] = "%s-under-pillows" % rtag
     for job in jobs:
         img_path, mask_path, meta_path = _cache_paths(
-            out_dir, rtag, job["target"], job["code"])
+            out_dir, job["ctag"], job["target"], job["code"])
         if (os.path.exists(img_path) and os.path.exists(mask_path)
                 and os.path.exists(meta_path)):
             try:
@@ -696,10 +779,15 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
         with open(swatch_path, "rb") as f:
             swatch_bytes = f.read()
         img_path, mask_path, meta_path = _cache_paths(
-            out_dir, rtag, target, code)
-        # Vision calls get a capped copy; the edit and the composite
-        # always use the full-resolution original.
+            out_dir, job["ctag"], target, code)
+        # The edit input: the original photo, or (pillows after the
+        # sofa) the sofa result. Vision calls get a capped copy of the
+        # ORIGINAL; the edit and the composite use the base.
+        base_bytes = job.get("base_bytes") or room_bytes
+        union_mask = job.get("union_mask")
         seg_bytes = _small_copy(room_bytes, 1600)
+        seg_base_bytes = _small_copy(base_bytes, 1600) \
+            if base_bytes is not room_bytes else None
         clock = job.get("_now") or time.monotonic
         item_budget = float(job.get("budget", 60))
         t_end = clock() + item_budget
@@ -717,12 +805,37 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                 break
             try:
                 step("segment")
-                records = segment(seg_bytes, concept, key,
-                                  timeout=call_timeout())
-                if not records:
-                    raise SwapError("could not find the %s in this "
-                                    "photo" % concept)
-                mask = sam_mask(records, (width, height))
+                if target == "sofa":
+                    records, mask = sofa_full_mask(
+                        seg_bytes, (width, height), key, call_timeout(),
+                        keep_pillows=not job.get("chained"))
+                else:
+                    records = segment(seg_bytes, concept, key,
+                                      timeout=call_timeout())
+                    if not records:
+                        raise SwapError("could not find the %s in this "
+                                        "photo" % concept)
+                    mask = sam_mask(records, (width, height))
+                    if seg_base_bytes is not None and pillows_contrast(
+                            room, mask, job.get("extra_swatches")):
+                        # Chained pillows on a contrasting new sofa are
+                        # re-segmented on the SOFA RESULT: on the
+                        # all-one-fabric original SAM folds the sofa's
+                        # back-cushion corner into the pillow and it
+                        # gets the pillow fabric too (a ghost second
+                        # pillow). On a same-tone sofa the original
+                        # segmentation stays (no contrast to gain).
+                        try:
+                            rec2 = segment(seg_base_bytes, concept, key,
+                                           timeout=call_timeout())
+                            mask2 = sam_mask(rec2, (width, height)) \
+                                if rec2 else None
+                        except (SwapError, sam_codec.MaskError):
+                            mask2 = None
+                        if mask2 is not None and mask2.getbbox():
+                            records, mask = rec2, mask2
+                if job.get("sofa_mask") is not None:
+                    union_mask = ImageChops.lighter(job["sofa_mask"], mask)
                 area = 0
                 for rec in records:
                     try:
@@ -738,12 +851,12 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                     corrective = _corrective(best["scores"], concept,
                                              best.get("checks"))
                     step("retry")
-                edited = edit_room(room_bytes, swatch_bytes, fabric,
+                edited = edit_room(base_bytes, swatch_bytes, fabric,
                                    concept, key, corrective,
                                    timeout=call_timeout())
                 step("composite")
                 base_img = Image.open(
-                    io.BytesIO(room_bytes)).convert("RGB")
+                    io.BytesIO(base_bytes)).convert("RGB")
                 cand = paste_strict(base_img, edited, mask)
                 step("verify")
                 small_cand = cand
@@ -755,8 +868,10 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                                 concept, key,
                                 timeout=call_timeout())
                 attempts += 1
-                checks = swap_checks.run_checks(base_img, cand, mask,
-                                                swatch_bytes)
+                checks = swap_checks.run_checks(
+                    room, cand, mask, swatch_bytes, base=base_img,
+                    residue_mask=union_mask,
+                    extra_swatches=job.get("extra_swatches") or ())
                 cand_entry = {"result": cand, "mask": mask,
                               "scores": scores, "area": area,
                               "checks": checks}
@@ -827,23 +942,57 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
             pieces.append((item_img, item_mask, job["area"],
                            job["target"]))
     pending = [j for j in jobs if j["cache"] is None]
-    if pending:
+
+    def collect(outcomes):
+        for entry, skip, img, mask, area in outcomes:
+            if entry is not None:
+                results.append(entry)
+                pieces.append((img, mask, area, entry["target"]))
+            else:
+                skipped.append(skip)
+
+    if chained:
+        # Stage 1: everything but the pillows (sofa included) from the
+        # original. Stage 2: pillows on the sofa result, with the
+        # residue check over sofa ∪ pillows against the ORIGINAL.
+        first = [j for j in pending if j["target"] != "cushions"]
+        later = [j for j in pending if j["target"] == "cushions"]
+        if first:
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(
+                    max_workers=max(1, min(4, len(first)))) as pool:
+                collect(list(pool.map(run_one, first)))
+        sofa_piece = next((p for p in pieces if p[3] == "sofa"), None)
+        if later and sofa_piece is None:
+            # Sofa skipped: pillows fall back to the original photo.
+            collect([run_one(j) for j in later])
+        elif later:
+            sofa_img, sofa_mask = sofa_piece[0], sofa_piece[1]
+            buf = io.BytesIO()
+            sofa_img.save(buf, "JPEG", quality=95)
+            sofa_fabric = by_target["sofa"]["fabric"]
+            with open(os.path.join(BASE_DIR, sofa_fabric.get("image", "")),
+                      "rb") as f:
+                sofa_swatch = f.read()
+            for j in later:
+                j["base_bytes"] = buf.getvalue()
+                j["sofa_mask"] = sofa_mask
+                j["extra_swatches"] = [sofa_swatch]
+            collect([run_one(j) for j in later])
+    elif pending:
         from concurrent.futures import ThreadPoolExecutor
         with ThreadPoolExecutor(
                 max_workers=max(1, min(4, len(pending)))) as pool:
-            for entry, skip, img, mask, area in pool.map(
-                    run_one, pending):
-                if entry is not None:
-                    results.append(entry)
-                    pieces.append((img, mask, area,
-                                   entry["target"]))
-                else:
-                    skipped.append(skip)
+            collect(list(pool.map(run_one, pending)))
     if not results:
         reason = skipped[0]["reason"] if skipped else "no assignments"
         raise SwapError("multi-swap failed: %s" % reason)
     # One pass, largest first, each strictly inside its own mask.
     pieces.sort(key=lambda piece: piece[2], reverse=True)
+    if chained:
+        # Sofa (edited from the original) first, pillows (edited on the
+        # sofa result) last: never let a cached sofa paste over them.
+        pieces.sort(key=lambda piece: 1 if piece[3] == "cushions" else 0)
     final = room.copy()
     for img, mask, _, _ in pieces:
         final = paste_strict(final, img, mask)

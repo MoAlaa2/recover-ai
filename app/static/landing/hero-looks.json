@@ -21,8 +21,8 @@
       "scale": 10,
       "isolation": 10
      },
-     "delta_e": 9.5,
-     "coverage": 0.925
+     "delta_e": 8.8,
+     "coverage": 0.943
     },
     {
      "target": "cushions",
@@ -40,9 +40,14 @@
       "scale": 10,
       "isolation": 10
      },
-     "delta_e": 8.9,
-     "coverage": 1.0
+     "delta_e": 11.0,
+     "coverage": 0.952
     }
+   ],
+   "qc": [
+    "storyboard/hero_qc/warm-pillow-1.jpg",
+    "storyboard/hero_qc/warm-pillow-2.jpg",
+    "storyboard/hero_qc/warm-sofa.jpg"
    ]
   },
   {
@@ -65,8 +70,8 @@
       "scale": 9,
       "isolation": 10
      },
-     "delta_e": 6.2,
-     "coverage": 0.983
+     "delta_e": 5.8,
+     "coverage": 0.986
     },
     {
      "target": "cushions",
@@ -84,9 +89,14 @@
       "scale": 9,
       "isolation": 10
      },
-     "delta_e": 9.4,
-     "coverage": 0.956
+     "delta_e": 7.8,
+     "coverage": 0.944
     }
+   ],
+   "qc": [
+    "storyboard/hero_qc/calm-pillow-1.jpg",
+    "storyboard/hero_qc/calm-pillow-2.jpg",
+    "storyboard/hero_qc/calm-sofa.jpg"
    ]
   },
   {
@@ -109,8 +119,8 @@
       "scale": 9,
       "isolation": 10
      },
-     "delta_e": 1.6,
-     "coverage": 0.981
+     "delta_e": 1.8,
+     "coverage": 0.978
     },
     {
      "target": "cushions",
@@ -124,12 +134,12 @@
      "label_ar": "الوسادة اليسرى",
      "scores": {
       "color": 9,
-      "pattern": 8,
-      "scale": 9,
+      "pattern": 6,
+      "scale": 8,
       "isolation": 10
      },
-     "delta_e": 5.8,
-     "coverage": 0.925
+     "delta_e": 6.4,
+     "coverage": 0.904
     },
     {
      "target": "cushions",
@@ -147,8 +157,8 @@
       "scale": 10,
       "isolation": 10
      },
-     "delta_e": 7.2,
-     "coverage": 0.945
+     "delta_e": 7.5,
+     "coverage": 0.928
     },
     {
      "target": "cushions",
@@ -166,9 +176,15 @@
       "scale": 10,
       "isolation": 10
      },
-     "delta_e": 7.2,
-     "coverage": 0.992
+     "delta_e": 7.1,
+     "coverage": 0.994
     }
+   ],
+   "qc": [
+    "storyboard/hero_qc/mix-pillow-1.jpg",
+    "storyboard/hero_qc/mix-pillow-2.jpg",
+    "storyboard/hero_qc/mix-pillow-3.jpg",
+    "storyboard/hero_qc/mix-sofa.jpg"
    ]
   }
  ]

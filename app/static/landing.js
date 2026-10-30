@@ -118,8 +118,12 @@
     cap.innerHTML = (look.items || []).map(function (it) {
       var name = lang === "ar" ? it.name_ar : it.name_en;
       var badge = t("verifiedBadge").replace("%d", minScore(it.scores));
+      var tip = "";
       if (it.delta_e !== undefined && it.delta_e !== null) {
-        badge += " · " + t("deltaE").replace("%s", it.delta_e);
+        badge += " · " + t("colourMatch");
+        tip = t("deltaE").replace("%s", it.delta_e) +
+          (it.coverage !== undefined && it.coverage !== null ?
+            " · " + Math.round(it.coverage * 100) + "%" : "");
       }
       return '<div class="lp-cap-row">' +
         '<img class="lp-cap-sw" src="/' +
@@ -132,7 +136,8 @@
         (it.material ? " · " + esc(it.material) : "") +
         (it.price_sar_per_m ? " · " + esc(it.price_sar_per_m) + " SAR/m"
                             : "") + "</div></div>" +
-        '<span class="lp-cap-badge">' + esc(badge) + "</span></div>";
+        '<span class="lp-cap-badge"' + (tip ? ' title="' + esc(tip) + '"' : "") +
+        ">" + esc(badge) + "</span></div>";
     }).join("");
   }
 

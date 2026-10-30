@@ -205,7 +205,9 @@ a { color: inherit; }
   align-items: stretch;
   gap: 8px;
 }
-.lp-cap-row { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.lp-cap-row { display: flex; align-items: center; gap: 12px; min-width: 0; flex-wrap: wrap; }
+.lp-cap-list .lp-cap-meta { flex: 1 1 160px; }
+.lp-cap-list .lp-cap-badge { white-space: normal; text-align: center; }
 .lp-cap-item {
   font-size: var(--rc-fs-xs);
   font-weight: 600;

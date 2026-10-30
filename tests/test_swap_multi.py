@@ -405,3 +405,73 @@ def test_assignments_roundtrip():
     wipe = client.delete("/api/session/t-asg/assignments")
     assert wipe.status_code == 200
     assert wipe.json() == {"assignments": {}}
+
+
+def test_chained_pillows_edit_on_sofa_result_and_land_on_top(tmp_path,
+                                                              monkeypatch):
+    """Sofa + pillows: the pillow edit must receive the SOFA RESULT as
+    its input (not the original), its residue search spans sofa ∪
+    pillows, and the pillows composite last."""
+    room = make_room(tmp_path)
+    seen = {"edit_inputs": {}, "residue_masks": {}}
+    sofa_box = (0, 0, 60, 48)
+    pillow_box = (10, 10, 30, 30)
+
+    def fake_segment(room_bytes, concept, key=None, timeout=120):
+        if concept == "sofa":
+            return [{"box": (0, 0, 90, 100), "frame_size": (100, 100)}]
+        return [{"box": (15, 20, 45, 60), "frame_size": (100, 100)}]
+
+    def fake_mask(records, size):
+        m = Image.new("L", size, 0)
+        box = sofa_box if records[0]["box"][0] == 0 else pillow_box
+        for x in range(box[0], box[2]):
+            for y in range(box[1], box[3]):
+                m.putpixel((x, y), 255)
+        return m
+
+    def fake_edit(room_bytes, swatch_bytes, fabric, concept, key=None,
+                  corrective=None, timeout=300):
+        seen["edit_inputs"][concept] = room_bytes
+        shade = 60 if concept == "sofa" else 220
+        return solid((shade, shade, shade))
+
+    real_checks = s.swap_checks.run_checks
+
+    def spy_checks(original, result, mask, swatch, base=None,
+                   residue_mask=None, **kw):
+        seen["residue_masks"][mask.getbbox()] = (
+            residue_mask.getbbox() if residue_mask is not None else None)
+        return {"delta_e": 1.0, "coverage": 1.0, "changed": 1.0,
+                "residue": 0.0, "ok": True, "fail": None}
+
+    monkeypatch.setattr(s, "segment", fake_segment)
+    monkeypatch.setattr(s, "sam_mask", fake_mask)
+    monkeypatch.setattr(s, "edit_room", fake_edit)
+    monkeypatch.setattr(s, "verify", lambda *a, **k: {
+        "color": 9, "pattern": 9, "scale": 9, "isolation": 9})
+    monkeypatch.setattr(s.swap_checks, "run_checks", spy_checks)
+    res = s.swap_multi(room, [{"target": "sofa", "code": "FA-AC-01"},
+                              {"target": "cushions", "code": "FA-AC-08"}],
+                       api_key="k", out_dir=str(tmp_path / "o"))
+    with open(room, "rb") as f:
+        original = f.read()
+    pillow_concept = s.TARGET_CONCEPTS["cushions"]
+    assert seen["edit_inputs"]["sofa"] == original
+    assert seen["edit_inputs"][pillow_concept] != original
+    sofa_result = Image.open(io.BytesIO(seen["edit_inputs"][pillow_concept]))
+    assert sofa_result.getpixel((50, 40))[0] < 90, "sofa already recoloured"
+    # Residue search for the pillows spans sofa ∪ pillow.
+    assert seen["residue_masks"][pillow_box] == sofa_box
+    final = Image.open(os.path.join(os.getcwd(), res["final_url"]))
+    assert final.getpixel((20, 20))[0] > 150, "pillow on top"
+    assert final.getpixel((50, 40))[0] < 90, "sofa fabric around it"
+    assert [r["target"] for r in res["results"]] == ["sofa", "cushions"]
+
+
+def test_pillow_prompt_forbids_duplicates():
+    from app.services.catalog import get_fabric
+    text = s.edit_prompt(get_fabric("FA-AC-08"), s.TARGET_CONCEPTS["cushions"])
+    assert "exactly ONE pillow" in text
+    assert "duplicate" in text
+    assert "duplicate" not in s.edit_prompt(get_fabric("FA-AC-01"), "sofa")
