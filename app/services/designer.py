@@ -39,7 +39,8 @@ ROW_TOL = 0.08             # reading order: same row within 8% height
 OUTLINE_W_FRAC = 0.004
 CHECK_INSET = 0.18         # colour check on the box's inner 64%
 PDF_SCALE = 2.0            # 144 dpi first page
-LAYOUT_MIN_SCORE = 7       # Spark layout fidelity below this retries
+LAYOUT_MIN_SCORE = 6       # Spark layout fidelity below this retries (a
+                           # retry costs ~60s; 6-7 shows the notes instead)
 LAYOUT_SIDE = 800          # plan + render copies sent to the layout check
 CHECK_CELLS = 3            # colour check grid per piece (L-shapes, round chairs)
 CHECK_MIN_CELLS = 0.5      # share of cells that must carry the fabric

@@ -274,10 +274,27 @@ def test_render_keeps_better_layout_when_both_drift(tmp_path, monkeypatch):
                "code": "FA-AC-01"}]
     fake, calls = _fake_edit([[(sofa, _swatch_mean("FA-AC-01"))]])
     monkeypatch.setattr(dz, "_edit", fake)
-    scores = iter([{"score": 6, "moved": ["bed"]}, {"score": 3, "moved": ["all"]}])
+    scores = iter([{"score": 5, "moved": ["bed"]}, {"score": 3, "moved": ["all"]}])
     monkeypatch.setattr(dz, "layout_check", lambda *a, **k: next(scores))
     res = dz.render(plan, pieces, api_key="k", out_dir=str(tmp_path))
-    assert res["attempts"] == 2 and res["layout"]["score"] == 6
+    assert res["attempts"] == 2 and res["layout"]["score"] == 5
+
+
+def test_render_accepts_a_middling_layout_without_a_second_edit(
+        tmp_path, monkeypatch):
+    """6-7/10 is shown as a badge with Spark's notes; only a clearly
+    drifted layout (<6) pays for the ~60s retry."""
+    plan = plan_png(None)
+    sofa = [300, 420, 700, 520]
+    pieces = [{"id": 1, "name": "sofa", "type": "sofa-3-seat", "box": sofa,
+               "code": "FA-AC-01"}]
+    fake, calls = _fake_edit([[(sofa, _swatch_mean("FA-AC-01"))]])
+    monkeypatch.setattr(dz, "_edit", fake)
+    monkeypatch.setattr(dz, "layout_check", lambda *a, **k: {
+        "score": 6, "moved": ["bed flipped"]})
+    res = dz.render(plan, pieces, api_key="k", out_dir=str(tmp_path))
+    assert calls["n"] == 1 and res["attempts"] == 1
+    assert res["layout"] == {"score": 6, "moved": ["bed flipped"]}
 
 
 def test_parse_layout_and_prompt_template_wording():
