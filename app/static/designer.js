@@ -323,9 +323,19 @@
 
   // ---- list + fabrics -------------------------------------------------
 
+  var browseHome = null;
+
   function renderList() {
     var list = $("dzList");
     if (!list) return;
+    // The picker panel is parked under its piece's row (inside this
+    // list): lift it out before the rows are rebuilt, or the first
+    // pick would destroy it and every later pick would open nothing.
+    var panel = $("dzBrowse");
+    if (panel) {
+      if (!list.contains(panel)) browseHome = panel.parentNode;
+      else if (browseHome) browseHome.appendChild(panel);
+    }
     list.innerHTML = state.pieces.map(function (p) {
       var fab = p.meta ?
         '<button type="button" class="dz-fab" data-pick="' + p.id + '">' +

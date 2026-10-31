@@ -185,6 +185,15 @@ def _run(p, server, device, lang):
     page.click("#dzBrowse [data-apply]")
     out["render_enabled"] = not page.is_disabled("#dzRender")
     out["fab_label"] = page.inner_text("[data-pick='3']")
+    # A second pick must open the picker again (the first pick's list
+    # re-render used to destroy the panel).
+    page.click("[data-pick='1']")
+    page.wait_for_selector("#dzBrowse [data-apply]", timeout=20000)
+    out["second_under_row"] = page.evaluate(
+        "document.querySelector('[data-row=\"1\"]').nextElementSibling"
+        ".id === 'dzBrowse'")
+    page.click("#dzBrowse [data-apply] >> nth=1")
+    out["fab_label_2"] = page.inner_text("[data-pick='1']")
     # Render -> result view.
     page.click("#dzRender")
     page.wait_for_selector("#dzResult:not([hidden])", timeout=20000)
@@ -227,6 +236,7 @@ def test_designer_desktop_en(server):
     assert b1b[2] > b1[2] and b1b[3] > b1[3] and b1b[:2] == b1[:2]
     assert out["render_disabled"] and out["render_enabled"]
     assert out["browse_cards"] >= 12 and out["fab_label"]
+    assert out["second_under_row"] and out["fab_label_2"]
     assert out["browse_under_row"] and out["browse_visible"]
     assert out["legend"] == 2
     assert out["scale"].lower() == "concept render — not to scale"
@@ -252,6 +262,7 @@ def test_designer_iphone_ar(server):
     b1, b1b = out["resize"]
     assert b1b[2] > b1[2] and b1b[3] > b1[3], "touch resize"
     assert out["render_enabled"] and out["legend"] == 2
+    assert out["second_under_row"] and out["fab_label_2"]
     assert out["browse_under_row"] and out["browse_visible"]
     assert out["scale"] == "تصور مبدئي — ليس بمقياس الرسم"
     assert "١٦.٥ م" in out["quote"] and "الإجمالي" in out["quote"]
