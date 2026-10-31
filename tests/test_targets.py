@@ -255,3 +255,56 @@ def test_subtract_cushions_normal_case():
     assert out is not sofa
     assert out.getpixel((20, 20)) == 0
     assert out.getpixel((80, 80)) == 255
+
+
+def test_list_types_reports_armchair(monkeypatch):
+    # An armchair photo (the showroom sample) has no sofa: Spark names
+    # the chair and it becomes its own target.
+    monkeypatch.setattr(t, "_call_vision",
+                        vision(["chair", "cushions", "curtains"]))
+    assert t.list_types("data/samples/armchair.jpg") == [
+        "armchair", "cushions", "curtains"]
+    monkeypatch.setattr(t, "_call_vision", vision(["sofa", "armchair"]))
+    assert t.list_types("data/samples/living.jpg") == ["sofa", "armchair"]
+
+
+def test_match_targets_armchair_words():
+    avail = ["armchair", "cushions", "curtains"]
+    assert t.match_targets("the armchair", avail) == (["armchair"], {})
+    assert t.match_targets("الكرسي", avail) == (["armchair"], {})
+    assert t.match_targets("le fauteuil", avail) == (["armchair"], {})
+    # Both seats listed: chair words pick the chair only.
+    both = ["sofa", "armchair", "cushions"]
+    assert t.match_targets("sillón", both) == (["armchair"], {})
+    assert t.match_targets("sofa", both) == (["sofa"], {})
+    # No armchair in the photo: chair words still land on the sofa.
+    assert t.match_targets("the chair", ["sofa", "curtains"]) == (
+        ["sofa"], {})
+
+
+def test_masks_subtract_cushions_from_armchair(monkeypatch, tmp_path):
+    from PIL import Image, ImageDraw
+    room = tmp_path / "chair.jpg"
+    Image.new("RGB", (100, 100), (120, 110, 100)).save(str(room))
+    calls = []
+
+    def fake_segment(room_bytes, concept, key):
+        calls.append(concept)
+        return [{"concept": concept}]
+
+    def fake_mask(records, size):
+        m = Image.new("L", size, 0)
+        d = ImageDraw.Draw(m)
+        if records[0]["concept"] == "armchair":
+            d.rectangle([10, 10, 60, 60], fill=255)
+        else:
+            d.rectangle([20, 20, 30, 30], fill=255)
+        return m
+
+    monkeypatch.setattr(t, "segment", fake_segment)
+    monkeypatch.setattr(t, "sam_mask", fake_mask)
+    monkeypatch.setattr(t, "require_api_key", lambda: "k")
+    masks = t.masks_for(str(room), ["armchair", "cushions"])
+    assert "armchair" in calls
+    assert masks["armchair"].getpixel((25, 25)) == 0  # cushion cut out
+    assert masks["armchair"].getpixel((50, 50)) == 255

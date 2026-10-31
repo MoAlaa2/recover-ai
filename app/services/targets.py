@@ -1,8 +1,8 @@
 """Multi-object targets: list the changeable items in a room photo.
 
-Spark lists which of sofa / cushions / curtains are clearly visible;
-SAM 3.1 segments each one. The sofa mask has the cushions mask
-subtracted so reupholstering the sofa never repaints the pillows.
+Spark lists which of sofa / armchair / cushions / curtains are clearly
+visible; SAM 3.1 segments each one. The seat masks have the cushions
+mask subtracted so reupholstering the seat never repaints the pillows.
 Masks are saved under uploads/masks/ for the canvas overlays.
 """
 import base64
@@ -20,25 +20,28 @@ from app.core.config import (BASE_DIR, CHAT_URL, SPARK_MODEL, UPLOAD_DIR,
 from app.services import sam_codec
 from app.services.swap import SwapError, sam_mask, segment
 
-TARGET_TYPES = ("sofa", "cushions", "curtains")
+TARGET_TYPES = ("sofa", "armchair", "cushions", "curtains")
+SEAT_TYPES = ("sofa", "armchair")
 
 TARGET_LABELS = {
     "sofa": ("Sofa", "الكنبة"),
+    "armchair": ("Armchair", "الكرسي"),
     "cushions": ("Cushions", "الوسائد"),
     "curtains": ("Curtains", "الستائر"),
 }
 
 # Bump when mask semantics change: old session entries (garbage
 # full-frame masks) must never be served again.
-TARGETS_CACHE_VERSION = 4
+TARGETS_CACHE_VERSION = 5
+
+ARMCHAIR_WORDS = ("armchair", "arm chair", "chair", "كرسي", "الكرسي",
+                  "فوتيه", "fauteuil", "sillon", "sillón", "butaca",
+                  "कुर्सी", "आरामकुर्सी")
 
 CHOICE_WORDS = {
-    # "sofa" also covers the armchair sample: list_types only ever
-    # reports sofa/cushions/curtains, so fauteuil/sillon/Kursi must
-    # land on the chair the user sees.
     "sofa": ("sofa", "sofas", "كنبة", "كنبه", "canapé", "canape",
-             "fauteuil", "sofá", "sillon", "sillón", "सोफ़ा", "सोफा",
-             "कुर्सी"),
+             "sofá", "सोफ़ा", "सोफा"),
+    "armchair": ARMCHAIR_WORDS,
     "cushions": ("cushion", "cushions", "pillow", "pillows", "وسائد",
                  "وساده", "مخدات", "مخدة", "coussin", "coussins",
                  "cojín", "cojin", "cojines", "कुशन", "तकिया",
@@ -73,6 +76,11 @@ def match_targets(message, available):
         return list(available), {"all": True}
     chosen = [t for t in available
               if any(w in text for w in CHOICE_WORDS.get(t, ()))]
+    # No armchair listed in this photo: "chair" words mean the sofa
+    # (the only seat the user can see).
+    if (not chosen and "sofa" in available and "armchair" not in available
+            and any(w in text for w in ARMCHAIR_WORDS)):
+        chosen = ["sofa"]
     if chosen:
         return chosen, {}
     return [], {}
@@ -124,13 +132,14 @@ def _call_vision(messages):
 
 
 def list_types(image_path):
-    """Which of sofa/cushions/curtains are clearly visible. Returns list."""
+    """Which of sofa/armchair/cushions/curtains are visible. Returns list."""
     from app.services.consultant import vision_jpeg_bytes
     path = image_path if os.path.isabs(image_path) else \
         os.path.join(BASE_DIR, image_path)
     b64 = base64.b64encode(vision_jpeg_bytes(path)).decode("ascii")
     ask = ("Which of these are clearly visible in this room photo: "
-           "sofa, cushions (pillows on a sofa or chairs), curtains? "
+           "sofa, armchair (a single upholstered seat), cushions "
+           "(pillows on a sofa or chairs), curtains? "
            'Reply with JSON only: {"items": ["sofa", ...]}.')
     messages = [{"role": "user", "content": [
         {"type": "text", "text": ask},
@@ -143,7 +152,14 @@ def list_types(image_path):
         found = items.get("items", [])
     except (ValueError, IndexError, AttributeError):
         return []
-    return [t for t in found if t in TARGET_TYPES]
+    out = []
+    for item in found:
+        name = str(item).strip().lower()
+        if name in ("chair", "arm chair"):
+            name = "armchair"
+        if name in TARGET_TYPES and name not in out:
+            out.append(name)
+    return out
 
 
 def count_components(mask, min_area_frac=0.005):
@@ -199,13 +215,14 @@ def count_components(mask, min_area_frac=0.005):
 # slightly by design.
 CONCEPT_PROMPTS = {
     "sofa": "sofa",
+    "armchair": "armchair",
     "cushions": "throw pillows on the sofa",
     "curtains": "window curtains",
 }
 
 
 def masks_for(image_path, types, api_key=None):
-    """Segment each type. Returns {type: PIL mask}, sofa minus cushions."""
+    """Segment each type. Returns {type: PIL mask}, seats minus cushions."""
     key = api_key or require_api_key()
     path = image_path if os.path.isabs(image_path) else \
         os.path.join(BASE_DIR, image_path)
@@ -235,9 +252,10 @@ def masks_for(image_path, types, api_key=None):
             # Unusable (e.g. full-frame) mask: hide the target rather
             # than overlaying or swapping the whole photo.
             continue
-    if "sofa" in masks and "cushions" in masks:
-        masks["sofa"] = _subtract_cushions(masks["sofa"],
-                                           masks["cushions"])
+    for seat in SEAT_TYPES:
+        if seat in masks and "cushions" in masks:
+            masks[seat] = _subtract_cushions(masks[seat],
+                                             masks["cushions"])
     return masks
 
 

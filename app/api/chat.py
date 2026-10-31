@@ -368,8 +368,9 @@ def fabric_list(suitable_for: str = "", usage: str = "",
     upholstery/curtains. Ranked by the same catalog search.
     """
     from app.services import catalog as catalog_mod
-    flt = ([suitable_for] if suitable_for in ("sofa", "cushions",
-                                              "curtains") else None)
+    flt = ([suitable_for] if suitable_for in ("sofa", "armchair",
+                                              "cushions", "curtains")
+           else None)
     norm_usage = catalog_mod.normalize_usage(usage) if usage else None
     fabrics, _ = catalog_mod.search_catalog(
         usage=norm_usage, suitable_for=flt,
