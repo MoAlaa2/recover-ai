@@ -660,9 +660,12 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
     swap left them in the old fabric. The bare "cushions" concept
     segments every cushion (seat, back and throw pillows); the union is
     the upholstered sofa. With keep_pillows the throw pillows are cut
-    back out so a sofa-only swap leaves them alone; a chained sofa +
-    pillows swap keeps them in (the pillow layer lands on top and any
-    gap behind a narrower new pillow shows the new sofa fabric).
+    back out so the sofa swap leaves them alone. A chained sofa +
+    pillows swap keeps them out too: on a sofa result that repainted
+    the pillows in the sofa fabric SAM cannot tell a pillow from the
+    back cushion behind it, and the pillow mask swallows the cushion
+    corner (a ghost second pillow). The old pillow's fringe is covered
+    by dilating the pillow mask a little before the pillow edit.
     """
     from concurrent.futures import ThreadPoolExecutor
     concepts = [TARGET_CONCEPTS["sofa"], SOFA_CUSHIONS_CONCEPT,
@@ -822,7 +825,8 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
         if chained and job["target"] == "cushions":
             job["ctag"] = "%s-on-%s" % (rtag, by_target["sofa"]["code"])
         elif chained and job["target"] == "sofa":
-            job["ctag"] = "%s-under-pillows" % rtag
+            # v2: the sofa stage keeps the pillows out of its mask.
+            job["ctag"] = "%s-under-pillows2" % rtag
     for job in jobs:
         img_path, mask_path, meta_path = _cache_paths(
             out_dir, job["ctag"], job["target"], job["code"])
@@ -884,9 +888,14 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
             try:
                 step("segment")
                 if target == "sofa":
+                    # Always leave the throw pillows out, chained or
+                    # not: a sofa result that repaints the pillows in the
+                    # sofa fabric gives SAM nothing to separate them from
+                    # the back cushions, and the pillow mask then swallows
+                    # a cushion corner (the ghost second pillow).
                     records, mask = sofa_full_mask(
                         seg_bytes, (width, height), key, call_timeout(),
-                        keep_pillows=not job.get("chained"))
+                        keep_pillows=True)
                 else:
                     records = segment(seg_bytes, concept, key,
                                       timeout=call_timeout())
@@ -911,6 +920,11 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                         except (SwapError, sam_codec.MaskError):
                             mask2 = None
                         if mask2 is not None and mask2.getbbox():
+                            # The old pillow keeps its photo pixels on the
+                            # sofa result; a little dilation lets the edit
+                            # cover its fringe too.
+                            k = max(3, int(max(width, height) * 0.008) | 1)
+                            mask2 = mask2.filter(ImageFilter.MaxFilter(k))
                             records, mask = rec2, mask2
                 if job.get("sofa_mask") is not None:
                     union_mask = ImageChops.lighter(job["sofa_mask"], mask)

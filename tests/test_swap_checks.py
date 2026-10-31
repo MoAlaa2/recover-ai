@@ -165,9 +165,14 @@ def test_single_swap_passes_when_colour_matches(tmp_path, room,
 def test_multi_colour_fail_is_honest_skip(tmp_path, room, monkeypatch):
     mean_rgb, _ = swatch_mean("FA-AC-01")
     monkeypatch.setattr(s, "require_api_key", lambda: "k")
-    monkeypatch.setattr(s, "segment", lambda *a, **k: [
-        {"box": (8, 8, 40, 40), "frame_size": (64, 48)}])
+
+    rec = [{"box": (8, 8, 40, 40), "frame_size": (64, 48)}]
+    monkeypatch.setattr(s, "segment", lambda *a, **k: list(rec))
     monkeypatch.setattr(s, "sam_mask", lambda records, size: box_mask(size))
+    # The sofa stage would cut the (same-box) pillows out of its mask;
+    # fake it so the sofa keeps the box and the pillow job is judged.
+    monkeypatch.setattr(s, "sofa_full_mask",
+                        lambda *a, **k: (list(rec), box_mask((64, 48))))
 
     def fake_edit(room_bytes, swatch_bytes, fabric, concept, key=None,
                   corrective=None, timeout=300):

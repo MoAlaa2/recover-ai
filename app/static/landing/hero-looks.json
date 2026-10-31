@@ -21,8 +21,8 @@
       "scale": 10,
       "isolation": 10
      },
-     "delta_e": 9.9,
-     "coverage": 0.914
+     "delta_e": 10.2,
+     "coverage": 0.902
     },
     {
      "target": "cushions",
@@ -40,8 +40,8 @@
       "scale": 10,
       "isolation": 10
      },
-     "delta_e": 10.0,
-     "coverage": 0.952
+     "delta_e": 11.2,
+     "coverage": 0.91
     }
    ],
    "qc": [
@@ -70,8 +70,8 @@
       "scale": 9,
       "isolation": 10
      },
-     "delta_e": 6.3,
-     "coverage": 0.988
+     "delta_e": 7.0,
+     "coverage": 0.978
     },
     {
      "target": "cushions",
@@ -89,8 +89,8 @@
       "scale": 9,
       "isolation": 10
      },
-     "delta_e": 7.3,
-     "coverage": 0.944
+     "delta_e": 8.1,
+     "coverage": 0.937
     }
    ],
    "qc": [

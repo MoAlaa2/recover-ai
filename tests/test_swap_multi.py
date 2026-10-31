@@ -465,8 +465,12 @@ def test_chained_pillows_edit_on_sofa_result_and_land_on_top(tmp_path,
     assert seen["edit_inputs"][pillow_concept] != original
     sofa_result = Image.open(io.BytesIO(seen["edit_inputs"][pillow_concept]))
     assert sofa_result.getpixel((50, 40))[0] < 90, "sofa already recoloured"
-    # Residue search for the pillows spans sofa ∪ pillow.
-    assert seen["residue_masks"][pillow_box] == sofa_box
+    # Residue search for the pillows spans sofa ∪ pillow (the pillow
+    # mask is dilated a little, so match the key by containment).
+    pillow_keys = [k for k in seen["residue_masks"]
+                   if k != sofa_box and k[0] <= pillow_box[0]
+                   and k[2] >= pillow_box[2]]
+    assert pillow_keys and seen["residue_masks"][pillow_keys[0]] == sofa_box
     final = Image.open(os.path.join(os.getcwd(), res["final_url"]))
     assert final.getpixel((20, 20))[0] > 150, "pillow on top"
     assert final.getpixel((50, 40))[0] < 90, "sofa fabric around it"
