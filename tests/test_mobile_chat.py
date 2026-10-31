@@ -527,8 +527,14 @@ def test_multi_assign_flow(server, page):
     assert "Send to upholsterer" in card
     assert "Copy summary" in card
     assert "EPD NEPD-1805-759" in card
-    page.click("#sheetClose")
+    # The sheet closes by itself when the summary lands, so the Send /
+    # Copy / PDF actions are on screen without tapping the X.
     page.wait_for_timeout(400)
+    assert not page.evaluate(
+        "document.body.classList.contains('sheet-open')"), \
+        "sheet must close when the summary card posts"
+    assert page.is_visible("#messages .sum-card .sum-actions a")
+    assert page.is_visible("#messages .sum-card .sum-pdf")
     page.click("#messages .sum-copy")
     page.wait_for_timeout(500)
     assert "Copied" in (page.text_content("#messages .sum-copy") or "")
@@ -614,6 +620,10 @@ def test_multi_assign_flow_ar(server, page):
     assert "https://wa.me/?text=" in card
     assert "أرسل للمنجّد" in card
     assert "EPD NEPD-1805-759" in card
+    page.wait_for_timeout(400)
+    assert not page.evaluate(
+        "document.body.classList.contains('sheet-open')")
+    assert page.is_visible("#messages .sum-card .sum-actions a")
     box = page.evaluate("() => ({sw: document.documentElement.scrollWidth,"
                         " cw: document.documentElement.clientWidth})")
     assert box["sw"] == box["cw"]

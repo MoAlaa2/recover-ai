@@ -205,8 +205,20 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
     shot("recs")
     assert overflow() == 0
 
+
+    def settle_auto_preview():
+        # The app auto-previews the top pick after recs; let that swap
+        # finish and close it so taps reach the chat cards beneath.
+        if pg.evaluate("() => !document.getElementById('swapModal')"
+                       ".hidden"):
+            pg.wait_for_selector("#swapResult:not([hidden])",
+                                 timeout=300000)
+            pg.click("#swapClose")
+            pg.wait_for_timeout(500)
+
     if try_single:
         t2 = time.perf_counter()
+        settle_auto_preview()
         # A stray open sheet (fixed overlay) would cover the chat card
         # button for real taps too; close it before trying.
         if pg.evaluate("() => document.body.classList.contains("
@@ -228,6 +240,7 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
         pg.wait_for_timeout(500)
 
     if want_multi:
+        settle_auto_preview()
         if not desktop:
             pg.click("#roomView")
         try:

@@ -2073,6 +2073,13 @@
       renderStrip();
     });
     postSummaryCard(results, res.skipped || []).then(function () {
+      // On phones the full-screen sheet (canvas + browse) would hide
+      // the summary card and its Send / PDF actions: bring the chat
+      // back so the result is seen without hunting for the X.
+      if (isNarrow() && document.body.classList.contains("sheet-open")) {
+        closeSheet();
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
       var last = state.swaps[results[results.length - 1].code];
       if (last) {
         if (!last.meta) {
