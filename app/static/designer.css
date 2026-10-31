@@ -214,4 +214,7 @@ body.ar .dz-box .dz-handle { right: auto; left: -8px; cursor: nesw-resize; }
   .dz-modal { max-width: none; }
 }
 
+.dz-list .dz-browse { margin: 2px 0 6px; }
+.dz-layout { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dz-moved { font-size: var(--rc-fs-xs); color: var(--rc-ink-muted); }
 .designer-page [hidden] { display: none !important; }

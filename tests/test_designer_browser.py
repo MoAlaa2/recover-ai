@@ -94,7 +94,8 @@ def fake_render(route):
            "checks": [{"id": p["id"], "name": p["name"], "code": p["code"],
                        "ok": True, "delta_e": 3.0}
                       for p in pieces if p.get("code")],
-           "attempts": 1, "ok": True, "quote": quote}
+           "attempts": 1, "ok": True, "quote": quote,
+           "layout": {"score": 9, "moved": []}}
     sse = "".join("data: %s\n\n" % json.dumps(e) for e in (
         {"type": "step", "label": "edit"}, {"type": "step", "label": "check"},
         {"type": "done", "result": res}))
@@ -173,6 +174,14 @@ def _run(p, server, device, lang):
     page.click("[data-pick='3']")
     page.wait_for_selector("#dzBrowse [data-apply]", timeout=20000)
     out["browse_cards"] = page.locator("#dzBrowse .browse-card").count()
+    # The picker opens right under the piece's row, not further down.
+    out["browse_under_row"] = page.evaluate(
+        "document.querySelector('[data-row=\"3\"]').nextElementSibling"
+        ".id === 'dzBrowse'")
+    page.wait_for_timeout(300)
+    out["browse_visible"] = page.evaluate("""() => {
+      const r = document.getElementById('dzBrowse').getBoundingClientRect();
+      return r.top >= 0 && r.top < window.innerHeight; }""")
     page.click("#dzBrowse [data-apply]")
     out["render_enabled"] = not page.is_disabled("#dzRender")
     out["fab_label"] = page.inner_text("[data-pick='3']")
@@ -218,6 +227,7 @@ def test_designer_desktop_en(server):
     assert b1b[2] > b1[2] and b1b[3] > b1[3] and b1b[:2] == b1[:2]
     assert out["render_disabled"] and out["render_enabled"]
     assert out["browse_cards"] >= 12 and out["fab_label"]
+    assert out["browse_under_row"] and out["browse_visible"]
     assert out["legend"] == 2
     assert out["scale"].lower() == "concept render — not to scale"
     assert "16.5 m" in out["quote"] and "Total" in out["quote"]
@@ -242,6 +252,7 @@ def test_designer_iphone_ar(server):
     b1, b1b = out["resize"]
     assert b1b[2] > b1[2] and b1b[3] > b1[3], "touch resize"
     assert out["render_enabled"] and out["legend"] == 2
+    assert out["browse_under_row"] and out["browse_visible"]
     assert out["scale"] == "تصور مبدئي — ليس بمقياس الرسم"
     assert "١٦.٥ م" in out["quote"] and "الإجمالي" in out["quote"]
     assert out["pdf_head"] == b"%PDF-"

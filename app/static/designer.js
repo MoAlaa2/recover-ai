@@ -18,7 +18,7 @@
       renderBtn: "Render concept",
       renderHint: "muse-image-1.0 · about 30 seconds · colour-checked per piece",
       rendering: "Rendering your concept…",
-      stepEdit: "Painting the fabrics", stepCheck: "Checking each piece",
+      stepEdit: "Painting the fabrics", stepCheck: "Checking pieces and layout",
       stepRetry: "Refining the colours",
       notToScale: "Concept render — not to scale",
       preparedBy: "Prepared by (optional)",
@@ -33,6 +33,7 @@
       uploadFail: "Could not read that plan.",
       renderFail: "Sorry, the render failed. Try again.",
       checkOk: "colour ✓", checkBad: "colour ✗",
+      layoutBadge: "Layout match %d/10 · Spark", layoutMoved: "Spark noticed:",
       totalLabel: "Total", preliminaryNote: "Preliminary estimate — your upholsterer will measure.",
       co2Line: "By keeping these pieces you avoid ≈%d kg CO₂e of new manufacturing and ≈%d kg of furniture waste",
       co2Source: "Source: EPD NEPD-1805-759",
@@ -55,7 +56,7 @@
       renderBtn: "ولّد التصور",
       renderHint: "muse-image-1.0 · نحو ٣٠ ثانية · فحص لون لكل قطعة",
       rendering: "نجهّز التصور…",
-      stepEdit: "نكسو القطع بالقماش", stepCheck: "نفحص كل قطعة",
+      stepEdit: "نكسو القطع بالقماش", stepCheck: "نفحص القطع والتوزيع",
       stepRetry: "نضبط الألوان",
       notToScale: "تصور مبدئي — ليس بمقياس الرسم",
       preparedBy: "إعداد (اختياري)",
@@ -70,6 +71,7 @@
       uploadFail: "تعذّر قراءة هذا المخطط.",
       renderFail: "عذرًا، فشل التصور. حاول مرة أخرى.",
       checkOk: "اللون ✓", checkBad: "اللون ✗",
+      layoutBadge: "تطابق التوزيع %d/10 · Spark", layoutMoved: "لاحظ Spark:",
       totalLabel: "الإجمالي", preliminaryNote: "تقدير مبدئي — المقاس النهائي من المنجّد.",
       co2Line: "باحفاظك على هذه القطع تتجنّب ≈%d كغ CO₂e من التصنيع الجديد و≈%d كغ من نفايات الأثاث",
       co2Source: "المصدر: EPD NEPD-1805-759",
@@ -342,7 +344,19 @@
         '<button type="button" class="dz-del" data-del="' + p.id +
         '" aria-label="' + esc(t("removed")) + '">×</button></div>';
     }).join("");
+    placeBrowse();
     updateRenderBtn();
+  }
+
+  function placeBrowse() {
+    // The picker sits right under the piece it is for (not in the
+    // Fabrics step further down), so a tap visibly opens something.
+    var panel = $("dzBrowse");
+    if (!panel || state.browseFor === null) return;
+    var row = document.querySelector('[data-row="' + state.browseFor + '"]');
+    if (row && row.nextElementSibling !== panel) {
+      row.insertAdjacentElement("afterend", panel);
+    }
   }
 
   function updateRenderBtn() {
@@ -359,6 +373,7 @@
     renderBoxes();
     var panel = $("dzBrowse");
     panel.hidden = false;
+    placeBrowse();
     var piece = state.pieces.filter(function (p) { return p.id === id; })[0];
     panel.innerHTML = '<div class="browse-head"><b>' + esc(t("browseTitle")) +
       " · " + num(id, 0) + " " + esc(piece ? piece.name : "") +
@@ -370,6 +385,7 @@
       panel.hidden = true;
       state.browseFor = null;
     });
+    try { panel.scrollIntoView({ block: "nearest" }); } catch (e) {}
     // Same catalog and filter as the consult browse panel: every plan
     // piece is upholstery, so the sofa-suitable set applies.
     fetch("/api/fabrics?suitable_for=sofa&usage=upholstery&limit=24")
@@ -546,6 +562,13 @@
           esc(t("co2Line").replace("%d", num(q.co2.kg)).replace("%d", num(q.co2.waste_kg))) +
           ' <span class="co2-src">' + esc(t("co2Source")) + "</span></div></div>";
       }
+    }
+    if (res.layout && res.layout.score !== undefined && res.layout.score !== null) {
+      html += '<div class="dz-layout"><span class="match-badge small">' +
+        esc(t("layoutBadge").replace("%d", num(res.layout.score, 0))) + "</span>" +
+        ((res.layout.moved || []).length ?
+          ' <span class="dz-moved" dir="auto">' + esc(t("layoutMoved")) + " " +
+          esc(res.layout.moved.join(" · ")) + "</span>" : "") + "</div>";
     }
     $("dzQuote").innerHTML = html;
     icons();

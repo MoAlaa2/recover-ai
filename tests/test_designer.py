@@ -141,6 +141,17 @@ def test_check_piece_passes_matching_colour_and_fails_wrong():
     assert dz.check_piece(render, [100, 100, 300, 250], swatch)["ok"]
     purple = Image.new("RGB", (400, 300), (120, 20, 160))
     assert not dz.check_piece(purple, [100, 100, 300, 250], swatch)["ok"]
+    # An L-shaped sectional: fabric on the left column and top row of
+    # its box, floor elsewhere -> still passes (5 of 9 cells).
+    lshape = Image.new("RGB", (400, 300), (120, 120, 120))
+    lshape.paste(mean, (100, 100, 170, 250))
+    lshape.paste(mean, (100, 100, 300, 150))
+    res = dz.check_piece(lshape, [100, 100, 300, 250], swatch)
+    assert res["ok"] and res["cells"] >= 5
+    # Only one corner painted -> not the piece's fabric.
+    corner = Image.new("RGB", (400, 300), (120, 120, 120))
+    corner.paste(mean, (100, 100, 150, 140))
+    assert not dz.check_piece(corner, [100, 100, 300, 250], swatch)["ok"]
 
 
 # --- plan import ----------------------------------------------------------
@@ -206,6 +217,8 @@ def test_render_checks_each_piece_and_retries_once(tmp_path, monkeypatch):
     bad = [(sofa, (130, 20, 160)), (chair, _swatch_mean("FA-NL-03"))]
     fake, calls = _fake_edit([bad, good])
     monkeypatch.setattr(dz, "_edit", fake)
+    monkeypatch.setattr(dz, "layout_check", lambda *a, **k: {"score": 9,
+                                                              "moved": []})
     steps = []
     res = dz.render(plan, pieces, api_key="k", out_dir=str(tmp_path),
                     on_step=steps.append)
@@ -226,9 +239,57 @@ def test_render_keeps_the_better_attempt_when_both_fail(tmp_path,
                "code": "FA-AC-01"}]
     fake, calls = _fake_edit([[(sofa, (130, 20, 160))]])
     monkeypatch.setattr(dz, "_edit", fake)
+    monkeypatch.setattr(dz, "layout_check", lambda *a, **k: {"score": None,
+                                                              "moved": []})
     res = dz.render(plan, pieces, api_key="k", out_dir=str(tmp_path))
     assert calls["n"] == 2 and not res["ok"]
     assert res["checks"][0]["ok"] is False
+
+
+def test_render_retries_when_spark_says_the_layout_moved(tmp_path,
+                                                          monkeypatch):
+    """Colours pass but the bed and bath moved: one corrective retry that
+    names what moved; the higher layout score wins."""
+    plan = plan_png(None)
+    sofa = [300, 420, 700, 520]
+    pieces = [{"id": 1, "name": "sofa", "type": "sofa-3-seat", "box": sofa,
+               "code": "FA-AC-01"}]
+    fake, calls = _fake_edit([[(sofa, _swatch_mean("FA-AC-01"))]])
+    monkeypatch.setattr(dz, "_edit", fake)
+    scores = iter([{"score": 4, "moved": ["bed moved to the right wall",
+                                          "bath flipped"]},
+                   {"score": 9, "moved": []}])
+    monkeypatch.setattr(dz, "layout_check", lambda *a, **k: next(scores))
+    res = dz.render(plan, pieces, api_key="k", out_dir=str(tmp_path))
+    assert calls["n"] == 2 and res["attempts"] == 2 and res["ok"]
+    assert "bed moved to the right wall" in calls["prompts"][1]
+    assert "back exactly where the plan draws it" in calls["prompts"][1]
+    assert res["layout"] == {"score": 9, "moved": []}
+
+
+def test_render_keeps_better_layout_when_both_drift(tmp_path, monkeypatch):
+    plan = plan_png(None)
+    sofa = [300, 420, 700, 520]
+    pieces = [{"id": 1, "name": "sofa", "type": "sofa-3-seat", "box": sofa,
+               "code": "FA-AC-01"}]
+    fake, calls = _fake_edit([[(sofa, _swatch_mean("FA-AC-01"))]])
+    monkeypatch.setattr(dz, "_edit", fake)
+    scores = iter([{"score": 6, "moved": ["bed"]}, {"score": 3, "moved": ["all"]}])
+    monkeypatch.setattr(dz, "layout_check", lambda *a, **k: next(scores))
+    res = dz.render(plan, pieces, api_key="k", out_dir=str(tmp_path))
+    assert res["attempts"] == 2 and res["layout"]["score"] == 6
+
+
+def test_parse_layout_and_prompt_template_wording():
+    assert dz.parse_layout('ok {"score": 11, "moved": ["bed", "", 3]}') == \
+        {"score": 10, "moved": ["bed", "3"]}
+    assert dz.parse_layout("nope") == {"score": None, "moved": []}
+    assert dz.parse_layout('{"score": "x", "moved": "bed"}') == \
+        {"score": None, "moved": []}
+    text = dz.build_prompt([({"name_en": "A", "material": "m",
+                              "primary_color": "c"}, ["sofa 1"], 3)],
+                           (2000, 1200))
+    assert "precise template" in text and "move nothing" in text
 
 
 def test_render_needs_an_assignment():
@@ -302,6 +363,8 @@ def test_pieces_and_render_stream_endpoints(client, monkeypatch):
     sofa["code"] = "FA-AC-01"
     fake, calls = _fake_edit([[(sofa["box"], _swatch_mean("FA-AC-01"))]])
     monkeypatch.setattr(dz, "_edit", fake)
+    monkeypatch.setattr(dz, "layout_check", lambda *a, **k: {"score": 8,
+                                                              "moved": []})
     monkeypatch.setattr(dz, "require_api_key", lambda: "k")
     with c.stream("POST", "/api/designer/render/stream",
                   json={"image_path": path, "pieces": pieces}) as s:
@@ -311,6 +374,7 @@ def test_pieces_and_render_stream_endpoints(client, monkeypatch):
     assert types[-1] == "done" and "step" in types
     res = events[-1]["result"]
     assert res["ok"] and res["attempts"] == 1
+    assert res["layout"]["score"] == 8
     assert res["quote"]["items"][0]["code"] == "FA-AC-01"
     assert res["plan_url"] == path
     # No assignment at all -> 400, not a stream.
