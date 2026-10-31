@@ -21,8 +21,8 @@
       "scale": 10,
       "isolation": 10
      },
-     "delta_e": 8.8,
-     "coverage": 0.943
+     "delta_e": 9.9,
+     "coverage": 0.914
     },
     {
      "target": "cushions",
@@ -40,7 +40,7 @@
       "scale": 10,
       "isolation": 10
      },
-     "delta_e": 11.0,
+     "delta_e": 10.0,
      "coverage": 0.952
     }
    ],
@@ -70,8 +70,8 @@
       "scale": 9,
       "isolation": 10
      },
-     "delta_e": 5.8,
-     "coverage": 0.986
+     "delta_e": 6.3,
+     "coverage": 0.988
     },
     {
      "target": "cushions",
@@ -89,7 +89,7 @@
       "scale": 9,
       "isolation": 10
      },
-     "delta_e": 7.8,
+     "delta_e": 7.3,
      "coverage": 0.944
     }
    ],
@@ -105,22 +105,22 @@
    "items": [
     {
      "target": "sofa",
-     "code": "FA-NL-04",
-     "name_en": "Sand Ceremony",
-     "name_ar": "رمال الربع",
-     "image": "data/catalog/FA-NL-04.jpg",
-     "material": "cotton chenille",
-     "price_sar_per_m": 135,
+     "code": "FA-VL-04",
+     "name_en": "Midnight Sapphire",
+     "name_ar": "ياقوت الليل",
+     "image": "data/catalog/FA-VL-04.jpg",
+     "material": "cotton velvet",
+     "price_sar_per_m": 225,
      "label_en": null,
      "label_ar": null,
      "scores": {
       "color": 9,
       "pattern": 10,
-      "scale": 9,
+      "scale": 10,
       "isolation": 10
      },
-     "delta_e": 1.8,
-     "coverage": 0.978
+     "delta_e": 7.9,
+     "coverage": 1.0
     },
     {
      "target": "cushions",
@@ -134,21 +134,21 @@
      "label_ar": "الوسادة اليسرى",
      "scores": {
       "color": 9,
-      "pattern": 6,
-      "scale": 8,
+      "pattern": 8,
+      "scale": 9,
       "isolation": 10
      },
-     "delta_e": 6.4,
-     "coverage": 0.904
+     "delta_e": 6.1,
+     "coverage": 0.912
     },
     {
      "target": "cushions",
-     "code": "FA-AC-06",
-     "name_en": "Peacock Velvet",
-     "name_ar": "مخمل الطاووس",
-     "image": "data/catalog/FA-AC-06.jpg",
+     "code": "FA-AC-04",
+     "name_en": "Clay Velvet",
+     "name_ar": "مخمل الطين",
+     "image": "data/catalog/FA-AC-04.jpg",
      "material": "cotton velvet",
-     "price_sar_per_m": 102,
+     "price_sar_per_m": 88,
      "label_en": "Middle cushion",
      "label_ar": "الوسادة الوسطى",
      "scores": {
@@ -157,27 +157,27 @@
       "scale": 10,
       "isolation": 10
      },
-     "delta_e": 7.5,
-     "coverage": 0.928
+     "delta_e": 2.1,
+     "coverage": 1.0
     },
     {
      "target": "cushions",
-     "code": "FA-AC-02",
-     "name_en": "Fig Velvet",
-     "name_ar": "مخمل التين",
-     "image": "data/catalog/FA-AC-02.jpg",
-     "material": "cotton velvet",
-     "price_sar_per_m": 98,
+     "code": "FA-AC-03",
+     "name_en": "Linen Oat",
+     "name_ar": "شوفان الكتان",
+     "image": "data/catalog/FA-AC-03.jpg",
+     "material": "linen canvas",
+     "price_sar_per_m": 65,
      "label_en": "Right cushion",
      "label_ar": "الوسادة اليمنى",
      "scores": {
       "color": 9,
       "pattern": 10,
-      "scale": 10,
+      "scale": 9,
       "isolation": 10
      },
-     "delta_e": 7.1,
-     "coverage": 0.994
+     "delta_e": 7.9,
+     "coverage": 0.897
     }
    ],
    "qc": [

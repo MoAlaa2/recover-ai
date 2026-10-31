@@ -30,8 +30,11 @@ QC = os.path.join(BASE_DIR, "storyboard/hero_qc")
 LOOKS = {
     "warm": {"sofa": "FA-AC-01", "cushions": "FA-AC-08"},
     "calm": {"sofa": "FA-AC-05", "cushions": "FA-AC-03"},
-    "mix": {"sofa": "FA-NL-04",
-            "pillows": ["FA-AC-13", "FA-AC-06", "FA-AC-02"]},
+    # Midnight Sapphire: the chunky Sand Ceremony chenille rendered as an
+    # oversized basket weave; a plain velvet lets the three pillows carry
+    # the mix (geometric print, clay, oat).
+    "mix": {"sofa": "FA-VL-04",
+            "pillows": ["FA-AC-13", "FA-AC-04", "FA-AC-03"]},
 }
 
 
