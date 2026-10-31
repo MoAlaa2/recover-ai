@@ -213,6 +213,8 @@ def test_single_swap_composites_only_inside_the_mask(tmp_path, monkeypatch):
     monkeypatch.setattr(s, "sofa_full_mask",
                         lambda *a, **k: ([{"box": item, "frame_size": size}],
                                          _box(size, item)))
+    # No occluders in this photo (the refinement pass finds no gap).
+    monkeypatch.setattr(s, "segment", lambda *a, **k: [])
     # The edit paints the WHOLE image in the new colour (as if the model
     # recoloured the wood and the wall too).
     monkeypatch.setattr(s, "edit_room", lambda *a, **k: solid(want, size))
@@ -247,3 +249,63 @@ def test_plain_fabric_ignores_spark_pattern_score():
     assert s.needs_retry(ok, low, {"plain_or_patterned": "patterned"})
     assert s.needs_retry(ok, {"color": 9, "pattern": 0, "scale": 4,
                               "isolation": 9}, {"plain_or_patterned": "plain"})
+
+
+def test_gap_mask_fills_concavities_not_occluders():
+    """The notch a throw cuts into the seat mask is a candidate sliver;
+    the throw itself (an occluder) and the open room are not."""
+    size = (200, 200)
+    seat = _box(size, (40, 40, 160, 160))
+    seat.paste(0, (90, 40, 110, 100))          # notch under a "throw"
+    throw = _box(size, (92, 40, 108, 70))       # the throw covers its top
+    gap = s.gap_mask(seat, throw, close_frac=0.2, ring_frac=0.0)
+    assert gap.getpixel((100, 90)) == 255, "seat strip below the throw"
+    assert gap.getpixel((100, 50)) == 0, "the throw itself is excluded"
+    assert gap.getpixel((20, 20)) == 0 and gap.getpixel((100, 180)) == 0
+    assert s.mask_share(gap, seat) > 0.01
+
+
+def test_single_swap_refines_the_sliver_past_an_occluder(tmp_path,
+                                                         monkeypatch):
+    """SAM's seat mask has a notch where a throw sits; the strict
+    composite leaves that strip in the old colour and the second, aimed
+    edit recolours it (and only it)."""
+    from app.services.catalog import get_fabric
+    fabric = get_fabric("FA-AC-01")
+    swatch = Image.open(os.path.join(os.getcwd(), fabric["image"]))
+    want = swatch.convert("RGB").resize((1, 1), Image.BOX).getpixel((0, 0))
+    size = (200, 200)
+    room = tmp_path / "room.jpg"
+    solid((120, 120, 120), size).save(str(room))
+    seat = _box(size, (40, 40, 160, 160))
+    seat.paste(0, (90, 40, 110, 100))                  # notch
+    monkeypatch.setattr(s, "require_api_key", lambda: "k")
+    throw = _box(size, (92, 40, 108, 70))             # covers the notch top
+
+    def fake_segment(img, concept, key=None, timeout=1):
+        if concept in ("armchair", "throw blanket"):
+            return [{"concept": concept, "box": (0, 0, 1, 1),
+                     "frame_size": size}]
+        return []
+    monkeypatch.setattr(s, "segment", fake_segment)
+    monkeypatch.setattr(s, "sam_mask", lambda records, sz: (
+        seat if records[0]["concept"] == "armchair" else throw))
+    monkeypatch.setattr(s, "REFINE_CLOSE_FRAC", 0.2)
+    # Both edits paint the whole frame in the new colour.
+    monkeypatch.setattr(s, "edit_room", lambda *a, **k: solid(want, size))
+    monkeypatch.setattr(s, "verify", lambda *a, **k: {
+        "color": 9, "pattern": 9, "scale": 9, "isolation": 9})
+    res = s.swap(str(room), "FA-AC-01", "armchair", out_dir=str(tmp_path))
+    assert res["checks"]["ok"] and res["checks"].get("refined", 0) > 0.01
+    out = Image.open(os.path.join(os.getcwd(), res["result_url"])).convert(
+        "RGB")
+    strip = out.getpixel((100, 90))
+    assert all(abs(a - b) <= 12 for a, b in zip(strip, want)), (
+        "notch recoloured", strip)
+    wall = out.getpixel((10, 10))
+    assert all(abs(c - 120) <= 3 for c in wall), ("room untouched", wall)
+    # The throw sits inside the seat's notch, within the first pass's
+    # 6px feather, so it carries a faint tint; it must not be recoloured.
+    throw_px = out.getpixel((100, 50))
+    assert max(abs(a - b) for a, b in zip(throw_px, want)) > 40, (
+        "throw not recoloured", throw_px, want)

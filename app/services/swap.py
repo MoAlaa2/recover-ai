@@ -423,6 +423,119 @@ def paste_mask(original, edited, box, margin=0.04, feather=6):
     return mask.filter(ImageFilter.GaussianBlur(feather))
 
 
+# ---- hidden-sliver refinement ------------------------------------------
+# SAM's seat mask stops at whatever sits in front of the seat (a throw,
+# a side table, pillows), so the strips of seat visible just past those
+# objects kept the OLD fabric after a strict composite. A second, aimed
+# edit recolours only those strips.
+SEAT_CONCEPTS = ("sofa", "armchair")
+OCCLUDER_CONCEPTS = ("throw blanket", "side table", "coffee table",
+                     "throw pillows")
+REFINE_CLOSE_FRAC = 0.06   # closing kernel, share of the longer side
+REFINE_RING_FRAC = 0.008   # hairline past the mask edge (SAM erosion)
+REFINE_MIN_GAP = 0.01      # refine only when the gap is >= 1% of the seat
+REFINE_MIN_BUDGET_S = 30   # seconds left in the swap budget to try it
+REFINE_EDIT_TIMEOUT = 40   # the aimed edit is capped tighter than a pass
+REFINE_WORK_SIDE = 800     # morphology works on a copy this big
+REFINE_TEXT = ("the %s is already reupholstered in the new fabric except "
+               "small leftover patches of its OLD fabric: the strips just "
+               "past the objects in front of it (a throw, a table, "
+               "pillows) and along its lower edge. Recolour ONLY those "
+               "leftover patches in the same new fabric so the whole %s "
+               "matches; keep the throw, the table, the pillows, the "
+               "floor and everything else exactly as they are")
+
+
+def occluder_mask(seg_bytes, size, key, timeout=MODEL_TIMEOUT):
+    """Union of the masks of things usually in front of a seat.
+
+    The concepts are segmented in parallel; a missing one, a failed
+    call or a mask over half the photo (a mis-segmentation) is skipped.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    def one(concept):
+        try:
+            records = segment(seg_bytes, concept, key, timeout=timeout)
+            if not records:
+                return None
+            mask = sam_mask(records, size)
+            if sum(mask.histogram()[128:]) > 0.5 * size[0] * size[1]:
+                return None
+            return mask
+        except Exception:  # noqa: BLE001 - best effort
+            return None
+    out = Image.new("L", size, 0)
+    with ThreadPoolExecutor(max_workers=len(OCCLUDER_CONCEPTS)) as pool:
+        for mask in pool.map(one, OCCLUDER_CONCEPTS):
+            if mask is not None:
+                out = ImageChops.lighter(out, mask)
+    return out
+
+
+def gap_mask(mask, occluders, close_frac=None, ring_frac=None):
+    """Candidate hidden slivers: the seat's concavities and a thin ring
+    past its edge, minus the occluders themselves."""
+    if close_frac is None:
+        close_frac = REFINE_CLOSE_FRAC
+    if ring_frac is None:
+        ring_frac = REFINE_RING_FRAC
+    full = mask.convert("L")
+    # Morphology runs on a small copy: a closing kernel of 6% of a
+    # 2700px photo is 165px wide and takes minutes at full size.
+    mask = full.copy()
+    mask.thumbnail((REFINE_WORK_SIDE, REFINE_WORK_SIDE), Image.BILINEAR)
+    mask = mask.point(lambda v: 255 if v >= 128 else 0)
+    width, height = mask.size
+    close_k = max(3, int(max(width, height) * close_frac) | 1)
+    ring_k = int(max(width, height) * ring_frac) | 1
+    closed = mask.filter(ImageFilter.MaxFilter(close_k)).filter(
+        ImageFilter.MinFilter(close_k))
+    ring = mask.filter(ImageFilter.MaxFilter(ring_k)) if ring_k > 1 else mask
+    gap = ImageChops.subtract(ImageChops.lighter(closed, ring), mask)
+    if occluders is not None:
+        occ = occluders.convert("L").resize(mask.size, Image.BILINEAR)
+        occ = occ.point(lambda v: 255 if v >= 128 else 0)
+        gap = ImageChops.subtract(gap, occ.filter(ImageFilter.MaxFilter(3)))
+    gap = gap.resize(full.size, Image.BILINEAR).point(
+        lambda v: 255 if v >= 128 else 0)
+    # Drop single-pixel specks at full size (the slivers between a
+    # stool's legs are only a few pixels wide, so no coarser opening).
+    return gap.filter(ImageFilter.MinFilter(3)).filter(
+        ImageFilter.MaxFilter(3))
+
+
+def mask_share(part, whole):
+    """Area of part as a share of whole (both L masks)."""
+    base = sum(whole.histogram()[128:]) or 1
+    return sum(part.histogram()[128:]) / float(base)
+
+
+def refine_slivers(result, gap, swatch_bytes, fabric, concept, key,
+                   timeout=MODEL_TIMEOUT):
+    """Second aimed edit on the composite; pasted only inside gap where
+    the model actually changed something. Returns (image, pasted mask)
+    or None when the model changed nothing there."""
+    width, height = result.size
+    small = result.copy()
+    small.thumbnail((1600, 1600), Image.LANCZOS)
+    buf = io.BytesIO()
+    small.save(buf, "JPEG", quality=92)
+    edited = edit_room(buf.getvalue(), swatch_bytes, fabric, concept, key,
+                       REFINE_TEXT % (concept, concept),
+                       timeout=timeout).resize((width, height),
+                                               Image.BILINEAR)
+    diff = np.abs(np.asarray(result).astype(int)
+                  - np.asarray(edited).astype(int)).max(axis=2)
+    changed = Image.fromarray((diff > 20).astype(np.uint8) * 255)
+    changed = changed.filter(ImageFilter.MinFilter(3)).filter(
+        ImageFilter.MaxFilter(3))
+    pasted = ImageChops.multiply(gap.convert("L"), changed)
+    if sum(pasted.histogram()[128:]) < 0.1 * (sum(gap.histogram()[128:]) or 1):
+        return None
+    return paste_strict(result, edited, pasted, feather=3), pasted
+
+
 def paste_strict(original, edited, mask, feather=6):
     """Composite edited onto original strictly inside mask (feathered).
 
@@ -608,6 +721,36 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
             break
     if not best["checks"]["ok"]:
         raise CheckFailed(best["checks"]["fail"], best["checks"], target)
+
+    # Seats: recolour the slivers hidden past a throw, a table or the
+    # pillows that the strict mask left in the old fabric. Best effort,
+    # inside the remaining budget; the refined result must still pass
+    # the deterministic checks or the first composite is kept.
+    if concept in SEAT_CONCEPTS and \
+            t_end - time.monotonic() >= REFINE_MIN_BUDGET_S:
+        try:
+            step("retry")
+            occluders = occluder_mask(seg_bytes, (width, height), key,
+                                      timeout=call_timeout())
+            gap = gap_mask(raw_mask, occluders)
+            if mask_share(gap, raw_mask) >= REFINE_MIN_GAP:
+                refined = refine_slivers(best["result"], gap, swatch_bytes,
+                                         fabric, concept, key,
+                                         timeout=min(REFINE_EDIT_TIMEOUT,
+                                                     call_timeout()))
+                if refined is not None:
+                    image2, pasted = refined
+                    checks2 = swap_checks.run_checks(
+                        room, image2, raw_mask, swatch_bytes, pieces=False)
+                    checks2.pop("_mask", None)
+                    if checks2.get("ok"):
+                        checks2["refined"] = round(
+                            mask_share(pasted, raw_mask), 4)
+                        best = dict(best, result=image2, checks=checks2,
+                                    mask=ImageChops.lighter(
+                                        best["mask"].convert("L"), pasted))
+        except Exception as exc:  # noqa: BLE001 - never fails a swap
+            best["checks"]["refine_error"] = str(exc)[:160]
 
     result_name = "swap-%s.jpg" % tag
     mask_name = "swapmask-%s.png" % tag
