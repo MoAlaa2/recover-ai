@@ -24,7 +24,9 @@ PIECES = {"pieces": [
     {"id": 2, "name": "right chair", "type": "armchair",
      "box": [800, 200, 890, 290]},
     {"id": 3, "name": "sofa", "type": "sofa-3-seat",
-     "box": [300, 420, 700, 520]}],
+     "box": [300, 420, 700, 520]},
+    {"id": 4, "name": "corner sofa", "type": "sofa-corner",
+     "box": [720, 60, 960, 180]}],
     "width": 1000, "height": 600, "seconds": 1.0}
 
 
@@ -33,7 +35,7 @@ def plan_bytes():
     d = ImageDraw.Draw(img)
     d.rectangle([20, 20, 980, 580], outline=0, width=6)
     for box in ([300, 420, 700, 520], [100, 200, 190, 290],
-                [800, 200, 890, 290]):
+                [800, 200, 890, 290], [720, 60, 960, 180]):
         d.rectangle(box, outline=0, width=3)
     buf = io.BytesIO()
     img.save(buf, "PNG")
@@ -185,15 +187,26 @@ def _run(p, server, device, lang):
     page.click("#dzBrowse [data-apply]")
     out["render_enabled"] = not page.is_disabled("#dzRender")
     out["fab_label"] = page.inner_text("[data-pick='3']")
-    # A second pick must open the picker again (the first pick's list
-    # re-render used to destroy the panel).
-    page.click("[data-pick='1']")
-    page.wait_for_selector("#dzBrowse [data-apply]", timeout=20000)
-    out["second_under_row"] = page.evaluate(
-        "document.querySelector('[data-row=\"1\"]').nextElementSibling"
-        ".id === 'dzBrowse'")
-    page.click("#dzBrowse [data-apply] >> nth=1")
-    out["fab_label_2"] = page.inner_text("[data-pick='1']")
+    code_of = lambda pid: page.evaluate(  # noqa: E731
+        "RCDesigner.state.pieces.filter(p => p.id === %d)[0].code" % pid)
+    out["code_3_first"] = code_of(3)
+    # Every later pick must open the picker again (the first pick's
+    # list re-render used to destroy the panel): two more pieces, then
+    # change the first piece's fabric.
+    def pick(pid, nth):
+        page.click("[data-pick='%s']" % pid)
+        page.wait_for_selector("#dzBrowse [data-apply]", timeout=20000)
+        under = page.evaluate(
+            "id => document.querySelector('[data-row=\"' + id + '\"]')"
+            ".nextElementSibling.id === 'dzBrowse'", str(pid))
+        page.click("#dzBrowse [data-apply] >> nth=%d" % nth)
+        return under, page.inner_text("[data-pick='%s']" % pid)
+    out["pick_1"] = pick(1, 1)
+    out["pick_4"] = pick(4, 2)
+    out["pick_3_again"] = pick(3, 3)
+    out["codes"] = page.evaluate(
+        "RCDesigner.state.pieces.map(p => p.code)")
+    out["code_3_final"] = code_of(3)
     # Render -> result view.
     page.click("#dzRender")
     page.wait_for_selector("#dzResult:not([hidden])", timeout=20000)
@@ -226,19 +239,23 @@ def test_designer_desktop_en(server):
                 pytest.skip("WebKit not available")
             raise
     assert out["errors"] == []
-    assert out["dir"] == "ltr" and out["boxes"] == 3
-    assert out["status"] == "3 piece(s) found · Spark"
+    assert out["dir"] == "ltr" and out["boxes"] == 4
+    assert out["status"] == "4 piece(s) found · Spark"
     assert out["empty_hidden"] and not out["overflow"]
-    assert out["after_delete"] == 2
+    assert out["after_delete"] == 3
     before, after = out["drag"]
     assert after[0] > before[0] + 30 and after[1] == before[1]
     b1, b1b = out["resize"]
     assert b1b[2] > b1[2] and b1b[3] > b1[3] and b1b[:2] == b1[:2]
     assert out["render_disabled"] and out["render_enabled"]
     assert out["browse_cards"] >= 12 and out["fab_label"]
-    assert out["second_under_row"] and out["fab_label_2"]
+    for key in ("pick_1", "pick_4", "pick_3_again"):
+        assert out[key][0] and out[key][1], key
+    assert len(out["codes"]) == 3 and all(out["codes"])
+    assert out["code_3_first"] and out["code_3_final"] \
+        and out["code_3_final"] != out["code_3_first"], "re-pick must stick"
     assert out["browse_under_row"] and out["browse_visible"]
-    assert out["legend"] == 2
+    assert out["legend"] == 3
     assert out["scale"].lower() == "concept render — not to scale"
     assert "16.5 m" in out["quote"] and "Total" in out["quote"]
     assert out["slider"].startswith("/uploads/")
@@ -255,14 +272,16 @@ def test_designer_iphone_ar(server):
             pytest.skip("WebKit not available")
         out = _run(p, server, device, "ar")
     assert out["errors"] == []
-    assert out["dir"] == "rtl" and out["boxes"] == 3
-    assert out["status"] == "وجدنا ٣ قطعة · Spark"
+    assert out["dir"] == "rtl" and out["boxes"] == 4
+    assert out["status"] == "وجدنا ٤ قطعة · Spark"
     assert out["empty_hidden"] and not out["overflow"]
-    assert out["after_delete"] == 2
+    assert out["after_delete"] == 3
     b1, b1b = out["resize"]
     assert b1b[2] > b1[2] and b1b[3] > b1[3], "touch resize"
-    assert out["render_enabled"] and out["legend"] == 2
-    assert out["second_under_row"] and out["fab_label_2"]
+    assert out["render_enabled"] and out["legend"] == 3
+    for key in ("pick_1", "pick_4", "pick_3_again"):
+        assert out[key][0] and out[key][1], key
+    assert len(out["codes"]) == 3 and all(out["codes"])
     assert out["browse_under_row"] and out["browse_visible"]
     assert out["scale"] == "تصور مبدئي — ليس بمقياس الرسم"
     assert "١٦.٥ م" in out["quote"] and "الإجمالي" in out["quote"]
