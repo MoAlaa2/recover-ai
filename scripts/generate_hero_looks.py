@@ -296,6 +296,9 @@ def main(argv):
             failures += 1
             print("%s FAILED: %s" % (look, exc), flush=True)
     data["looks"] = [by_id[k] for k in LOOKS if k in by_id]
+    # Cache-buster: the image file names never change, so browsers kept
+    # showing stale renders after a regeneration.
+    data["v"] = int(time.time())
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=1)
     shutil.rmtree(WORK, ignore_errors=True)

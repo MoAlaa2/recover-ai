@@ -21,8 +21,8 @@
       "scale": 10,
       "isolation": 10
      },
-     "delta_e": 10.1,
-     "coverage": 0.926
+     "delta_e": 9.9,
+     "coverage": 0.921
     },
     {
      "target": "cushions",
@@ -40,8 +40,8 @@
       "scale": 10,
       "isolation": 10
      },
-     "delta_e": 10.9,
-     "coverage": 0.906
+     "delta_e": 11.3,
+     "coverage": 0.902
     }
    ],
    "qc": [
@@ -187,5 +187,6 @@
     "storyboard/hero_qc/mix-sofa.jpg"
    ]
   }
- ]
+ ],
+ "v": 1793472232
 }

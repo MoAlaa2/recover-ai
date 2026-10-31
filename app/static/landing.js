@@ -80,6 +80,12 @@
     return words[item.target] || item.target;
   }
 
+  // File names never change between regenerations; the version from
+  // hero-looks.json keeps browsers from showing a cached old render.
+  function lookUrl(path) {
+    return path + (LOOKS && LOOKS.v ? "?v=" + LOOKS.v : "");
+  }
+
   function minScore(scores) {
     var vals = ["color", "pattern", "scale", "isolation"].map(function (k) {
       return (scores || {})[k] || 0;
@@ -112,7 +118,7 @@
     LOOKS.looks.forEach(function (lk) { if (lk.id === currentLook) look = lk; });
     if (!look) look = LOOKS.looks[0];
     var after = document.getElementById("heroAfter");
-    if (after && after.getAttribute("src") !== look.image) {
+    if (after && after.getAttribute("src") !== lookUrl(look.image)) {
       var ba = document.getElementById("heroBa");
       var onBtn = pills.querySelector('[data-look="' + look.id + '"]');
       if (ba) ba.classList.add("loading");
@@ -121,7 +127,7 @@
         if (ba) ba.classList.remove("loading");
         if (onBtn) onBtn.classList.remove("loading");
       };
-      after.src = look.image;
+      after.src = lookUrl(look.image);
       if (after.complete && after.naturalWidth) after.onload();
     }
     cap.innerHTML = (look.items || []).map(function (it) {
@@ -161,10 +167,12 @@
         if (!data || !data.looks || !data.looks.length) throw new Error("empty");
         LOOKS = data;
         currentLook = data.looks[0].id;
+        var before = document.getElementById("heroBefore");
+        if (before && data.before) before.src = lookUrl(data.before);
         renderLooks();
         // Warm the other renders so switching looks is instant.
         data.looks.forEach(function (lk) {
-          if (lk.image) { var im = new Image(); im.src = lk.image; }
+          if (lk.image) { var im = new Image(); im.src = lookUrl(lk.image); }
         });
       })
       .catch(function () { loadFallbackCaption(); });
