@@ -483,3 +483,46 @@ def test_pillow_prompt_forbids_duplicates():
     assert "exactly ONE pillow" in text
     assert "duplicate" in text
     assert "duplicate" not in s.edit_prompt(get_fabric("FA-AC-01"), "sofa")
+
+
+def test_multi_refines_seat_slivers_past_a_throw(tmp_path, monkeypatch):
+    """Apply all: a sofa whose SAM mask has a notch under a throw gets
+    the second aimed edit; the strip is recoloured in the item and in
+    the final composite, the throw is not."""
+    size = (200, 200)
+    room = tmp_path / "room.jpg"
+    solid((120, 120, 120), size).save(str(room))
+    seat = Image.new("L", size, 0)
+    seat.paste(255, (40, 40, 160, 160))
+    seat.paste(0, (90, 40, 110, 100))                   # notch
+    throw = Image.new("L", size, 0)
+    throw.paste(255, (92, 40, 108, 70))
+
+    def fake_segment(room_bytes, concept, key=None, timeout=120):
+        if concept in ("sofa", "throw blanket"):
+            return [{"concept": concept, "box": (40, 40, 160, 160),
+                     "frame_size": size}]
+        return []
+    monkeypatch.setattr(s, "segment", fake_segment)
+    monkeypatch.setattr(s, "sam_mask", lambda records, sz: (
+        seat if records[0]["concept"] == "sofa" else throw))
+    monkeypatch.setattr(s, "sofa_full_mask",
+                        lambda *a, **k: ([{"concept": "sofa",
+                                           "box": (40, 40, 160, 160)}],
+                                         seat))
+    monkeypatch.setattr(s, "REFINE_CLOSE_FRAC", 0.2)
+    monkeypatch.setattr(s, "edit_room",
+                        lambda *a, **k: solid((20, 60, 140), size))
+    monkeypatch.setattr(s, "verify", lambda *a, **k: {
+        "color": 9, "pattern": 9, "scale": 9, "isolation": 9})
+    res = s.swap_multi(str(room), [{"target": "sofa", "code": "FA-AC-01"}],
+                       api_key="k", out_dir=str(tmp_path / "out"))
+    sofa = res["results"][0]
+    assert sofa["checks"].get("refined", 0) > 0.01, sofa["checks"]
+    final = Image.open(os.path.join(os.getcwd(), res["final_url"])).convert(
+        "RGB")
+    assert max(abs(a - b) for a, b in zip(final.getpixel((100, 90)),
+                                          (20, 60, 140))) <= 12
+    assert max(abs(a - b) for a, b in zip(final.getpixel((100, 50)),
+                                          (20, 60, 140))) > 40
+    assert all(abs(c - 120) <= 3 for c in final.getpixel((10, 10)))

@@ -536,6 +536,44 @@ def refine_slivers(result, gap, swatch_bytes, fabric, concept, key,
     return paste_strict(result, edited, pasted, feather=3), pasted
 
 
+def refine_seat(best, room, raw_mask, seg_bytes, swatch_bytes, fabric,
+                concept, key, remaining_s, timeout, check_kwargs=None):
+    """Apply the hidden-sliver pass to a passing seat candidate.
+
+    Returns the (possibly) updated candidate dict. Never raises: a
+    failure is recorded under checks["refine_error"] and the first
+    composite is kept, as it is when the refined one fails the checks
+    or the budget is short.
+    """
+    if concept not in SEAT_CONCEPTS or remaining_s < REFINE_MIN_BUDGET_S:
+        return best
+    try:
+        size = room.size
+        occluders = occluder_mask(seg_bytes, size, key, timeout=timeout)
+        gap = gap_mask(raw_mask, occluders)
+        if mask_share(gap, raw_mask) < REFINE_MIN_GAP:
+            return best
+        refined = refine_slivers(best["result"], gap, swatch_bytes, fabric,
+                                 concept, key,
+                                 timeout=min(REFINE_EDIT_TIMEOUT, timeout))
+        if refined is None:
+            return best
+        image2, pasted = refined
+        checks2 = swap_checks.run_checks(room, image2, raw_mask,
+                                         swatch_bytes, pieces=False,
+                                         **(check_kwargs or {}))
+        checks2.pop("_mask", None)
+        if not checks2.get("ok"):
+            return best
+        checks2["refined"] = round(mask_share(pasted, raw_mask), 4)
+        return dict(best, result=image2, checks=checks2,
+                    mask=ImageChops.lighter(best["mask"].convert("L"),
+                                            pasted))
+    except Exception as exc:  # noqa: BLE001 - never fails a swap
+        best["checks"]["refine_error"] = str(exc)[:160]
+        return best
+
+
 def paste_strict(original, edited, mask, feather=6):
     """Composite edited onto original strictly inside mask (feathered).
 
@@ -723,34 +761,13 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
         raise CheckFailed(best["checks"]["fail"], best["checks"], target)
 
     # Seats: recolour the slivers hidden past a throw, a table or the
-    # pillows that the strict mask left in the old fabric. Best effort,
-    # inside the remaining budget; the refined result must still pass
-    # the deterministic checks or the first composite is kept.
-    if concept in SEAT_CONCEPTS and \
-            t_end - time.monotonic() >= REFINE_MIN_BUDGET_S:
-        try:
-            step("retry")
-            occluders = occluder_mask(seg_bytes, (width, height), key,
-                                      timeout=call_timeout())
-            gap = gap_mask(raw_mask, occluders)
-            if mask_share(gap, raw_mask) >= REFINE_MIN_GAP:
-                refined = refine_slivers(best["result"], gap, swatch_bytes,
-                                         fabric, concept, key,
-                                         timeout=min(REFINE_EDIT_TIMEOUT,
-                                                     call_timeout()))
-                if refined is not None:
-                    image2, pasted = refined
-                    checks2 = swap_checks.run_checks(
-                        room, image2, raw_mask, swatch_bytes, pieces=False)
-                    checks2.pop("_mask", None)
-                    if checks2.get("ok"):
-                        checks2["refined"] = round(
-                            mask_share(pasted, raw_mask), 4)
-                        best = dict(best, result=image2, checks=checks2,
-                                    mask=ImageChops.lighter(
-                                        best["mask"].convert("L"), pasted))
-        except Exception as exc:  # noqa: BLE001 - never fails a swap
-            best["checks"]["refine_error"] = str(exc)[:160]
+    # pillows that the strict mask left in the old fabric (best effort,
+    # inside the remaining budget, must still pass the checks).
+    if concept in SEAT_CONCEPTS:
+        step("retry")
+        best = refine_seat(best, room, raw_mask, seg_bytes, swatch_bytes,
+                           fabric, concept, key,
+                           t_end - time.monotonic(), call_timeout())
 
     result_name = "swap-%s.jpg" % tag
     mask_name = "swapmask-%s.png" % tag
@@ -906,7 +923,7 @@ def _union_of(records, size):
 
 # Bump when mask semantics change: stale on-disk items (garbage
 # full-frame masks) must be recomputed, never composited again.
-MASK_CACHE_VERSION = 4
+MASK_CACHE_VERSION = 5
 
 
 def swap_multi(room_path, assignments, api_key=None, out_dir=None,
@@ -1137,6 +1154,16 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
             return (None,
                     {"target": target, "code": code,
                      "reason": last_err}, None, None, -1)
+        if concept in SEAT_CONCEPTS:
+            step("retry")
+            best = refine_seat(
+                best, room, best["mask"], seg_bytes, swatch_bytes, fabric,
+                concept, key, t_end - clock(), call_timeout(),
+                check_kwargs={"base": Image.open(io.BytesIO(
+                    base_bytes)).convert("RGB"),
+                              "residue_mask": union_mask,
+                              "extra_swatches": job.get(
+                                  "extra_swatches") or ()})
         best["result"].save(img_path, "JPEG", quality=90)
         best["mask"].save(mask_path)
         with open(meta_path, "w", encoding="utf-8") as f:
