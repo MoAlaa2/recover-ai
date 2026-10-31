@@ -83,7 +83,7 @@ a { color: inherit; }
   gap: 48px;
   align-items: start;
 }
-.lp-hero-copy { padding-top: 72px; }
+.lp-hero-copy { padding-top: 8px; }
 .lp-eyebrow span {
   display: inline-block;
   border: var(--rc-stitch);
