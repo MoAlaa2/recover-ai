@@ -70,7 +70,14 @@ _FONTS = {}
 def _font(arabic, size, bold=False):
     key = (arabic, size, bold)
     if key not in _FONTS:
-        f = ImageFont.truetype(FONT_ARABIC if arabic else FONT_LATIN, size)
+        # Always the basic layout engine: with libraqm present (the
+        # Modal image) Pillow would shape and reorder the Arabic a
+        # second time on top of arabic_reshaper + bidi, which broke the
+        # joins and reversed the words in the deployed PDF.
+        layout = getattr(getattr(ImageFont, "Layout", None), "BASIC",
+                         getattr(ImageFont, "LAYOUT_BASIC", 0))
+        f = ImageFont.truetype(FONT_ARABIC if arabic else FONT_LATIN, size,
+                               layout_engine=layout)
         if bold:
             try:
                 f.set_variation_by_name("Bold")
