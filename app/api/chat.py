@@ -565,7 +565,9 @@ def landing_meta():
     from app.services import catalog as catalog_mod
     total = passed = 0
     try:
-        with open("data/eval_report.json", encoding="utf-8") as f:
+        from app.core.config import BASE_DIR
+        with open(os.path.join(BASE_DIR, "data", "eval_report.json"),
+                  encoding="utf-8") as f:
             report = json.load(f)
         for sc in report.get("scenarios", []):
             total += 1

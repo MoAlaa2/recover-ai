@@ -67,6 +67,12 @@ a { color: inherit; }
 .lp-btn-line { border-color: var(--rc-indigo); color: var(--rc-indigo); }
 .lp-btn-saffron { background: var(--rc-saffron); color: #23180a; }
 .lp-try-icon { display: none; }
+.lp-head-right .lp-btn {
+  box-sizing: border-box;
+  min-height: 38px;
+  padding: 6px 16px;
+  font-size: var(--rc-fs-sm);
+}
 
 .lp-hero {
   max-width: 1200px;
@@ -75,8 +81,9 @@ a { color: inherit; }
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 48px;
-  align-items: center;
+  align-items: start;
 }
+.lp-hero-copy { padding-top: 72px; }
 .lp-eyebrow span {
   display: inline-block;
   border: var(--rc-stitch);
@@ -102,6 +109,18 @@ a { color: inherit; }
 .lp-facts li { display: inline-flex; align-items: center; gap: 6px; }
 .lp-facts svg { width: 18px; height: 18px; color: var(--rc-ok); }
 
+.lp-hero-pro {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  font-size: var(--rc-fs-sm);
+  font-weight: 600;
+  color: var(--rc-indigo);
+  text-decoration: none;
+}
+.lp-hero-pro svg { width: 16px; height: 16px; }
+.lp-hero-pro:hover { text-decoration: underline; }
 .lp-hero-visual { min-width: 0; }
 .lp-ba {
   position: relative;
@@ -195,6 +214,8 @@ a { color: inherit; }
   white-space: nowrap;
 }
 .lp-look:hover { border-color: var(--rc-indigo); }
+.lp-look.loading { opacity: 0.6; cursor: progress; }
+.lp-ba.loading .lp-ba-after { filter: saturate(0.6); transition: filter 0.2s; }
 .lp-look.on {
   background: var(--rc-indigo);
   border-color: var(--rc-indigo);
@@ -334,6 +355,48 @@ a { color: inherit; }
   font-weight: 600;
 }
 
+.lp-tools {
+  border-top: 1px solid var(--rc-line);
+  border-bottom: 1px solid var(--rc-line);
+  padding: 14px 0;
+  overflow: hidden;
+}
+.lp-tools-in { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; gap: 20px; }
+.lp-tools-label {
+  flex: 0 0 auto;
+  font-size: var(--rc-fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--rc-ink-muted);
+  white-space: nowrap;
+}
+.lp-marquee { flex: 1 1 auto; min-width: 0; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+.lp-marquee-track { display: flex; gap: 12px; width: max-content; animation: lp-marquee 32s linear infinite; }
+.lp-marquee:hover .lp-marquee-track { animation-play-state: paused; }
+.lp-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--rc-line);
+  border-radius: var(--rc-r-pill);
+  padding: 8px 14px;
+  background: var(--rc-paper);
+  white-space: nowrap;
+  font-size: var(--rc-fs-sm);
+}
+.lp-tool svg { width: 16px; height: 16px; color: var(--rc-indigo); }
+.lp-tool .lp-mono { font-size: var(--rc-fs-xs); }
+.lp-tool small { color: var(--rc-ink-muted); font-size: var(--rc-fs-xs); }
+@keyframes lp-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+[dir="rtl"] .lp-marquee-track { animation-name: lp-marquee-rtl; }
+@keyframes lp-marquee-rtl { from { transform: translateX(0); } to { transform: translateX(50%); } }
+@media (prefers-reduced-motion: reduce) {
+  .lp-marquee-track { animation: none; flex-wrap: wrap; width: auto; }
+  .lp-marquee-track .lp-tool-dup { display: none; }
+}
+@media (max-width: 719px) { .lp-tools-label { display: none; } }
+
 .lp-pros {
   max-width: 1200px;
   margin: 0 auto;
@@ -375,10 +438,12 @@ a { color: inherit; }
   font-size: var(--rc-fs-sm);
 }
 .lp-foot p { margin: 4px 0; }
+.lp-foot-by { color: var(--rc-ink); font-weight: 600; }
 
 @media (max-width: 900px) {
   .lp-nav { display: none; }
   .lp-hero { grid-template-columns: 1fr; gap: 32px; }
+  .lp-hero-copy { padding-top: 0; }
   .lp-stats { grid-template-columns: 1fr 1fr; }
   .lp-how { grid-template-columns: 1fr; }
   .lp-models { grid-template-columns: 1fr 1fr; }
@@ -390,11 +455,13 @@ a { color: inherit; }
   .lp-try-full { display: none; }
   .lp-try-icon {
     display: inline-flex;
-    min-width: 44px;
-    min-height: 44px;
-    padding: 8px 12px;
+    box-sizing: border-box;
+    min-width: 38px;
+    min-height: 38px;
+    padding: 6px 10px;
     justify-content: center;
   }
+  .lp-try-icon svg { width: 18px; height: 18px; }
   .lp-cta-row { flex-direction: column; align-items: stretch; }
   .lp-cta-row .lp-btn {
     width: 100%;

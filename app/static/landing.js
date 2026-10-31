@@ -113,7 +113,16 @@
     if (!look) look = LOOKS.looks[0];
     var after = document.getElementById("heroAfter");
     if (after && after.getAttribute("src") !== look.image) {
+      var ba = document.getElementById("heroBa");
+      var onBtn = pills.querySelector('[data-look="' + look.id + '"]');
+      if (ba) ba.classList.add("loading");
+      if (onBtn) onBtn.classList.add("loading");
+      after.onload = after.onerror = function () {
+        if (ba) ba.classList.remove("loading");
+        if (onBtn) onBtn.classList.remove("loading");
+      };
       after.src = look.image;
+      if (after.complete && after.naturalWidth) after.onload();
     }
     cap.innerHTML = (look.items || []).map(function (it) {
       var name = lang === "ar" ? it.name_ar : it.name_en;
@@ -153,6 +162,10 @@
         LOOKS = data;
         currentLook = data.looks[0].id;
         renderLooks();
+        // Warm the other renders so switching looks is instant.
+        data.looks.forEach(function (lk) {
+          if (lk.image) { var im = new Image(); im.src = lk.image; }
+        });
       })
       .catch(function () { loadFallbackCaption(); });
   }
@@ -188,9 +201,14 @@
         return r.json();
       })
       .then(function (m) {
+        var n = function (v) {
+          v = String(v);
+          return lang === "ar" ? v.replace(/\d/g, function (d) {
+            return "٠١٢٣٤٥٦٧٨٩"[+d]; }) : v;
+        };
         document.getElementById("metEval").textContent =
-          t("metEval").replace("%d", m.eval_pass)
-            .replace("%d", m.eval_total);
+          t("metEval").replace("%d", n(m.eval_pass))
+            .replace("%d", n(m.eval_total));
       })
       .catch(function () {
         document.getElementById("metEval").textContent = "";
