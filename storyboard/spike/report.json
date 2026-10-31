@@ -1,0 +1,132 @@
+{
+ "attempts": [
+  {
+   "tag": "attempt1",
+   "dark_cad": false,
+   "spark_secs": 11.7,
+   "spark_raw": "{\"pieces\": [{\"name\": \"chair-1\", \"box\": [180, 311, 272, 417]}, {\"name\": \"chair-2\", \"box\": [776, 311, 868, 417]}, {\"name\": \"sofa\", \"box\": [360, 524, 691, 619]}]}",
+   "pieces_found": {
+    "chair-1": {
+     "box": [
+      180,
+      311,
+      272,
+      417
+     ],
+     "matches": "armchair-1",
+     "iou": 0.42
+    },
+    "chair-2": {
+     "box": [
+      776,
+      311,
+      868,
+      417
+     ],
+     "matches": "armchair-2",
+     "iou": 0.27
+    },
+    "sofa": {
+     "box": [
+      360,
+      524,
+      691,
+      619
+     ],
+     "matches": "sofa",
+     "iou": 0.78
+    }
+   },
+   "fallback_boxes": [
+    "armchair-2"
+   ],
+   "edit_secs": 27.3,
+   "error": null,
+   "prompt": "Image 1 is a 2D floor plan of a living room, black lines on white. Produce a photorealistic TOP-DOWN (bird's-eye, straight down) render of this exact room, as if photographed from the ceiling in soft daylight. Keep the plan's proportions and the position and size of every piece exactly as drawn. Furnish ONLY what is drawn: one three-seat sofa, two armchairs, one rug, one coffee table. Exact counts, no extra furniture, no plants, no people. Fabric 1 (Saffron Velvet, cotton velvet, saffron yellow) goes on the 1 piece(s) outlined in magenta in image 3: sofa. Fabric 2 (Olive Grove, cotton canvas, olive green) goes on the 2 piece(s) outlined in magenta in image 5: armchair-1, armchair-2. Walls plain white, floor light oak, plain floor at the cropped edges. The output must contain NO lines, outlines, marks, labels or text of any kind: the magenta outlines and labels are instructions only."
+  },
+  {
+   "tag": "attempt2",
+   "dark_cad": false,
+   "spark_secs": 7.7,
+   "spark_raw": "{\"pieces\": [{\"name\": \"sofa\", \"box\": [359, 524, 691, 620]}, {\"name\": \"chair-1\", \"box\": [178, 283, 271, 376]}, {\"name\": \"chair-2\", \"box\": [776, 283, 869, 376]}]}",
+   "pieces_found": {
+    "sofa": {
+     "box": [
+      359,
+      524,
+      691,
+      620
+     ],
+     "matches": "sofa",
+     "iou": 0.77
+    },
+    "chair-1": {
+     "box": [
+      178,
+      283,
+      271,
+      376
+     ],
+     "matches": "armchair-1",
+     "iou": 0.88
+    },
+    "chair-2": {
+     "box": [
+      776,
+      283,
+      869,
+      376
+     ],
+     "matches": "armchair-2",
+     "iou": 0.5
+    }
+   },
+   "fallback_boxes": [],
+   "edit_secs": 26.4,
+   "error": null,
+   "prompt": "Image 1 is a 2D floor plan of a living room, black lines on white. Produce a photorealistic TOP-DOWN (bird's-eye, straight down) render of this exact room, as if photographed from the ceiling in soft daylight. Keep the plan's proportions and the position and size of every piece exactly as drawn. Furnish ONLY what is drawn: one three-seat sofa, two armchairs, one rug, one coffee table. Exact counts, no extra furniture, no plants, no people. Fabric 1 (Saffron Velvet, cotton velvet, saffron yellow) goes on the 1 piece(s) outlined in magenta in image 3: sofa. Fabric 2 (Olive Grove, cotton canvas, olive green) goes on the 2 piece(s) outlined in magenta in image 5: armchair-1, armchair-2. Walls plain white, floor light oak, plain floor at the cropped edges. The output must contain NO lines, outlines, marks, labels or text of any kind: the magenta outlines and labels are instructions only."
+  },
+  {
+   "tag": "attempt3-cad",
+   "dark_cad": true,
+   "spark_secs": 6.0,
+   "spark_raw": "{\"pieces\": [{\"name\": \"chair-1\", \"box\": [179, 310, 271, 376]}, {\"name\": \"chair-2\", \"box\": [772, 310, 869, 376]}, {\"name\": \"sofa\", \"box\": [358, 525, 666, 624]}]}",
+   "pieces_found": {
+    "chair-1": {
+     "box": [
+      179,
+      310,
+      271,
+      376
+     ],
+     "matches": "armchair-1",
+     "iou": 0.62
+    },
+    "chair-2": {
+     "box": [
+      772,
+      310,
+      869,
+      376
+     ],
+     "matches": "armchair-2",
+     "iou": 0.39
+    },
+    "sofa": {
+     "box": [
+      358,
+      525,
+      666,
+      624
+     ],
+     "matches": "sofa",
+     "iou": 0.79
+    }
+   },
+   "fallback_boxes": [],
+   "edit_secs": 20.8,
+   "error": null,
+   "prompt": "Image 1 is a 2D floor plan of a living room, drawn as dark CAD linework. Produce a photorealistic TOP-DOWN (bird's-eye, straight down) render of this exact room, as if photographed from the ceiling in soft daylight. Keep the plan's proportions and the position and size of every piece exactly as drawn. Furnish ONLY what is drawn: one three-seat sofa, two armchairs, one rug, one coffee table. Exact counts, no extra furniture, no plants, no people. Fabric 1 (Saffron Velvet, cotton velvet, saffron yellow) goes on the 1 piece(s) outlined in magenta in image 3: sofa. Fabric 2 (Olive Grove, cotton canvas, olive green) goes on the 2 piece(s) outlined in magenta in image 5: armchair-1, armchair-2. Walls plain white, floor light oak, plain floor at the cropped edges. The output must contain NO lines, outlines, marks, labels or text of any kind: the magenta outlines and labels are instructions only."
+  }
+ ]
+}

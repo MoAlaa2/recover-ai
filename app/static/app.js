@@ -71,6 +71,10 @@
       crumbHome: "Home",
       crumbConsult: "Consultation",
       newConsult: "New consultation",
+      forDesigners: "For designers",
+      proposalPdf: "Client proposal (PDF)",
+      pdfBusy: "Preparing the PDF…",
+      pdfFail: "Could not build the PDF.",
       onlineNow: "Online · replies in your language",
       canvasEmpty: "Drop a photo of your sofa or chair",
       uploadPhoto: "Upload",
@@ -193,6 +197,10 @@
       crumbHome: "الرئيسية",
       crumbConsult: "استشارة",
       newConsult: "استشارة جديدة",
+      forDesigners: "للمصممين",
+      proposalPdf: "عرض للعميل (PDF)",
+      pdfBusy: "نجهّز ملف PDF…",
+      pdfFail: "تعذّر إنشاء الملف.",
       onlineNow: "متصل · أرد عليك بلغتك",
       canvasEmpty: "أسقط صورة كنبتك أو كرسيك",
       uploadPhoto: "ارفع",
@@ -299,6 +307,10 @@
       crumbHome: "होम",
       crumbConsult: "परामर्श",
       newConsult: "नया परामर्श",
+      forDesigners: "डिज़ाइनरों के लिए",
+      proposalPdf: "क्लाइंट प्रस्ताव (PDF)",
+      pdfBusy: "PDF तैयार हो रही है…",
+      pdfFail: "PDF नहीं बन सकी।",
       onlineNow: "ऑनलाइन · आपकी भाषा में जवाब",
       canvasEmpty: "अपने सोफ़े या कुर्सी की फ़ोटो डालें",
       uploadPhoto: "अपलोड",
@@ -403,6 +415,10 @@
       crumbHome: "Accueil",
       crumbConsult: "Consultation",
       newConsult: "Nouvelle consultation",
+      forDesigners: "Pour les designers",
+      proposalPdf: "Proposition client (PDF)",
+      pdfBusy: "Préparation du PDF…",
+      pdfFail: "Impossible de créer le PDF.",
       onlineNow: "En ligne · répond dans votre langue",
       canvasEmpty: "Déposez une photo de votre canapé ou fauteuil",
       uploadPhoto: "Envoyer",
@@ -507,6 +523,10 @@
       crumbHome: "Inicio",
       crumbConsult: "Consulta",
       newConsult: "Nueva consulta",
+      forDesigners: "Para diseñadores",
+      proposalPdf: "Propuesta para el cliente (PDF)",
+      pdfBusy: "Preparando el PDF…",
+      pdfFail: "No se pudo crear el PDF.",
       onlineNow: "En línea · responde en tu idioma",
       canvasEmpty: "Suelta una foto de tu sofá o sillón",
       uploadPhoto: "Subir",
@@ -1938,10 +1958,29 @@
                 esc(t("sendUpholsterer")) + "</span></a>" +
                 '<button type="button" class="ghost-btn sum-copy">' +
                 "<span>" + esc(t("copySummary")) +
+                "</span></button>" +
+                '<button type="button" class="ghost-btn sum-pdf">' +
+                "<span>" + esc(t("proposalPdf")) +
                 "</span></button></div>" : "") +
               "</div></div>";
             messagesEl.appendChild(div);
             messagesEl.scrollTop = messagesEl.scrollHeight;
+            var pdfBtn = div.querySelector(".sum-pdf");
+            if (pdfBtn) {
+              pdfBtn.addEventListener("click", function () {
+                var after = shareFrom || "";
+                var items = (quote && quote.items || []).map(function (it) {
+                  return { label: targetLabel(it.target), code: it.code,
+                           meters: it.meters, line_total: it.line_total };
+                });
+                downloadProposalPdf(pdfBtn, {
+                  lang: state.lang, mode: "photo",
+                  before_url: state.roomPhoto || "",
+                  after_url: after, items: items,
+                  total: quote ? quote.total : null,
+                  co2: (quote && quote.co2) || null });
+              });
+            }
             var copyBtn = div.querySelector(".sum-copy");
             if (copyBtn) {
               copyBtn.addEventListener("click", function () {
@@ -1966,6 +2005,36 @@
             icons();
           });
         });
+    });
+  }
+
+  function downloadProposalPdf(btn, body) {
+    // One A4 page (EN/AR) from /api/proposal/pdf; the blob download
+    // works on desktop and opens in a tab on iOS.
+    var span = btn.querySelector("span");
+    var label = span ? span.textContent : "";
+    if (span) span.textContent = t("pdfBusy");
+    btn.disabled = true;
+    fetch("/api/proposal/pdf", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      if (!r.ok) throw new Error("pdf");
+      return r.blob();
+    }).then(function (blob) {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "recover-proposal-" + state.lang + ".pdf";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+      if (span) span.textContent = label;
+      btn.disabled = false;
+    }).catch(function () {
+      if (span) span.textContent = t("pdfFail");
+      btn.disabled = false;
     });
   }
 

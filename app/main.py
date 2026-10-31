@@ -11,6 +11,8 @@ from app.api.whatsapp import router as whatsapp_router
 
 app = FastAPI(title="ReCover consultant API")
 app.include_router(router)
+from app.api.designer import router as designer_router  # noqa: E402
+app.include_router(designer_router)
 app.include_router(public_router)
 app.include_router(whatsapp_router)
 
@@ -22,8 +24,8 @@ STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 VERSION = str(int(time.time()))
 
 VERSIONED_ASSETS = ("app.js", "landing.js", "switcher.js", "strings.js",
-                    "styles.css", "landing.css", "switcher.css",
-                    "brand/brand.css")
+                    "designer.js", "styles.css", "landing.css",
+                    "switcher.css", "designer.css", "brand/brand.css")
 
 
 def _versioned_html(name):
@@ -48,6 +50,11 @@ def landing():
 @app.get("/consult", include_in_schema=False)
 def consult():
     return _page("index.html")
+
+
+@app.get("/designer", include_in_schema=False)
+def designer_page():
+    return _page("designer.html")
 def _is_public_upload_path(path):
     """Allow-list for the served /uploads mount.
 

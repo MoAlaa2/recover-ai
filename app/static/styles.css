@@ -271,6 +271,8 @@ img.avatar {
 }
 .consult-bar .crumb a { color: inherit; }
 .consult-bar .crumb b { color: var(--rc-ink); font-weight: 600; }
+.consult-bar #forDesigners { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; white-space: nowrap; }
+.consult-bar #forDesigners i, .consult-bar #forDesigners svg { width: 16px; height: 16px; }
 
 .ghost-btn {
   min-height: 44px;
@@ -538,6 +540,9 @@ img.avatar {
   .chat-pane { border-inline-start: none; border-top: 1px solid var(--rc-line); min-height: 70vh; }
   .consult-bar .crumb { display: none; }
   .consult-bar #newConsult { display: none; }
+  /* Icon-only designer link: the text would overflow a 360px bar. */
+  .consult-bar #forDesigners span { display: none; }
+  .consult-bar #forDesigners { padding-inline: 10px; }
 }
 
 @media (max-width: 719px) {

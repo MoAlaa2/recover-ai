@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ReCover — Designer mode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Figtree:wght@400;500;600&family=El+Messiri:wght@500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/brand/brand.css">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/switcher.css">
+<link rel="stylesheet" href="/designer.css">
+</head>
+<body class="consult-page designer-page">
+<header class="topbar consult-bar">
+  <a class="brand" dir="ltr" href="/" aria-label="ReCover home">
+    <img class="brand-logo logo-light" src="/brand/logo.svg" alt="ReCover" width="220" height="48">
+    <img class="brand-logo logo-dark" src="/brand/mark-reversed.svg" alt="ReCover" width="48" height="48">
+    <span class="wordmark">ReCover</span>
+  </a>
+  <nav class="crumb" aria-label="Breadcrumb">
+    <a href="/" data-i18n="crumbHome">Home</a>
+    <span aria-hidden="true">·</span>
+    <b data-i18n="crumbDesigner">Designer mode</b>
+  </nav>
+  <span id="switcherMount"></span>
+  <a id="toConsult" class="ghost-btn" href="/consult" data-i18n="toConsult">Consultation</a>
+</header>
+
+<main class="designer" id="designer">
+  <section class="dz-stage" aria-label="Floor plan">
+    <div id="dzEmpty" class="dz-empty">
+      <div id="dzDrop" class="dropzone" tabindex="0" role="button" aria-label="Upload a floor plan">
+        <i data-lucide="layout-template" aria-hidden="true"></i>
+        <span data-i18n="dropPlan">Drop a floor plan (PNG, JPG or PDF)</span>
+      </div>
+      <button id="dzUploadBtn" class="seeit" type="button"><i data-lucide="upload" aria-hidden="true"></i><span data-i18n="uploadPlan">Upload plan</span></button>
+      <input id="dzFile" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.pdf" hidden>
+      <p class="sample-label" data-i18n="planHint">Muse Spark finds the upholstered pieces; you fix the boxes, pick fabrics, and render a top-down concept.</p>
+    </div>
+    <div id="dzPlanWrap" class="dz-plan" hidden>
+      <img id="dzPlanImg" alt="Floor plan">
+      <div id="dzBoxes" class="dz-boxes"></div>
+    </div>
+    <p id="dzStatus" class="dz-status" hidden></p>
+  </section>
+
+  <aside class="dz-side" aria-label="Pieces and fabrics">
+    <div class="dz-step">
+      <div class="panel-title"><span class="dz-n">1</span><span data-i18n="stepPieces">Pieces</span></div>
+      <p class="dz-hint" data-i18n="dragHint">Drag a box to move it, pull its corner to resize, or remove a wrong piece.</p>
+      <div id="dzList" class="dz-list"></div>
+      <button id="dzRefind" class="ghost-btn" type="button" hidden data-i18n="refind">Find pieces again</button>
+    </div>
+    <div class="dz-step">
+      <div class="panel-title"><span class="dz-n">2</span><span data-i18n="stepFabrics">Fabrics</span></div>
+      <p class="dz-hint" data-i18n="fabricHint">Tap a piece's fabric to choose from the catalog.</p>
+      <div id="dzBrowse" class="browse-panel dz-browse" hidden></div>
+    </div>
+    <div class="dz-step">
+      <div class="panel-title"><span class="dz-n">3</span><span data-i18n="stepRender">Render</span></div>
+      <button id="dzRender" class="seeit dz-render" type="button" disabled><i data-lucide="wand-sparkles" aria-hidden="true"></i><span data-i18n="renderBtn">Render concept</span></button>
+      <p class="dz-hint" data-i18n="renderHint">muse-image-1.0 · about 30 seconds · colour-checked per piece</p>
+    </div>
+  </aside>
+</main>
+
+<div id="dzModal" class="modal" hidden>
+  <div class="modal-card dz-modal" role="dialog" aria-modal="true">
+    <div id="dzLoading" class="swap-loading">
+      <div class="spinner" aria-hidden="true"></div>
+      <div class="swap-title-row">
+        <i data-lucide="wand-sparkles" aria-hidden="true"></i>
+        <h3 data-i18n="rendering">Rendering your concept…</h3>
+      </div>
+      <ol id="dzSteps" class="steps">
+        <li data-i18n="stepEdit">Painting the fabrics</li>
+        <li data-i18n="stepCheck">Checking each piece</li>
+        <li id="dzRetryRow" data-i18n="stepRetry" hidden>Refining the colours</li>
+      </ol>
+      <p id="dzError" class="still" hidden></p>
+      <button id="dzErrClose" class="ghost-btn" type="button" hidden data-i18n="closeLabel">Close</button>
+    </div>
+    <div id="dzResult" class="swap-result" hidden>
+      <div class="ba" dir="ltr">
+        <img id="dzAfterImg" class="ba-after" alt="Concept render">
+        <div id="dzBefore" class="ba-before"><img id="dzBeforeImg" alt="Floor plan"></div>
+        <div id="dzHandle" class="ba-handle" aria-hidden="true"></div>
+        <input id="dzRange" class="ba-range" type="range" min="0" max="100" value="50" aria-label="Plan and render">
+      </div>
+      <p class="dz-scale" data-i18n="notToScale">Concept render — not to scale</p>
+      <div id="dzLegend" class="dz-legend"></div>
+      <div id="dzQuote" class="dz-quote"></div>
+      <div class="dz-prepared">
+        <label for="dzPreparedBy" data-i18n="preparedBy">Prepared by (optional)</label>
+        <input id="dzPreparedBy" type="text" maxlength="80" dir="auto">
+      </div>
+      <div class="ba-meta">
+        <a id="dzDownload" class="dl" download="recover-concept.jpg" data-i18n="downloadLabel">Download</a>
+        <button id="dzProposal" class="seeit" type="button"><i data-lucide="file-text" aria-hidden="true"></i><span data-i18n="proposalPdf">Client proposal (PDF)</span></button>
+        <button id="dzClose" type="button" data-i18n="closeLabel">Close</button>
+      </div>
+      <p id="dzPdfStatus" class="dz-hint" hidden></p>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="/strings.js"></script>
+<script src="/switcher.js"></script>
+<script src="/designer.js"></script>
+</body>
+</html>

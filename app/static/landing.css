@@ -407,3 +407,7 @@ a { color: inherit; }
   .lp-models { grid-template-columns: 1fr; }
   .lp-stat-n { font-size: 44px; }
 }
+
+.lp-pro-live { text-decoration: none; color: inherit; display: block; }
+.lp-pro-live:hover { border-color: var(--rc-saffron, #c49638); }
+.lp-live { background: #e8f3ec; color: #2f7d4f; }

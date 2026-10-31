@@ -43,7 +43,7 @@ class VolumeSyncMiddleware:
     """
 
     WRITE_PREFIXES = ("/api/upload", "/api/swap", "/api/session/",
-                      "/webhook/whatsapp")
+                      "/api/designer", "/webhook/whatsapp")
 
     def __init__(self, inner, volume, upload_dir=None, sync_tries=12,
                  sync_sleep=1.0):
@@ -79,7 +79,8 @@ class VolumeSyncMiddleware:
 
     IMAGE_BODY_PATHS = ("/api/chat", "/api/chat/stream", "/api/swap",
                         "/api/swap/stream", "/api/swap/multi",
-                        "/api/swap/multi/stream")
+                        "/api/swap/multi/stream", "/api/designer/pieces",
+                        "/api/designer/render/stream")
 
     def _image_disk_path(self, body):
         """Disk path of the uploads/ image a JSON body refers to."""
@@ -130,6 +131,10 @@ class VolumeSyncMiddleware:
             return path.startswith("/uploads/") or (
                 path.startswith("/api/session/")
                 and path.endswith("/targets"))
+        if method == "POST" and path == "/api/proposal/pdf":
+            # The proposal pastes uploads (photo, swap, plan, render)
+            # that other requests wrote.
+            return True
         if method == "POST" and path.startswith("/webhook/"):
             # WhatsApp sessions and media live on the volume.
             return True

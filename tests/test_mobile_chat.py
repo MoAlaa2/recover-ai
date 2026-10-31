@@ -821,6 +821,15 @@ def test_single_quote_posts_summary_card_and_actions(server, page):
     assert "Total" in card and "52" in card
     assert page.query_selector("#messages .sum-card .sum-actions a")
     assert page.query_selector("#messages .sum-card .sum-copy")
+    # Client proposal: one A4 PDF built by the real endpoint.
+    assert page.text_content("#messages .sum-card .sum-pdf").strip() == \
+        "Client proposal (PDF)"
+    with page.expect_download(timeout=30000) as dl:
+        page.click("#messages .sum-card .sum-pdf")
+    pdf_path = dl.value.path()
+    with open(pdf_path, "rb") as f:
+        assert f.read(5) == b"%PDF-"
+    assert dl.value.suggested_filename == "recover-proposal-en.pdf"
     chips = page.eval_on_selector_all(
         "#chips button", "els => els.map(e => e.textContent.trim())")
     assert chips == ["Send to upholsterer", "Try another fabric"], chips

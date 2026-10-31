@@ -8,3 +8,6 @@ httpx
 pillow
 pillow-heif
 numpy
+pypdfium2
+arabic-reshaper
+python-bidi
