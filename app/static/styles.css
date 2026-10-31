@@ -1326,8 +1326,10 @@ body.modal-open { overflow: hidden; }
 .item-thumb.sel .it-l { color: var(--rc-indigo); }
 .outline-msg .picker-slot .item-picker { padding: 6px 2px 8px; }
 
-/* Desktop swap dialog sits over the chat pane so the room photo stays
-   visible while the fabric is tailored. */
+/* Desktop: the swap dialog is moved into the canvas pane by app.js
+   (.inline) and takes the photo's place while it is open, so the
+   tailoring steps and the before/after live in the big work area,
+   not in a narrow card over the chat. */
 @media (min-width: 720px) {
   .modal {
     justify-content: flex-end;
@@ -1335,6 +1337,31 @@ body.modal-open { overflow: hidden; }
     padding: 18px 16px;
   }
   .modal-card { max-width: 520px; }
+  .canvas .modal.inline {
+    position: static;
+    inset: auto;
+    display: block;
+    background: none;
+    padding: 0;
+    z-index: auto;
+  }
+  .canvas .modal.inline[hidden] { display: none; }
+  .canvas .modal.inline .modal-card {
+    max-width: 760px;
+    max-height: none;
+    margin: 0 auto;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+    overflow: visible;
+  }
+  .canvas .modal.inline .swap-loading { padding: 48px 10px 56px; }
+  .canvas .modal.inline .ba img { max-height: 68vh; object-fit: contain; background: var(--rc-chalk); }
+  .canvas .modal.inline .ba-before img { object-fit: contain; }
+  .canvas .modal.inline:not([hidden]) ~ .canvas-photo { display: none; }
+  .canvas .modal.inline .swap-trace[hidden] { display: none; }
+  body.modal-open:has(.canvas .modal.inline:not([hidden])) { overflow: auto; }
 }
 .ol-tap span {
   position: absolute;

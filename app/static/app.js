@@ -3338,6 +3338,18 @@
   }
 
   function boot() {
+    // Desktop: the swap dialog is the work surface, so it lives inside
+    // the canvas pane (where the photo and the picks are) instead of a
+    // narrow card over the chat. Phones keep the full-screen sheet.
+    if (!isNarrow()) {
+      var modal = $("swapModal");
+      var wrap = $("canvasWrap");
+      var photo = $("canvasPhotoWrap");
+      if (modal && wrap && photo) {
+        modal.classList.add("inline");
+        wrap.insertBefore(modal, photo);
+      }
+    }
     messagesEl = $("messages");
     chipsEl = $("chips");
     recsEl = $("recs");
