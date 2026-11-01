@@ -2376,6 +2376,25 @@
       return;
     }
     if (resolvedTarget) state.selectedTarget = resolvedTarget;
+    // Building on a finished look: another piece already wears a
+    // fabric (sofa done, now the curtains), so this pick joins the
+    // assignments and every piece is rendered together from the
+    // original photo. The result is the previous look plus this
+    // piece, with no need to start over.
+    var others = Object.keys(state.assignments || {}).filter(function (k) {
+      return k !== resolvedTarget && state.assignments[k];
+    });
+    if (resolvedTarget && others.length && state.roomPhoto &&
+        !opts.review && !state.multiRunning) {
+      state.assignments[resolvedTarget] = code;
+      postJSON("/api/session/" + encodeURIComponent(state.sessionId) +
+               "/assignments", { target: resolvedTarget, code: code },
+               30000, 1).catch(function () {});
+      renderAssignRow();
+      renderOutlines();
+      runMultiSwap();
+      return;
+    }
     if (!state.roomPhoto) {
       if (isNarrow()) {
         openSheet();
@@ -2763,6 +2782,13 @@
     state.lastSwap = entry;
     state.pendingSwap = null;
     state.pendingSwapLabel = null;
+    if (entry.target && SWAP_TARGETS.indexOf(entry.target) >= 0) {
+      // A finished single swap is a pick too: the next piece builds
+      // on it (see tryFabric) instead of starting from the photo.
+      state.assignments = state.assignments || {};
+      state.assignments[entry.target] = code;
+      renderAssignRow();
+    }
     state.canvasView = "/" + (res.result_url || "").replace(/^\/+/, "");
     renderStrip();
     renderCanvas();

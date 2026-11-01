@@ -533,6 +533,9 @@ def refine_slivers(result, gap, swatch_bytes, fabric, concept, key,
     pasted = ImageChops.multiply(gap.convert("L"), changed)
     if sum(pasted.histogram()[128:]) < 0.1 * (sum(gap.histogram()[128:]) or 1):
         return None
+    # The aimed edit redraws the pillows too; its overhang must stay
+    # out of the ring around them (the ghost second pillow).
+    pasted = pillow_guard(edited, pasted, key, timeout, (width, height))
     return paste_strict(result, edited, pasted, feather=3), pasted
 
 
@@ -572,6 +575,54 @@ def refine_seat(best, room, raw_mask, seg_bytes, swatch_bytes, fabric,
     except Exception as exc:  # noqa: BLE001 - never fails a swap
         best["checks"]["refine_error"] = str(exc)[:160]
         return best
+
+
+# Throw pillows on the EDITED image are kept out of a seat paste. The
+# edit model redraws a pillow a little bigger or shifted; pasting the
+# seat strictly around the photo's own pillow then shows the redrawn
+# pillow's overhang beside it (a ghost second pillow). Dilation covers
+# the soft edge of the redrawn pillow.
+PILLOW_GUARD_DILATE = 0.006
+PILLOW_GUARD_MAX_SHARE = 0.6
+
+
+def _dilate(mask, frac, work_side=800):
+    """MaxFilter by frac of the long side, computed on a small copy."""
+    w, h = mask.size
+    scale = min(1.0, work_side / float(max(w, h)))
+    small = mask.resize((max(1, int(w * scale)), max(1, int(h * scale))),
+                        Image.BILINEAR) if scale < 1.0 else mask
+    k = max(3, int(max(small.size) * frac) | 1)
+    small = small.filter(ImageFilter.MaxFilter(k))
+    return small.resize((w, h), Image.BILINEAR) if scale < 1.0 else small
+
+
+def pillow_guard(edited, mask, key, timeout, size):
+    """Seat mask minus the pillows SAM finds on the edited image.
+
+    Best effort: no pillows found, a SAM error, or a pillow mask that is
+    most of the seat (SAM grabbed the cushions) leave the mask as is.
+    The few pixels of overhang then keep the photo's own fabric, which
+    reads as the pillow's shadow rather than a ghost pillow.
+    """
+    buf = io.BytesIO()
+    edited.save(buf, "JPEG", quality=88)
+    try:
+        recs = segment(_small_copy(buf.getvalue(), 1600),
+                       TARGET_CONCEPTS["cushions"], key, timeout=timeout)
+    except SwapError:
+        return mask
+    if not recs:
+        return mask
+    try:
+        pillows = sam_mask(recs, size)
+    except (SwapError, sam_codec.MaskError):
+        return mask
+    seat = _mask_coverage(mask, size)
+    if seat <= 0 or _mask_coverage(pillows, size) / seat > PILLOW_GUARD_MAX_SHARE:
+        return mask
+    pillows = _dilate(pillows, PILLOW_GUARD_DILATE)
+    return ImageChops.subtract(mask.convert("L"), pillows.convert("L"))
 
 
 def paste_strict(original, edited, mask, feather=6):
@@ -733,6 +784,9 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
         # model re-rendered around the item (the wooden base, the wall)
         # keeps the photo's own pixels.
         mask = raw_mask
+        if full_mask is not None:
+            mask = pillow_guard(edited, mask, key, call_timeout(),
+                                (width, height))
         result = paste_strict(room, edited, mask)
         step("verify")
         need_budget("verify")
@@ -743,7 +797,7 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
         scores = verify(swatch_bytes, small_result, fabric, concept, key,
                         timeout=call_timeout())
         attempts = round_no + 1
-        checks = swap_checks.run_checks(room, result, raw_mask,
+        checks = swap_checks.run_checks(room, result, mask,
                                         swatch_bytes, pieces=pieces)
         kept = checks.pop("_mask", None)
         if kept is not None:
@@ -1135,6 +1189,9 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                 step("composite")
                 base_img = Image.open(
                     io.BytesIO(base_bytes)).convert("RGB")
+                if target == "sofa":
+                    mask = pillow_guard(edited, mask, key, call_timeout(),
+                                        (width, height))
                 cand = paste_strict(base_img, edited, mask)
                 step("verify")
                 small_cand = cand

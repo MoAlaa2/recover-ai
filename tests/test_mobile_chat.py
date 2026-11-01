@@ -955,3 +955,55 @@ def test_restored_picker_tap_sends_item_name(server, page):
     page.wait_for_function("() => document.querySelectorAll('#messages .msg.me').length >= 1", timeout=10000)
     assert sent[-1]["message"].lower() == "curtains"
     assert page.evaluate("document.getElementById('browsePanel') === null || document.getElementById('browsePanel').hidden")
+
+
+def test_second_piece_builds_on_the_finished_look(server, page):
+    """Sofa done from a single Try, then a curtains Try: the client
+    renders both pieces together (multi engine) instead of a lone
+    curtains swap from the untouched photo."""
+    two = dict(IMG_TURN)
+    sofa_rec = dict(IMG_TURN["recommendations"][0], target="sofa")
+    curt_rec = dict(IMG_TURN["recommendations"][0], code="FA-AC-01",
+                    name_en="Linen Oat", target="curtains")
+    two["recommendations"] = [sofa_rec, curt_rec]
+    swap_mock = dict(SWAP_MOCK, target="sofa")
+    seen = {"single": [], "multi": []}
+
+    def chat_route(route):
+        route.fulfill(status=200, content_type="text/event-stream",
+                      body="data: %s\n\n" % json.dumps(
+                          {"type": "done", "result": two}))
+
+    def single_route(route):
+        seen["single"].append(route.request.post_data_json or {})
+        route.fulfill(status=200, content_type="text/event-stream",
+                      body=swap_stream(swap_mock))
+
+    def multi_route(route):
+        data = route.request.post_data_json or {}
+        seen["multi"].append(data.get("assignments") or [])
+        route.fulfill(status=200, content_type="text/event-stream",
+                      body=multi_stream_from_assignments(
+                          data.get("assignments") or []))
+
+    page.route("**/api/chat/stream", chat_route)
+    page.route("**/api/swap/stream", single_route)
+    page.route("**/api/swap/multi/stream", multi_route)
+    page.route("**/assignments", lambda r: r.fulfill(
+        status=200, content_type="application/json",
+        body=json.dumps({"assignments": {}})))
+    page.goto(server + "/consult", wait_until="networkidle")
+    upload_photo(page)
+    page.click('#messages [data-try="FA-NL-07"]')
+    page.wait_for_selector("#swapResult:not([hidden])", timeout=30000)
+    page.click("#swapClose")
+    page.wait_for_timeout(400)
+    assert len(seen["single"]) == 1 and seen["single"][0]["target"] == "sofa"
+    page.click('#messages [data-try="FA-AC-01"]')
+    page.wait_for_function(
+        "() => document.querySelectorAll('#messages .sum-card').length >= 1",
+        timeout=30000)
+    assert len(seen["single"]) == 1, "no second lone swap"
+    assert len(seen["multi"]) == 1
+    pairs = sorted((a["target"], a["code"]) for a in seen["multi"][0])
+    assert pairs == [("curtains", "FA-AC-01"), ("sofa", "FA-NL-07")]

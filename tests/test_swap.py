@@ -350,3 +350,41 @@ def test_sofa_full_mask_still_fails_when_nothing_is_upholstered(
                         lambda img, concept, key=None, timeout=1: [])
     with pytest.raises(s.SwapError, match="could not find the sofa"):
         s.sofa_full_mask(b"x", (10, 10), "k", 5)
+
+
+def test_pillow_guard_keeps_the_edited_pillows_out_of_the_paste(monkeypatch):
+    """The edit redraws a pillow bigger than the photo's; its overhang
+    must not be pasted (the ghost second pillow)."""
+    size = (100, 100)
+    seat = _box(size, (0, 40, 100, 100))
+    # SAM finds the redrawn pillow at 30..60 x 40..75 on the edited image.
+    monkeypatch.setattr(s, "segment", lambda img, concept, key=None, timeout=1: [
+        {"box": (30, 40, 60, 75), "frame_size": (100, 100)}])
+    monkeypatch.setattr(s, "sam_mask",
+                        lambda records, sz: _box(sz, tuple(records[0]["box"])))
+    out = s.pillow_guard(Image.new("RGB", size, (90, 60, 40)), seat, "k", 5, size)
+    assert out.getpixel((45, 60)) == 0, "redrawn pillow left out"
+    assert out.getpixel((45, 75)) == 0, "and a dilated margin around it"
+    assert out.getpixel((10, 90)) == 255, "the seat body still pastes"
+
+
+def test_pillow_guard_leaves_the_mask_when_nothing_or_too_much_is_found(
+        monkeypatch):
+    size = (100, 100)
+    seat = _box(size, (0, 40, 100, 100))
+    edited = Image.new("RGB", size, (90, 60, 40))
+    monkeypatch.setattr(s, "segment",
+                        lambda img, concept, key=None, timeout=1: [])
+    assert s.pillow_guard(edited, seat, "k", 5, size) is seat
+    # A "pillow" mask covering most of the seat is the seat cushions,
+    # not throw pillows: ignore it.
+    monkeypatch.setattr(s, "segment", lambda img, concept, key=None, timeout=1: [
+        {"box": (0, 40, 100, 100), "frame_size": (100, 100)}])
+    monkeypatch.setattr(s, "sam_mask",
+                        lambda records, sz: _box(sz, tuple(records[0]["box"])))
+    assert s.pillow_guard(edited, seat, "k", 5, size) is seat
+    # A SAM failure never breaks the composite.
+    def boom(img, concept, key=None, timeout=1):
+        raise s.SwapError("down")
+    monkeypatch.setattr(s, "segment", boom)
+    assert s.pillow_guard(edited, seat, "k", 5, size) is seat
