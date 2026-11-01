@@ -168,9 +168,10 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
     shot("photo")
     assert overflow() == 0
 
-    # Answer chip rounds until rec cards appear (max 4), else nudge.
+    # Answer chip rounds until rec cards appear (max 6: piece, mood,
+    # style, light, budget), else nudge.
     t1 = time.perf_counter()
-    for _ in range(4):
+    for _ in range(6):
         try:
             pg.wait_for_selector("#chips:not([hidden])", timeout=60000)
         except Exception:
@@ -184,6 +185,10 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
                     texts[0])
         pg.click("#chips button:has-text('%s')" % pick[:14])
         pg.wait_for_timeout(2500)
+        # Let the reply finish: a nudge typed while a turn is pending
+        # is dropped by the composer.
+        pg.wait_for_function(
+            "() => !document.getElementById('pending')", timeout=120000)
         if pg.eval_on_selector_all(
                 "#recs .card" if desktop else "#messages .mini-card",
                 "e => e.length") > 0:
@@ -473,6 +478,10 @@ def run_target_phase(device, user, pw, browser, lang):
                      or "كل" in c), texts[0])
         pg.click("#chips button:has-text('%s')" % pick[:14])
         pg.wait_for_timeout(2500)
+        # Let the reply finish: a nudge typed while a turn is pending
+        # is dropped by the composer.
+        pg.wait_for_function(
+            "() => !document.getElementById('pending')", timeout=120000)
         if pg.eval_on_selector_all("#messages .mini-card",
                                    "e => e.length") > 0:
             break
