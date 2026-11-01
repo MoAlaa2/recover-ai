@@ -1367,6 +1367,15 @@ def _execute_tool(name, args, turn, on_step=None):
         if not target:
             chosen = turn.get("chosen_targets", []) or []
             target = chosen[0] if len(chosen) == 1 else ""
+        # The photo listing knows what is there: never auto-apply to an
+        # item it did not see (a bedroom with a roller blind has no
+        # curtains), and never tell the user it was applied.
+        visible = (turn.get("session") or {}).get("available_targets")
+        if isinstance(visible, list) and target and target not in visible:
+            return {"error": "not visible",
+                    "target": target, "visible": visible,
+                    "hint": ("this photo shows none of that item; say so "
+                             "plainly and do not claim it was applied")}
         turn["preview"] = {"code": code, "target": target}
         return {"ok": True, "code": code, "target": target}
     if name == "assign_fabric":
@@ -2040,9 +2049,10 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
             try:
                 available = targets_mod.available_types(image_path)
             except Exception as exc:  # noqa: BLE001 - never break chat
-                available = []
+                available = None  # unknown, not "nothing visible"
                 _log_photo_failure("available_types", image_path, exc)
             session["available_targets"] = available
+            available = available or []
         analyzer.join()
         room_analysis = box.get("room")
         analysis_failed = bool(box.get("failed"))

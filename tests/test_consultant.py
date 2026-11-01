@@ -1284,3 +1284,27 @@ def test_enrich_receipt_uses_turn_lang():
     rec = c.enrich([{"code": "FA-NL-02", "reason": "r"}], turn)[0]
     assert "आसान-सफ़ाई" in rec["receipt"]
     assert "Easy-clean" not in rec["receipt"]
+
+
+def test_preview_fabric_refuses_an_item_the_photo_does_not_show():
+    """A bedroom with a roller blind lists no curtains: the auto preview
+    must not fire for curtains (it would fail in the engine and the
+    reply would still claim "applied"). Unknown listing: no guard."""
+    base = {"seen": ["FA-SC-03"], "image": "room.jpg"}
+    out = c.execute_tool("preview_fabric",
+                         {"code": "FA-SC-03", "target": "curtains"},
+                         dict(base, session={"available_targets": ["sofa"]}))
+    assert out["error"] == "not visible" and out["visible"] == ["sofa"]
+    out = c.execute_tool("preview_fabric",
+                         {"code": "FA-SC-03", "target": "curtains"},
+                         dict(base, session={"available_targets": []}))
+    assert out["error"] == "not visible"
+    ok = c.execute_tool("preview_fabric",
+                        {"code": "FA-SC-03", "target": "curtains"},
+                        dict(base, session={"available_targets": None}))
+    assert ok.get("ok") and ok["target"] == "curtains"
+    ok2 = c.execute_tool("preview_fabric",
+                         {"code": "FA-SC-03", "target": "curtains"},
+                         dict(base, session={"available_targets":
+                                             ["curtains"]}))
+    assert ok2.get("ok")

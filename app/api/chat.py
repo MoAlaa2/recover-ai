@@ -623,6 +623,11 @@ def swap_stream(req: SwapRequest):
                 evt["reason"] = exc.reason
                 evt["checks"] = exc.checks
                 evt["target"] = exc.target
+            elif str(exc).startswith("could not find"):
+                # No such item in the photo (a roller blind, no
+                # curtains): say that, not "try another photo".
+                evt["reason"] = "not found"
+                evt["target"] = target
             events.put(evt)
         except RuntimeError as exc:
             events.put({"type": "error", "message": str(exc),
