@@ -546,6 +546,7 @@ def run_target_phase(device, user, pw, browser, lang):
     else:
         result["masks_note"] = "no cushions tap rendered; masks unusable"
     errors = settle_console_errors(pg, errors)
+    result["console_errors"] = errors
     assert not errors, errors[:3]
     pg.screenshot(path=os.path.join(OUT_DIR, "%s-%s.png" % (lang, tag)))
     ctx.close()
