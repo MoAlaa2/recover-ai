@@ -862,6 +862,17 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
         outs = list(pool.map(one, concepts))
     records = outs[0]
     if not records:
+        # No "sofa" as such: a bench seat, settee or window seat still
+        # has an upholstered cushion SAM can name.
+        from app.services.targets import FALLBACK_PROMPTS
+        for alt in FALLBACK_PROMPTS["sofa"]:
+            try:
+                records = segment(seg_bytes, alt, key, timeout=timeout)
+            except SwapError:
+                records = []
+            if records:
+                break
+    if not records:
         raise SwapError("could not find the sofa in this photo")
     mask = sam_mask(records, size)
     extra = outs[1]

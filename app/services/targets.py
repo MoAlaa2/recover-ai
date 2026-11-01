@@ -32,7 +32,7 @@ TARGET_LABELS = {
 
 # Bump when mask semantics change: old session entries (garbage
 # full-frame masks) must never be served again.
-TARGETS_CACHE_VERSION = 5
+TARGETS_CACHE_VERSION = 6
 
 ARMCHAIR_WORDS = ("armchair", "arm chair", "chair", "كرسي", "الكرسي",
                   "فوتيه", "fauteuil", "sillon", "sillón", "butaca",
@@ -40,7 +40,9 @@ ARMCHAIR_WORDS = ("armchair", "arm chair", "chair", "كرسي", "الكرسي",
 
 CHOICE_WORDS = {
     "sofa": ("sofa", "sofas", "كنبة", "كنبه", "canapé", "canape",
-             "sofá", "सोफ़ा", "सोफा"),
+             "sofá", "सोफ़ा", "सोफा", "bench", "settee", "daybed",
+             "loveseat", "window seat", "banquette", "دكة",
+             "بنش", "banco", "diván"),
     "armchair": ARMCHAIR_WORDS,
     "cushions": ("cushion", "cushions", "pillow", "pillows", "وسائد",
                  "وساده", "مخدات", "مخدة", "coussin", "coussins",
@@ -138,8 +140,10 @@ def list_types(image_path):
         os.path.join(BASE_DIR, image_path)
     b64 = base64.b64encode(vision_jpeg_bytes(path)).decode("ascii")
     ask = ("Which of these are clearly visible in this room photo: "
-           "sofa, armchair (a single upholstered seat), cushions "
-           "(pillows on a sofa or chairs), curtains? "
+           "sofa (any upholstered multi-seat piece counts: a bench "
+           "seat with a fabric cushion, settee, daybed, loveseat or "
+           "window seat), armchair (a single upholstered seat), "
+           "cushions (pillows on a sofa, bench or chairs), curtains? "
            'Reply with JSON only: {"items": ["sofa", ...]}.')
     messages = [{"role": "user", "content": [
         {"type": "text", "text": ask},
@@ -157,6 +161,8 @@ def list_types(image_path):
         name = str(item).strip().lower()
         if name in ("chair", "arm chair"):
             name = "armchair"
+        if name in SOFA_ALIASES:
+            name = "sofa"
         if name in TARGET_TYPES and name not in out:
             out.append(name)
     return out
@@ -213,6 +219,18 @@ def count_components(mask, min_area_frac=0.005):
 # the raw concept (its change-map intersection already pastes only
 # what the edit changed), so tap masks and swap masks may differ
 # slightly by design.
+# Names Spark may use for an upholstered multi-seat piece; the swap
+# and the picker treat them all as the sofa target.
+SOFA_ALIASES = ("bench", "bench seat", "upholstered bench", "settee",
+                "daybed", "loveseat", "love seat", "window seat",
+                "banquette", "couch", "sectional")
+
+# When SAM finds no "sofa" (a bench seat with a velvet cushion, a
+# window seat), these name the upholstered part it does find.
+FALLBACK_PROMPTS = {
+    "sofa": ("seat cushion", "upholstered bench"),
+}
+
 CONCEPT_PROMPTS = {
     "sofa": "sofa",
     "armchair": "armchair",
@@ -243,6 +261,13 @@ def masks_for(image_path, types, api_key=None):
             try:
                 records = segment(room_bytes, target, key)
             except Exception:  # noqa: BLE001 - one missing item skips
+                records = []
+        for alt in FALLBACK_PROMPTS.get(target, ()):
+            if records:
+                break
+            try:
+                records = segment(room_bytes, alt, key)
+            except Exception:  # noqa: BLE001 - next fallback
                 records = []
         if not records:
             continue

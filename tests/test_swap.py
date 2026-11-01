@@ -318,3 +318,35 @@ def test_match_score_ignores_pattern_for_plain_fabrics():
     assert s.match_score(scores, None) == 0
     assert s.match_score({"color": 7, "scale": 8, "isolation": 9,
                           "pattern": 9}, {"plain_or_patterned": "plain"}) == 7
+
+
+def test_sofa_full_mask_falls_back_to_the_seat_cushion(monkeypatch):
+    """A bench seat has no 'sofa' for SAM; the seat cushion prompt
+    finds the upholstered part so the swap does not report
+    'not visible in this photo'."""
+    size = (100, 100)
+    seat = [{"box": (0, 50, 100, 100), "frame_size": (100, 100)}]
+    asked = []
+
+    def fake_segment(img, concept, key=None, timeout=1):
+        asked.append(concept)
+        if concept == "seat cushion":
+            return seat
+        return []
+
+    monkeypatch.setattr(s, "segment", fake_segment)
+    monkeypatch.setattr(s, "sam_mask",
+                        lambda records, sz: _box(sz, tuple(records[0]["box"])))
+    records, mask = s.sofa_full_mask(b"x", size, "k", 5)
+    assert records == seat
+    assert mask.getpixel((50, 75)) == 255
+    assert mask.getpixel((50, 25)) == 0
+    assert "seat cushion" in asked
+
+
+def test_sofa_full_mask_still_fails_when_nothing_is_upholstered(
+        monkeypatch):
+    monkeypatch.setattr(s, "segment",
+                        lambda img, concept, key=None, timeout=1: [])
+    with pytest.raises(s.SwapError, match="could not find the sofa"):
+        s.sofa_full_mask(b"x", (10, 10), "k", 5)

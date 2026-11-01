@@ -308,3 +308,42 @@ def test_masks_subtract_cushions_from_armchair(monkeypatch, tmp_path):
     assert "armchair" in calls
     assert masks["armchair"].getpixel((25, 25)) == 0  # cushion cut out
     assert masks["armchair"].getpixel((50, 50)) == 255
+
+
+def test_list_types_bench_counts_as_sofa(monkeypatch):
+    """A bench seat / settee / daybed is the sofa target: Spark may
+    name the piece as it sees it, the picker must still offer it."""
+    monkeypatch.setattr(t, "_call_vision",
+                        vision(["bench seat", "cushions"]))
+    assert t.list_types("data/samples/living.jpg") == ["sofa", "cushions"]
+    monkeypatch.setattr(t, "_call_vision", vision(["settee", "sofa"]))
+    assert t.list_types("data/samples/living.jpg") == ["sofa"]
+
+
+def test_masks_for_sofa_falls_back_to_the_seat_cushion(monkeypatch,
+                                                        tmp_path):
+    """SAM finds no 'sofa' on a bench seat; the seat cushion prompt
+    still gives the picker an outline instead of hiding the piece."""
+    room = tmp_path / "room.jpg"
+    Image.new("RGB", (40, 30), (200, 180, 160)).save(str(room))
+    asked = []
+
+    def fake_segment(room_bytes, concept, key):
+        asked.append(concept)
+        if concept == "seat cushion":
+            return [{"concept": concept}]
+        return []
+
+    monkeypatch.setattr(t, "segment", fake_segment)
+    monkeypatch.setattr(t, "sam_mask",
+                        lambda records, size: Image.new("L", size, 255))
+    out = t.masks_for(str(room), ["sofa"], api_key="k")
+    assert "sofa" in out
+    assert asked == ["sofa", "seat cushion"]
+
+
+def test_match_targets_bench_words_pick_the_sofa():
+    avail = ["sofa", "cushions"]
+    assert t.match_targets("Bench seat", avail) == (["sofa"], {})
+    assert t.match_targets("the settee", avail) == (["sofa"], {})
+    assert t.match_targets("الدكة", avail) == (["sofa"], {})
