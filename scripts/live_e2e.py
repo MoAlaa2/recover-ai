@@ -504,6 +504,14 @@ def run_target_phase(device, user, pw, browser, lang):
                  route.continue_()))
     once_try = lambda: pg.click(  # noqa: E731
         "#messages .mini-try >> nth=0")
+    # The app auto-previews the top pick after recs; the modal must be
+    # closed before a Try button under it can be clicked.
+    if pg.evaluate("() => !document.getElementById('swapModal').hidden"):
+        pg.wait_for_selector("#swapResult:not([hidden]), "
+                             "#swapRetryBtn:not([hidden])",
+                             timeout=300000)
+        pg.click("#swapClose")
+        pg.wait_for_timeout(500)
     once_try()
     wait_swap(pg, lang + "-target", once_try, timeout=600000)
     secs = round(time.perf_counter() - t0, 1)
