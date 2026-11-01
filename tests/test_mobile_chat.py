@@ -281,7 +281,7 @@ def test_try_runs_swap_with_steps_and_bubble(server, page):
     upload_photo(page)
     page.click('#messages [data-try="FA-NL-07"]')
     page.wait_for_selector("#swapResult:not([hidden])", timeout=30000)
-    assert "Checking the result" in (
+    assert "Spark scores colour" in (
         page.text_content("#swapSteps") or "")
     page.click("#swapClose")
     page.wait_for_timeout(400)
