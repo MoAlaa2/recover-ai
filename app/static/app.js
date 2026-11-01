@@ -18,6 +18,7 @@
       thinkingNote: "Still thinking…",
       uploadFail: "Upload failed. Please try a JPG or PNG photo.",
       voiceFail: "Sorry, I couldn't hear that. Please try again.",
+      voiceTranscribing: "Transcribing your voice",
       micLabel: "Voice input",
       steps: { photo: "Preparing your photo…", search: "Checking 80 fabrics…", claw: "Checking pet and kid safety…", details: "Picking the best 3…", room: "Looking at your room…" },
       needPhoto: "Please upload a room photo first, then tap “See it in my space” again.",
@@ -98,7 +99,7 @@
       pieceWord: { sofa: "sofa", armchair: "armchair", curtains: "curtains", cushions: "cushions" },
       stepDetect: "Mapping the fabric area",
       stepApply: "Tailoring the fabric",
-      stepCheck: "Checking the result",
+      stepCheck: "Spark scores colour, pattern, scale and isolation",
       stillWorking: "Still working — complex rooms take a few minutes.",
       matchBadge: "Fabric match %d/10",
       downloadLabel: "Download",
@@ -133,6 +134,7 @@
       thinkingNote: "لحظة، أفكر…",
       uploadFail: "فشل الرفع. جرب صورة JPG أو PNG.",
       voiceFail: "عذراً، ما سمعتك زين. حاول مرة ثانية.",
+      voiceTranscribing: "أحوّل صوتك إلى نص",
       micLabel: "إدخال صوتي",
       steps: { photo: "أجهز صورتك…", search: "أدوّر بين الثمانين قماش…", claw: "أتأكد من الأمان للحيوانات والأطفال…", details: "أختار لك أفضل 3…", room: "أطالع غرفتك…" },
       needPhoto: "ارفع صورة غرفتك أول، بعدين اضغط “شاهدها في مساحتك”.",
@@ -158,7 +160,7 @@
       pieceWord: { sofa: "الكنبة", armchair: "الكرسي", curtains: "الستائر", cushions: "الوسائد" },
       stepDetect: "أحدد مكان القماش",
       stepApply: "ألبّس قطعتك القماش",
-      stepCheck: "أشيّك على النتيجة",
+      stepCheck: "Spark يقيّم اللون والنقشة والمقياس والعزل",
       stillWorking: "لسه شغالين — الغرف المعقدة تأخذ كم دقيقة.",
       matchBadge: "تطابق القماش %d/10",
       downloadLabel: "تحميل",
@@ -247,6 +249,7 @@
       sendFail: "माफ़ करें, कुछ गड़बड़ हुई। फिर कोशिश करें।",
       uploadFail: "अपलोड विफल। JPG या PNG फोटो भेजें।",
       voiceFail: "माफ़ करें, सुन नहीं पाया। फिर कोशिश करें।",
+      voiceTranscribing: "आपकी आवाज़ लिख रहा हूँ",
       micLabel: "आवाज़ से पूछें",
       needPhoto: "पहले कमरे की फोटो भेजें, फिर “इसे अपनी जगह पर देखें” दबाएँ।",
       uploadRetry: "अपलोड नहीं हुआ — कनेक्शन देखकर फिर कोशिश करें।",
@@ -291,7 +294,7 @@
       pieceWord: { sofa: "सोफ़ा", armchair: "कुर्सी", curtains: "पर्दे", cushions: "कुशन" },
       stepDetect: "कपड़े की जगह तय कर रहा हूँ",
       stepApply: "कपड़ा चढ़ा रहा हूँ",
-      stepCheck: "नतीजा जाँच रहा हूँ",
+      stepCheck: "Spark रंग, पैटर्न, स्केल और अलगाव जाँचता है",
       stillWorking: "अभी चल रहा है — मुश्किल कमरों में कुछ मिनट लगते हैं।",
       matchBadge: "कपड़ा मिलान %d/10",
       downloadLabel: "डाउनलोड",
@@ -362,6 +365,7 @@
       sendFail: "Désolé, une erreur est survenue. Réessayez.",
       uploadFail: "Échec de l'envoi. Envoyez une photo JPG ou PNG.",
       voiceFail: "Désolé, je n'ai pas entendu. Réessayez.",
+      voiceTranscribing: "Je transcris votre voix",
       micLabel: "Entrée vocale",
       needPhoto: "Envoyez d'abord une photo, puis touchez « Voir chez moi ».",
       uploadRetry: "Envoi interrompu — vérifiez la connexion et réessayez.",
@@ -406,7 +410,7 @@
       pieceWord: { sofa: "canapé", armchair: "fauteuil", curtains: "rideaux", cushions: "coussins" },
       stepDetect: "Je délimite la zone du tissu",
       stepApply: "J'habille votre meuble",
-      stepCheck: "Je vérifie le résultat",
+      stepCheck: "Spark note couleur, motif, échelle et isolation",
       stillWorking: "Je travaille encore — les pièces complexes prennent quelques minutes.",
       matchBadge: "Tissu assorti %d/10",
       downloadLabel: "Télécharger",
@@ -477,6 +481,7 @@
       sendFail: "Perdón, algo falló. Inténtalo de nuevo.",
       uploadFail: "Subida fallida. Envía una foto JPG o PNG.",
       voiceFail: "Perdón, no te escuché. Inténtalo de nuevo.",
+      voiceTranscribing: "Transcribo tu voz",
       micLabel: "Entrada de voz",
       needPhoto: "Sube primero una foto y luego toca «Verlo en mi espacio».",
       uploadRetry: "No se pudo subir — revisa tu conexión e inténtalo de nuevo.",
@@ -521,7 +526,7 @@
       pieceWord: { sofa: "sofá", armchair: "sillón", curtains: "cortinas", cushions: "cojines" },
       stepDetect: "Delimito la zona de la tela",
       stepApply: "Visto tu mueble",
-      stepCheck: "Compruebo el resultado",
+      stepCheck: "Spark puntúa color, patrón, escala y aislamiento",
       stillWorking: "Sigo trabajando — las habitaciones complejas tardan unos minutos.",
       matchBadge: "Tela compatible %d/10",
       downloadLabel: "Descargar",
@@ -1054,11 +1059,15 @@
     if (pending) pending.remove();
   }
 
-  function typingOn() {
+  function typingOn(label, model) {
     var div = document.createElement("div");
     div.className = "msg them";
     div.id = "typing";
-    div.innerHTML = '<img class="avatar" src="/brand/mark-plain.svg" alt="ReCover"><span class="typing"><span></span><span></span><span></span></span>';
+    // A labelled wait names the model at work (voice transcription
+    // has no streamed steps of its own).
+    div.innerHTML = '<img class="avatar" src="/brand/mark-plain.svg" alt="ReCover"><span class="typing"><span></span><span></span><span></span></span>' +
+      (label ? '<span class="typing-label">' + esc(label) +
+        modelBadge(model) + "</span>" : "");
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
@@ -2278,6 +2287,28 @@
   function clearSwapTimers() {
     swapTimers.forEach(clearTimeout);
     swapTimers = [];
+    if (swapClock) clearInterval(swapClock);
+    swapClock = null;
+  }
+
+  // Elapsed seconds under the steps: a 20-115 s render reads as
+  // progress, not a hang. Stops when the result or an error shows.
+  var swapClock = null;
+
+  function startSwapClock() {
+    var el = $("swapClock");
+    if (!el) return;
+    var t0 = Date.now();
+    el.textContent = "0 s";
+    el.hidden = false;
+    swapClock = setInterval(function () {
+      if ($("swapLoading").hidden || $("swapModal").hidden) {
+        clearInterval(swapClock);
+        swapClock = null;
+        return;
+      }
+      el.textContent = Math.round((Date.now() - t0) / 1000) + " s";
+    }, 1000);
   }
 
   function setStep(n) {
@@ -2291,7 +2322,8 @@
   var SWAP_STEP = { segment: 0, edit: 1, composite: 1, verify: 2 };
 
   var MODEL_BADGE = { "muse-spark-1.3": "Spark",
-                      "muse-image-1.0": "Image", "sam-3.1": "SAM" };
+                      "muse-image-1.0": "Image", "sam-3.1": "SAM",
+                      "muse-voice-transcribe-1.0": "Voice" };
 
   function modelBadge(model) {
     var short = MODEL_BADGE[model];
@@ -2498,6 +2530,7 @@
       if (!$("swapModal").hidden) $("swapStill").hidden = false;
     }, 60000));
     state.swapAttemptT0 = Date.now();
+    startSwapClock();
     startSwapAttempt(code, target, swapFabricMeta(code), 0, seq);
   }
 
@@ -3326,7 +3359,7 @@
     var ext = (blob.type || "").indexOf("mp4") >= 0 ? ".m4a" : ".webm";
     var fd = new FormData();
     fd.append("file", blob, "recording" + ext);
-    typingOn();
+    typingOn(t("voiceTranscribing"), "muse-voice-transcribe-1.0");
     fetchReq("/api/voice", { form: fd, timeoutMs: 180000, retries: 1 })
       .then(function (data) {
         typingOff();

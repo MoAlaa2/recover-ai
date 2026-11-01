@@ -1258,6 +1258,65 @@ def receipt_summary(matched, relaxed_keys, relaxed_feats, budget_over,
     return " — ".join(parts)
 
 
+# Words in a model-written reason that assert a catalog feature. A
+# sentence asserting a feature the fabric does not have is dropped:
+# the pills and receipts are computed, so the prose must not outrun
+# them. (Keys are substrings, lower-cased; en + ar.)
+FEATURE_CLAIMS = {
+    "pet-friendly": ("pet", "cat", "dog", "claw", "paw", "حيوان", "قط",
+                     "كلب", "مخالب"),
+    "stain-resistant": ("stain", "spill", "بقع", "انسكاب"),
+    "washable": ("washable", "machine wash", "wash it", "غسيل",
+                 "يتغسل", "تغسل"),
+    "fade-resistant": ("fade", "sun-safe", "uv", "sunlight", "بهتان",
+                       "يبهت", "الشمس"),
+    "blackout": ("blackout", "block", "darken", "معتم",
+                 "يحجب"),
+    "fire-resistant": ("fire", "flame", "حريق", "لهب"),
+    "eco-friendly": ("eco", "recycled", "sustainable", "صديق للبيئة",
+                     "معاد تدوير"),
+    "antibacterial": ("antibacterial", "hygienic", "مضاد للبكتيريا"),
+    "hypoallergenic": ("hypoallergenic", "allerg", "حساسية"),
+    "thermal-insulating": ("thermal", "insulat", "عازل للحرارة"),
+    "sound-absorbing": ("acoustic", "sound-absorb", "absorbs sound",
+                        "عازل للصوت"),
+    "crease-resistant": ("crease", "wrinkle", "تجعد", "كرمشة"),
+    "scratch-resistant": ("scratch", "خدش", "خدوش"),
+}
+# A claim that any of these features covers.
+CLAIM_ANY = {
+    "pet-friendly": ("pet-friendly", "scratch-resistant"),
+    "scratch-resistant": ("scratch-resistant", "pet-friendly"),
+    "stain-resistant": ("stain-resistant", "easy-clean"),
+    "washable": ("washable", "easy-clean"),
+}
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?؟])\s+")
+
+
+def ground_reason(reason, item, lang=None):
+    """Keep only the sentences of a model-written reason whose feature
+    claims the catalog record supports; fall back to the catalog
+    description when nothing survives. Prose never outruns the pills."""
+    text = (reason or "").strip()
+    feats = set(item.get("features", []) or [])
+    kept = []
+    for sent in _SENTENCE_SPLIT.split(text):
+        low = sent.lower()
+        bad = False
+        for feat, words in FEATURE_CLAIMS.items():
+            if any(w in low for w in words) and not (
+                    feats & set(CLAIM_ANY.get(feat, (feat,)))):
+                bad = True
+                break
+        if not bad and sent.strip():
+            kept.append(sent.strip())
+    out = " ".join(kept)
+    if out:
+        return out
+    key = "description_ar" if lang == "ar" else "description_en"
+    return item.get(key, "") or ""
+
+
 def enrich(recommendations, turn):
     """Attach catalog details plus trust receipts.
 
@@ -1306,7 +1365,8 @@ def enrich(recommendations, turn):
                     "image": item.get("image", ""),
                     "features": item.get("features", []),
                     "snag_risk": item.get("snag_risk", "unknown"),
-                    "reason": rec.get("reason", ""),
+                    "reason": ground_reason(rec.get("reason", ""), item,
+                                            turn.get("lang")),
                     "target": rec_target,
                     "matched": matched,
                     "relaxed": relaxed_keys,

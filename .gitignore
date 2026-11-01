@@ -233,3 +233,4 @@ docs/MORNING_REPORT.md
 
 # Private review notes (security findings) — never public
 docs/REVIEW.md
+.claude/launch.json

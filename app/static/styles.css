@@ -1028,6 +1028,8 @@ body.modal-open { overflow: hidden; }
 }
 
 .still { color: var(--rc-ink-muted); font-size: var(--rc-fs-sm); margin-top: 12px; }
+.swap-clock { color: var(--rc-ink-muted); font-size: var(--rc-fs-sm); margin-top: 8px; font-variant-numeric: tabular-nums; }
+.typing-label { margin-inline-start: 8px; color: var(--rc-ink-muted); font-size: var(--rc-fs-sm); }
 
 .ba {
   position: relative;

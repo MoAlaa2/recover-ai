@@ -1312,3 +1312,37 @@ def test_preview_fabric_refuses_an_item_the_photo_does_not_show():
                          dict(base, session={"available_targets":
                                              ["curtains"]}))
     assert ok2.get("ok")
+
+
+def test_ground_reason_drops_unsupported_feature_claims():
+    from app.services.consultant import ground_reason
+    item = {"features": ["washable", "fade-resistant"],
+            "description_en": "A soft cotton weave."}
+    text = ("Soft and warm for your nook. It is pet-friendly and shrugs "
+            "off claws. Machine washable too.")
+    out = ground_reason(text, item, "en")
+    assert "pet" not in out and "claws" not in out
+    assert "Soft and warm" in out and "washable" in out
+
+
+def test_ground_reason_keeps_supported_claims_and_falls_back():
+    from app.services.consultant import ground_reason
+    item = {"features": ["pet-friendly"],
+            "description_en": "Tough velvet.", "description_ar": "مخمل متين."}
+    assert ground_reason("Great with cats.", item, "en") == "Great with cats."
+    # Everything unsupported: the catalog description stands in.
+    assert ground_reason("Blocks all light.", item, "en") == "Tough velvet."
+    assert ground_reason("معتم تماماً.", item, "ar") == "مخمل متين."
+    assert ground_reason("", item, "en") == "Tough velvet."
+
+
+def test_enrich_grounds_the_reason(monkeypatch):
+    from app.services import consultant as c
+    from app.services.catalog import load_specs
+    item = next(f for f in load_specs()
+                if "blackout" not in f.get("features", []))
+    out = c.enrich([{"code": item["code"],
+                     "reason": "Lovely tone. Total blackout for naps."}],
+                   {"lang": "en"})
+    assert "blackout" not in out[0]["reason"].lower()
+    assert "Lovely tone." == out[0]["reason"]
