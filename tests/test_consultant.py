@@ -1346,3 +1346,18 @@ def test_enrich_grounds_the_reason(monkeypatch):
                    {"lang": "en"})
     assert "blackout" not in out[0]["reason"].lower()
     assert "Lovely tone." == out[0]["reason"]
+
+
+def test_enrich_target_follows_the_named_piece_when_nothing_matched():
+    """Curtains asked for, none in the photo: the cards still say
+    curtains so the Try fails honestly for that piece, not the sofa."""
+    turn = {"chosen_targets": [], "session": {"topic": "curtains"}}
+    out = c.enrich([{"code": "FA-NL-02", "reason": "nice"}], turn)
+    assert out[0]["target"] == "curtains"
+    # A matched choice still wins; several choices still mean no target.
+    turn = {"chosen_targets": ["sofa"], "session": {"topic": "curtains"}}
+    assert c.enrich([{"code": "FA-NL-02", "reason": ""}], turn)[0]["target"] == "sofa"
+    turn = {"chosen_targets": ["sofa", "cushions"], "session": {"topic": "curtains"}}
+    assert c.enrich([{"code": "FA-NL-02", "reason": ""}], turn)[0]["target"] == ""
+    turn = {"chosen_targets": [], "session": {"topic": "bed"}}
+    assert c.enrich([{"code": "FA-NL-02", "reason": ""}], turn)[0]["target"] == ""

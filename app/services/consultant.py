@@ -1333,6 +1333,16 @@ def enrich(recommendations, turn):
     feat_relaxed = bool({"features", "any_features"} & set(relaxed))
     chosen = turn.get("chosen_targets", []) or []
     rec_target = chosen[0] if len(chosen) == 1 else ""
+    if not chosen:
+        # Nothing matched the photo's target list (the user asked for
+        # curtains, the photo has a roller blind): the cards still carry
+        # the piece the user named, so a Try reports "curtains · not
+        # visible in this photo" instead of defaulting to the sofa.
+        topic = (turn.get("session") or {}).get("topic")
+        topic = {"chair": "armchair"}.get(topic, topic)
+        from app.services import targets as _targets
+        if topic in _targets.TARGET_TYPES:
+            rec_target = topic
     out = []
     for rec in recommendations:
         item = get_fabric(rec["code"])
