@@ -12,7 +12,7 @@ Pipeline (Meta models only):
      walls, aspect ratio). fit_aspect() restores the plan's aspect.
   4. Per-piece colour check (swap_checks.colour_check on the box) with
      one corrective retry; the attempt with more passing pieces wins.
-  5. quote_pieces(): meters / SAR / CO2 for the proposal.
+  5. quote_pieces(): meters / USD / CO2 for the proposal.
 """
 import base64
 import io
@@ -564,8 +564,8 @@ def render(plan, pieces, api_key=None, on_step=None, out_dir=None,
                        "name_ar": fabric["name_ar"] if fabric else "",
                        "image": fabric["image"] if fabric else "",
                        "material": (fabric or {}).get("material", ""),
-                       "price_sar_per_m": (fabric or {}).get(
-                           "price_sar_per_m")})
+                       "price_usd_per_m": (fabric or {}).get(
+                           "price_usd_per_m")})
     return {"render_url": os.path.join(base, name),
             "size": list(plan2x.size), "legend": legend,
             "checks": best["checks"], "attempts": attempts,
@@ -576,7 +576,7 @@ def render(plan, pieces, api_key=None, on_step=None, out_dir=None,
 # --- 5. quote --------------------------------------------------------
 
 def quote_pieces(pieces):
-    """Meters / SAR / CO2 for assigned pieces (plan mode has no
+    """Meters / USD / CO2 for assigned pieces (plan mode has no
     measurements: standard yardage per piece type)."""
     items = []
     total = 0.0
@@ -588,7 +588,7 @@ def quote_pieces(pieces):
         key = p.get("type") if p.get("type") in meterage.YARDAGE \
             else "armchair"
         meters = meterage.piece_meters(key, fabric)
-        price = fabric.get("price_sar_per_m")
+        price = fabric.get("price_usd_per_m")
         line = round(meters * price, 2) if price is not None else None
         if line is not None:
             total += line
@@ -600,9 +600,9 @@ def quote_pieces(pieces):
                       "name_ar": fabric.get("name_ar"),
                       "material": fabric.get("material", ""),
                       "image": fabric.get("image", ""),
-                      "meters": meters, "price_sar_per_m": price,
+                      "meters": meters, "price_usd_per_m": price,
                       "line_total": line})
-    return {"items": items, "total": round(total, 2), "currency": "SAR",
+    return {"items": items, "total": round(total, 2), "currency": "USD",
             "preliminary": True,
             "co2": {"kg": round(co2, 1), "waste_kg": round(waste, 1),
                     "source": impact.CO2_SOURCE}}

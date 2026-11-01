@@ -586,12 +586,12 @@ def rank_key(summary, required, wanted_styles, wanted_tone, max_price,
     snag = SNAG_ORDER.get(item.get("snag_risk"), 3)
     light = 1 if (has_kids_flag and is_light_unprotected(item)) else 0
     over = 1 if (max_price is not None
-                 and item["price_sar_per_m"] > max_price) else 0
+                 and item["price_usd_per_m"] > max_price) else 0
     style_hit = len(set(wanted_styles) & set(item.get("styles", [])))
     if wanted_tone and item.get("tone") == wanted_tone:
         style_hit += 1
     return (-fit, snag, light, over, -style_hit,
-            item["price_sar_per_m"])
+            item["price_usd_per_m"])
 
 
 # Safety requirements are never relaxed to fill the shortlist: a hotel
@@ -759,37 +759,39 @@ def strip_block(text):
 
 
 def budget_tiers():
-    """Budget chip bounds (SAR/m) derived from catalog price quartiles."""
+    """Budget chip bounds (USD/m) derived from catalog price quartiles."""
     from statistics import quantiles
     from app.services.catalog import load_specs
-    prices = sorted(s["price_sar_per_m"] for s in load_specs())
+    prices = sorted(s["price_usd_per_m"] for s in load_specs())
     q1, _, q3 = quantiles(prices, n=4)
-    low = int(q1 // 10 * 10) - 10
-    high = int(q3 // 10 * 10)
-    return max(low, 10), high
+    # Dollar prices run 17-67/m: tiers step in fives.
+    low = int(q1 // 5 * 5) - 5
+    high = int(q3 // 5 * 5)
+    return max(low, 5), high
 
 
 BUDGET_TIERS = budget_tiers()
 
 SYSTEM_PROMPT += (
     "\n\nBUDGET: when you ask about budget, offer exactly these four "
-    "chips: Under %d SAR, %d-%d SAR, over %d SAR, No limit. "
-    "State every price in SAR, never with $."
+    "chips: Under $%d, $%d-%d, over $%d, No limit. "
+    "State every price in US dollars with a $ sign, never in SAR or riyals."
     % (BUDGET_TIERS[0], BUDGET_TIERS[0], BUDGET_TIERS[1],
        BUDGET_TIERS[1]))
 
 
 def sar_option(option):
-    """Rewrite model $ amounts into catalog SAR ("$80" -> "80 SAR")."""
-    text = re.sub(r"\$\s*([\d,]+(?:\.\d+)?)", r"\1 SAR", str(option))
-    return text.replace("$", "SAR").strip()
+    """Rewrite riyal amounts into catalog dollars ("80 SAR" -> "$80")."""
+    text = re.sub(r"([\d,]+(?:\.\d+)?)\s*(?:SAR|ر\.?\s?س|ريال)",
+                  r"$\1", str(option))
+    return text.replace("SAR", "$").strip()
 
 
 def extract_options(text):
     """Parse the options block. Returns a list of strings or None.
 
-    Amounts are normalized to SAR: the model sometimes prices chips
-    in dollars even though the catalog is SAR-only.
+    Amounts are normalized to dollars: the model sometimes prices chips
+    in riyals even though the catalog is USD-only.
     """
     match = OPTIONS_RE.search(text or "")
     if not match:
@@ -1029,7 +1031,7 @@ RELAX_MATCH = {
 
 
 def _money(value, arabic):
-    """Format a SAR amount, Arabic-Indic digits for Arabic."""
+    """Format a USD amount, Arabic-Indic digits for Arabic."""
     text = str(int(round(value)))
     if arabic:
         text = "".join("٠١٢٣٤٥٦٧٨٩"[int(c)] if c.isdigit() else c
@@ -1041,8 +1043,8 @@ def _relax_phrase(key, arabic, budget_over=0, specific=()):
     if key == "max_price" and budget_over > 0:
         over = _money(budget_over, arabic)
         if arabic:
-            return "طلعت فوق ميزانيتك بـ %s ر.س" % over
-        return "went %s SAR over your budget" % over
+            return "طلعت فوق ميزانيتك بـ %s دولار" % over
+        return "went $%s over your budget" % over
     if key in ("features", "any_features"):
         labels = _specific_feature_labels(specific, arabic)
         if labels:
@@ -1241,7 +1243,7 @@ def receipt_summary(matched, relaxed_keys, relaxed_feats, budget_over,
     ease_labels = ease_labels[:3]
     match_labels = match_labels[:3]
     if budget_over:
-        label = "%s (+%s SAR)" % (
+        label = "%s (+$%s)" % (
             _receipt_label("max_price", code),
             _money(budget_over, code == "ar"))
         if label not in ease_labels:
@@ -1281,7 +1283,7 @@ def enrich(recommendations, turn):
         relaxed_feats = [f for f in needs if f not in feats] \
             if feat_relaxed else []
         budget = min(budgets) if budgets else None
-        price = item["price_sar_per_m"]
+        price = item["price_usd_per_m"]
         over = 0
         if budget is not None and "max_price" in relaxed \
                 and price > budget:
@@ -1300,7 +1302,7 @@ def enrich(recommendations, turn):
                     "name_ar": item["name_ar"],
                     "description_en": item.get("description_en", ""),
                     "description_ar": item.get("description_ar", ""),
-                    "price_sar_per_m": price,
+                    "price_usd_per_m": price,
                     "image": item.get("image", ""),
                     "features": item.get("features", []),
                     "snag_risk": item.get("snag_risk", "unknown"),
@@ -1449,11 +1451,11 @@ def _execute_tool(name, args, turn, on_step=None):
         if meters is None:
             return {"error": "needs measurements", "target": target,
                     "code": code}
-        price = fabric.get("price_sar_per_m")
+        price = fabric.get("price_usd_per_m")
         line = round(meters * price, 2) if price is not None else None
         result = {"target": target, "code": code, "meters": meters,
-                  "price_sar_per_m": price, "line_total": line,
-                  "currency": "SAR", "preliminary": True, "note": note}
+                  "price_usd_per_m": price, "line_total": line,
+                  "currency": "USD", "preliminary": True, "note": note}
         if target == "cushions":
             result["pillows"] = pillows
         # A quoted fabric is the item's pick: the session quote and the

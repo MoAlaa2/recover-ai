@@ -465,8 +465,8 @@ def rec_caption(rec, lang):
     else:
         name = rec.get("name_en") or rec.get("name_ar") or ""
     lines = ["*%s*" % name,
-             "%s · %s SAR/m" % (rec.get("code", ""),
-                                rec.get("price_sar_per_m", ""))]
+             "%s · $%s/m" % (rec.get("code", ""),
+                                rec.get("price_usd_per_m", ""))]
     if rec.get("reason"):
         lines.append(rec["reason"])
     matched = rec.get("matched") or []
@@ -542,14 +542,14 @@ def summary_text(wa_id, lang):
                 "needs measurements" if lang != "ar" else
                 "يحتاج مقاسات"))
         else:
-            lines.append("• %s → %s (%s): %s m × %s = %s SAR" % (
+            lines.append("• %s → %s (%s): %s m × $%s = $%s" % (
                 item["target"], name, item["code"], item["meters"],
-                item["price_sar_per_m"], item["line_total"]))
+                item["price_usd_per_m"], item["line_total"]))
     if lang == "ar":
-        lines.append("الإجمالي (تقدير مبدئي): %s ر.س" % res["total"])
+        lines.append("الإجمالي (تقدير مبدئي): $%s" % res["total"])
         lines.append("تقدير مبدئي — المقاس النهائي من المنجّد.")
     else:
-        lines.append("Total (preliminary estimate): %s SAR"
+        lines.append("Total (preliminary estimate): $%s"
                      % res["total"])
         lines.append("Preliminary estimate — your upholsterer will "
                      "measure.")

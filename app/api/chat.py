@@ -608,7 +608,7 @@ def swap_stream(req: SwapRequest):
                     "code": req.fabric_code,
                     "name_en": fab.get("name_en", ""),
                     "name_ar": fab.get("name_ar", ""),
-                    "price_sar_per_m": fab.get("price_sar_per_m"),
+                    "price_usd_per_m": fab.get("price_usd_per_m"),
                     "image": fab.get("image", "")}
             except Exception:  # noqa: BLE001 - meta is best-effort
                 pass

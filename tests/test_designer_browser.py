@@ -79,15 +79,15 @@ def fake_render(route):
     legend = []
     for p in pieces:
         row = dict(p, name_en="", name_ar="", image="", material="",
-                   price_sar_per_m=None)
+                   price_usd_per_m=None)
         if p.get("code"):
             row.update(name_en="Saffron Velvet", name_ar="مخمل الزعفران",
                        image="data/catalog/FA-AC-01.jpg",
-                       material="cotton velvet", price_sar_per_m=95)
+                       material="cotton velvet", price_usd_per_m=95)
         legend.append(row)
     quote = {"items": [{"id": p["id"], "name": p["name"], "type": p["type"],
                         "code": p["code"], "meters": 16.5,
-                        "price_sar_per_m": 95, "line_total": 1567.5}
+                        "price_usd_per_m": 95, "line_total": 1567.5}
                        for p in pieces if p.get("code")],
              "total": 1567.5, "currency": "SAR", "preliminary": True,
              "co2": {"kg": 52, "waste_kg": 48, "source": "EPD X"}}

@@ -37,7 +37,7 @@
       totalLabel: "Total", preliminaryNote: "Preliminary estimate — your upholsterer will measure.",
       co2Line: "By keeping these pieces you avoid ≈%d kg CO₂e of new manufacturing and ≈%d kg of furniture waste",
       co2Source: "Source: EPD NEPD-1805-759",
-      meters: "%s m", sarPerM: "%s SAR/m", sar: "%s SAR",
+      meters: "%s m", sarPerM: "$%s/m", sar: "$%s",
       pdfBusy: "Preparing the PDF…", pdfFail: "Could not build the PDF.",
       pdfDone: "PDF ready — check your downloads.",
       sendFail: "Could not reach ReCover. Try again.",
@@ -75,7 +75,7 @@
       totalLabel: "الإجمالي", preliminaryNote: "تقدير مبدئي — المقاس النهائي من المنجّد.",
       co2Line: "باحفاظك على هذه القطع تتجنّب ≈%d كغ CO₂e من التصنيع الجديد و≈%d كغ من نفايات الأثاث",
       co2Source: "المصدر: EPD NEPD-1805-759",
-      meters: "%s م", sarPerM: "%s ر.س/م", sar: "%s ر.س",
+      meters: "%s م", sarPerM: "$%s/م", sar: "$%s",
       pdfBusy: "نجهّز ملف PDF…", pdfFail: "تعذّر إنشاء الملف.",
       pdfDone: "الملف جاهز — راجع التنزيلات.",
       sendFail: "تعذّر الوصول إلى ReCover. حاول مرة أخرى.",
@@ -411,7 +411,7 @@
             esc(name) + '" loading="lazy">' +
             '<div class="browse-n" dir="auto">' + esc(name) + "</div>" +
             '<div class="browse-m">' + esc(f.code) + " · " +
-            esc(fmt("sarPerM", num(f.price_sar_per_m, 0))) + "</div>" +
+            esc(fmt("sarPerM", num(f.price_usd_per_m, 0))) + "</div>" +
             '<button type="button" class="seeit" data-apply="' +
             esc(f.code) + '"><span>' + esc(t("applyOne")) +
             "</span></button></div>";
@@ -559,7 +559,7 @@
     var lines = (q.items || []).map(function (it) {
       return '<div class="sum-row"><div>' + num(it.id, 0) + " " + esc(it.name) +
         " · " + esc(it.code) + " · " + esc(fmt("meters", num(it.meters))) +
-        " × " + esc(fmt("sarPerM", num(it.price_sar_per_m, 0))) + " = " +
+        " × " + esc(fmt("sarPerM", num(it.price_usd_per_m, 0))) + " = " +
         esc(fmt("sar", num(it.line_total, 2))) + "</div></div>";
     }).join("");
     var html = lines;

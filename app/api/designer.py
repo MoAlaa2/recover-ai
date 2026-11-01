@@ -159,7 +159,7 @@ def proposal_pdf(req: ProposalRequest):
             "name": (fabric.get("name_ar") if lang == "ar"
                      else fabric.get("name_en")) or it.code,
             "material": fabric.get("material", ""),
-            "price_sar_per_m": fabric.get("price_sar_per_m"),
+            "price_usd_per_m": fabric.get("price_usd_per_m"),
             "meters": it.meters, "line_total": it.line_total,
             "swatch": swatch})
     data = {"mode": "plan" if req.mode == "plan" else "photo",

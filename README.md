@@ -33,7 +33,7 @@ picture the result.
   palette.
 - **Grounded recommendations** — exactly 3 fabrics per turn, every code
   validated against this turn's catalog search; receipts show what
-  matched (`✓ Pet-friendly`) and what was relaxed (`⚠ 155 SAR/m —
+  matched (`✓ Pet-friendly`) and what was relaxed (`⚠ $41/m —
   5 over budget`), with real numbers, never vague claims. If the model
   fumbles the codes, it retries against the exact valid list; if that
   fails, a deterministic top-3 fallback kicks in — a recommendation
@@ -57,7 +57,7 @@ picture the result.
   once then skipped with a note) and composites them largest-first.
 - **Meters + quote + handoff** — yardage table (137 cm width, +15% for
   patterned repeats, curtains measured or "needs measurements"),
-  per-item quote in SAR with a "preliminary estimate" label, and a
+  per-item quote in USD with a "preliminary estimate" label, and a
   "Send to upholsterer" WhatsApp deep link with a public 14-day
   HMAC-signed preview link (`/share/<token>.jpg`, exempt from the
   demo lock, unguessable, noindex).

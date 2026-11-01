@@ -6,10 +6,10 @@ from fastapi.testclient import TestClient
 from app.services import meterage as m
 
 PLAIN = {"code": "P", "plain_or_patterned": "plain",
-         "pattern_type": "solid", "price_sar_per_m": 100,
+         "pattern_type": "solid", "price_usd_per_m": 100,
          "name_en": "P", "name_ar": "P"}
 PATTERNED = {"code": "Q", "plain_or_patterned": "patterned",
-             "pattern_type": "stripes", "price_sar_per_m": 200,
+             "pattern_type": "stripes", "price_usd_per_m": 200,
              "name_en": "Q", "name_ar": "Q"}
 
 
@@ -83,7 +83,7 @@ def test_quote_totals():
     assert by_target["cushions"]["line_total"] == 1600.0
     assert res["total"] == 3250.0
     assert res["missing"] == []
-    assert res["currency"] == "SAR"
+    assert res["currency"] == "USD"
 
 
 def test_quote_missing_measurements():
@@ -102,7 +102,7 @@ def test_estimate_cost_tool_sofa():
                          {"session": session, "seen": []})
     assert out["target"] == "sofa"
     assert out["meters"] is not None
-    assert out["currency"] == "SAR"
+    assert out["currency"] == "USD"
     assert out["preliminary"] is True
 
 

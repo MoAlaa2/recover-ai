@@ -11,7 +11,7 @@
       analyzing: "Analyzing your room…",
       seeIt: "See it in my space",
       comingSoon: "Coming soon",
-      perMeter: "SAR/m",
+      perMeter: "$/m",
       matchSection: "Why this fabric",
       relaxSection: "Adjusted for you",
       sendFail: "Sorry, something went wrong. Please try again.",
@@ -57,7 +57,7 @@
       summaryTitle: "Your picks",
       closeBrowse: "Close",
       meterUnit: "m",
-      sarUnit: "SAR",
+      sarUnit: "USD",
       totalLabel: "Total",
       sendUpholsterer: "Send to upholsterer",
       tryAnother: "Try another fabric",
@@ -126,7 +126,7 @@
       analyzing: "جارٍ تحليل غرفتك…",
       seeIt: "شاهده في مساحتك",
       comingSoon: "قريباً",
-      perMeter: "ر.س/م",
+      perMeter: "$/م",
       matchSection: "لماذا هذا القماش",
       relaxSection: "عدّلنا لك",
       sendFail: "عذراً، حدث خطأ. حاول مرة أخرى.",
@@ -190,7 +190,7 @@
       summaryTitle: "اختياراتك",
       closeBrowse: "إغلاق",
       meterUnit: "م",
-      sarUnit: "ر.س",
+      sarUnit: "دولار",
       totalLabel: "الإجمالي",
       sendUpholsterer: "أرسل للمنجّد",
       tryAnother: "جرّب قماش ثاني",
@@ -241,7 +241,7 @@
       analyzing: "आपका कमरा देख रहा हूँ…",
       seeIt: "इसे अपनी जगह पर देखें",
       comingSoon: "जल्द आ रहा है",
-      perMeter: "SAR/मी",
+      perMeter: "$/मी",
       matchSection: "यह कपड़ा क्यों",
       relaxSection: "आपके लिए बदला",
       sendFail: "माफ़ करें, कुछ गड़बड़ हुई। फिर कोशिश करें।",
@@ -275,7 +275,7 @@
       summaryTitle: "आपकी पसंद",
       closeBrowse: "बंद करें",
       meterUnit: "मी",
-      sarUnit: "SAR",
+      sarUnit: "USD",
       totalLabel: "कुल",
       sendUpholsterer: "मिस्त्री को भेजें",
       tryAnother: "दूसरा कपड़ा आज़माएँ",
@@ -356,7 +356,7 @@
       analyzing: "J'analyse votre pièce…",
       seeIt: "Voir chez moi",
       comingSoon: "Bientôt",
-      perMeter: "SAR/m",
+      perMeter: "$/m",
       matchSection: "Pourquoi ce tissu",
       relaxSection: "Ajusté pour vous",
       sendFail: "Désolé, une erreur est survenue. Réessayez.",
@@ -390,7 +390,7 @@
       summaryTitle: "Vos choix",
       closeBrowse: "Fermer",
       meterUnit: "m",
-      sarUnit: "SAR",
+      sarUnit: "USD",
       totalLabel: "Total",
       sendUpholsterer: "Envoyer au tapissier",
       tryAnother: "Essayer un autre tissu",
@@ -471,7 +471,7 @@
       analyzing: "Estoy analizando tu espacio…",
       seeIt: "Verlo en mi espacio",
       comingSoon: "Pronto",
-      perMeter: "SAR/m",
+      perMeter: "$/m",
       matchSection: "Por qué esta tela",
       relaxSection: "Ajustado para ti",
       sendFail: "Perdón, algo falló. Inténtalo de nuevo.",
@@ -505,7 +505,7 @@
       summaryTitle: "Tus elecciones",
       closeBrowse: "Cerrar",
       meterUnit: "m",
-      sarUnit: "SAR",
+      sarUnit: "USD",
       totalLabel: "Total",
       sendUpholsterer: "Enviar al tapicero",
       tryAnother: "Probar otra tela",
@@ -744,9 +744,9 @@
     return state.lang === "ar" ? toArabicDigits(text) : text;
   }
 
-  function formatPrice(sar) {
-    if (state.lang === "ar") return toArabicDigits(sar) + " ر.س/م";
-    return sar + " " + t("perMeter");
+  function formatPrice(usd) {
+    if (state.lang === "ar") return "$" + toArabicDigits(usd) + "/م";
+    return "$" + usd + "/m";
   }
 
   function notFeatureLabel(key) {
@@ -759,11 +759,11 @@
   }
 
   function budgetPill(rb) {
-    var price = rb.price + " SAR/m";
-    var over = rb.over;
+    var price = "$" + rb.price + "/m";
+    var over = "$" + rb.over;
     if (state.lang === "ar") {
-      price = toArabicDigits(rb.price) + " ر.س/م";
-      over = toArabicDigits(rb.over);
+      price = "$" + toArabicDigits(rb.price) + "/م";
+      over = "$" + toArabicDigits(rb.over);
       return price + " — أعلى من ميزانيتك بـ " + over;
     }
     if (state.lang === "hi") return price + " — बजट से " + over + " ज़्यादा";
@@ -852,7 +852,7 @@
   }
 
   function afterQuote(res) {
-    // Any quote (single item too): the summary card with meters, SAR
+    // Any quote (single item too): the summary card with meters, USD
     // total, CO2 and the Send / Copy actions, then action chips.
     if (!res || !res.quote) return false;
     postSummaryCard(null).then(function () {
@@ -1272,7 +1272,7 @@
         '<img src="/' + esc(r.image) + '" alt="' + esc(name) + '">' +
         '<span class="cc-t"><span class="cc-n" dir="auto">' + esc(name) +
         '</span><span class="cc-m">' + esc(r.code) + " · " +
-        esc(formatPrice(r.price_sar_per_m)) + "</span>" +
+        esc(formatPrice(r.price_usd_per_m)) + "</span>" +
         '<span class="cc-s">' + esc(status) + statusBadge +
         "</span></span></button>";
     }).join("");
@@ -1672,7 +1672,7 @@
         esc(name) + '" loading="lazy">' +
         '<div class="browse-n" dir="auto">' + esc(name) + "</div>" +
         '<div class="browse-m">' + esc(f.code) + " · " +
-        esc(formatPrice(f.price_sar_per_m)) + "</div>" +
+        esc(formatPrice(f.price_usd_per_m)) + "</div>" +
         '<button type="button" class="seeit" data-apply="' +
         esc(f.code) + '"><span>' + esc(t("applyOne")) +
         "</span></button></div>";
@@ -1802,7 +1802,7 @@
         if (f.code === code) {
           return Promise.resolve({ code: f.code, name_en: f.name_en,
                                    name_ar: f.name_ar,
-                                   price: f.price_sar_per_m,
+                                   price: f.price_usd_per_m,
                                    image: f.image });
         }
       }
@@ -1811,7 +1811,7 @@
                     { method: "GET", timeoutMs: 30000, retries: 1 })
       .then(function (f) {
         return { code: f.code, name_en: f.name_en, name_ar: f.name_ar,
-                 price: f.price_sar_per_m, image: f.image };
+                 price: f.price_usd_per_m, image: f.image };
       }).catch(function () { return { code: code }; });
   }
 
@@ -1823,8 +1823,8 @@
 
   function fmtMoney(n) {
     if (n === undefined || n === null) return "";
-    if (state.lang === "ar") return toArabicDigits(n) + " " + t("sarUnit");
-    return n + " " + t("sarUnit");
+    if (state.lang === "ar") return "$" + toArabicDigits(n);
+    return "$" + n;
   }
 
   function fmtNum(n) {
@@ -2171,7 +2171,7 @@
         '" loading="lazy">' +
         '<div class="mini-n" dir="auto">' + esc(name) + "</div>" +
         '<div class="mini-m">' + esc(r.code) + " · " +
-        esc(formatPrice(r.price_sar_per_m)) + "</div>" +
+        esc(formatPrice(r.price_usd_per_m)) + "</div>" +
         receiptLine(r) +
         '<button type="button" class="seeit mini-try" data-try="' +
         esc(r.code) + '"' + (tgt ? ' data-target="' + esc(tgt) + '"' : "") +
@@ -2317,7 +2317,7 @@
       if (list[i].code === code) {
         return { code: list[i].code,
                  name_en: list[i].name_en, name_ar: list[i].name_ar,
-                 price: list[i].price_sar_per_m,
+                 price: list[i].price_usd_per_m,
                  image: list[i].image };
       }
     }
@@ -2409,7 +2409,7 @@
       esc(name) + '"><span class="code-pill">' + esc(r.code) + "</span></div>" +
       '<div class="body" dir="auto"><div class="name">' + esc(name) + "</div>" +
       '<div class="meta"><i data-lucide="ruler" aria-hidden="true"></i><span>' +
-      esc(formatPrice(r.price_sar_per_m)) + "</span></div>" +
+      esc(formatPrice(r.price_usd_per_m)) + "</span></div>" +
       (r.reason ? '<p class="why">' + esc(r.reason) + "</p>" : "") +
       '<div class="featrow">' + feats +
       '<span class="' + snagClass(r.snag_risk) + '">' +
@@ -2702,8 +2702,8 @@
     meta = meta || { code: code };
     if (!meta.name_en && srv.name_en) meta.name_en = srv.name_en;
     if (!meta.name_ar && srv.name_ar) meta.name_ar = srv.name_ar;
-    if (meta.price === undefined && srv.price_sar_per_m !== undefined) {
-      meta.price = srv.price_sar_per_m;
+    if (meta.price === undefined && srv.price_usd_per_m !== undefined) {
+      meta.price = srv.price_usd_per_m;
     }
     if (!meta.image && srv.image) meta.image = srv.image;
     clearSwapTimers();

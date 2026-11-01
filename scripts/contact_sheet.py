@@ -87,7 +87,7 @@ def main():
                     item["code"], html.escape(item["code"]),
                     html.escape(item["code"]),
                     html.escape(item["name_en"]),
-                    item["price_sar_per_m"],
+                    item["price_usd_per_m"],
                     snag_cell(item.get("snag_risk")),
                     score_cell(rep.get("color_match")),
                     score_cell(rep.get("pattern_match")),

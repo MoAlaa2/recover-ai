@@ -18,27 +18,27 @@ LANGS = {
     "en": {"all": ["all", "mix", "everything", "both"],
            "fallback": ("Warm beige, kids, budget 150 per meter. "
                         "Recommend 3 fabrics now."),
-           "needles": ["SAR", "Total", "Preliminary estimate",
+           "needles": ["$", "Total", "Preliminary estimate",
                        "https://wa.me/?text="]},
     "ar": {"all": ["كل", "mix"],
            "fallback": ("درجات بيج دافية، عندي أطفال، الميزانية "
                         "١٥٠ للمتر. رشّح لي ٣ أقمشة الحين."),
-           "needles": ["ر.س", "الإجمالي", "تقدير مبدئي",
+           "needles": ["$", "الإجمالي", "تقدير مبدئي",
                        "https://wa.me/?text="]},
     "hi": {"all": ["सब", "सभी", "mix"],
            "fallback": ("गर्म बेज रंग, बच्चे हैं, बजट 150 प्रति मीटर। "
                         "अभी 3 फ़ैब्रिक सुझाएँ।"),
-           "needles": ["SAR", "कुल", "शुरुआती अंदाज़ा",
+           "needles": ["$", "कुल", "शुरुआती अंदाज़ा",
                        "https://wa.me/?text="]},
     "fr": {"all": ["tout", "tous", "mix"],
            "fallback": ("Beige chaud, enfants, budget 150 par mètre. "
                         "Recommandez 3 tissus maintenant."),
-           "needles": ["SAR", "Total", "Estimation préliminaire",
+           "needles": ["$", "Total", "Estimation préliminaire",
                        "https://wa.me/?text="]},
     "es": {"all": ["todo", "todos", "mezcla"],
            "fallback": ("Beige cálido, niños, presupuesto 150 por metro. "
                         "Recomienda 3 telas ahora."),
-           "needles": ["SAR", "Total", "Estimación preliminar",
+           "needles": ["$", "Total", "Estimación preliminar",
                        "https://wa.me/?text="]},
 }
 

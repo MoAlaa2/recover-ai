@@ -138,7 +138,7 @@ def quote(assignments, fabrics, curtain_dims=None, extras=None):
         pillows = ((extras or {}).get(target) or 0)
         meters, note = estimate_item(target, fabric, curtain_dims,
                                      pillow_count=pillows)
-        price = fabric.get("price_sar_per_m")
+        price = fabric.get("price_usd_per_m")
         line = None
         if meters is not None and price is not None:
             line = round(meters * price, 2)
@@ -148,7 +148,7 @@ def quote(assignments, fabrics, curtain_dims=None, extras=None):
         items.append({"target": target, "code": code,
                       "fabric_name_en": fabric.get("name_en", ""),
                       "fabric_name_ar": fabric.get("name_ar", ""),
-                      "meters": meters, "price_sar_per_m": price,
+                      "meters": meters, "price_usd_per_m": price,
                       "line_total": line, "note": note})
     return {"items": items, "total": round(total, 2), "missing": missing,
-            "currency": "SAR"}
+            "currency": "USD"}

@@ -197,7 +197,7 @@ def test_targets_question_forces_list(env, outbox, waid, monkeypatch):
 
 def test_recs_send_images_then_try(env, outbox, waid, monkeypatch):
     recs = [{"code": "FA-AC-01", "name_en": "Linen",
-             "name_ar": "كتان", "price_sar_per_m": 95,
+             "name_ar": "كتان", "price_usd_per_m": 95,
              "image": "data/catalog/FA-AC-01.jpg",
              "reason": "Good.", "matched": ["washable"]}]
     monkeypatch.setattr(wa, "upload_media",
@@ -309,10 +309,10 @@ def test_summary_text(env, waid):
         "assignments": {"sofa": "FA-AC-01"}}
     text = wa.summary_text(waid, "en")
     assert "FA-AC-01" in text
-    assert "Total" in text and "SAR" in text
+    assert "Total" in text and "$" in text and "SAR" not in text
     assert "52" in text and "NEPD-1805-759" in text
     ar = wa.summary_text(waid, "ar")
-    assert "الإجمالي" in ar and "ر.س" in ar
+    assert "الإجمالي" in ar and "$" in ar and "ر.س" not in ar
 
 
 def test_session_persists_and_expires(env, waid):

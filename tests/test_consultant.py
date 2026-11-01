@@ -155,7 +155,7 @@ def test_snag_medium_widening_is_recorded(monkeypatch):
                 primary_color="red", secondary_colors=[], tone="warm",
                 styles=["modern"], features=["stain-resistant"],
                 suitable_for=["home"], opacity="opaque",
-                price_sar_per_m=100, usage="upholstery",
+                price_usd_per_m=100, usage="upholstery",
                 pattern_type="solid", image="")
     items = [dict(base, code="T-LOW-%d" % i, snag_risk="low")
              for i in range(2)]
@@ -303,10 +303,10 @@ def test_budget_preferred_when_fit_equal(monkeypatch):
                 features=["stain-resistant"], suitable_for=["home"],
                 opacity="opaque", usage="upholstery",
                 pattern_type="solid", image="", snag_risk="low")
-    items = [dict(base, code="B-80", price_sar_per_m=80, styles=[]),
-             dict(base, code="B-150", price_sar_per_m=150,
+    items = [dict(base, code="B-80", price_usd_per_m=80, styles=[]),
+             dict(base, code="B-150", price_usd_per_m=150,
                   styles=["modern"]),
-             dict(base, code="B-90", price_sar_per_m=90, styles=[])]
+             dict(base, code="B-90", price_usd_per_m=90, styles=[])]
     monkeypatch.setattr(cat, "_SPECS", items)
     turn = {"seen": [], "relaxed": [], "needs_any": [], "needs_all": [],
             "protected": [], "pet_safe": False, "has_kids": False}
@@ -358,7 +358,7 @@ def test_pets_never_get_high_snag(monkeypatch):
                 primary_color="red", secondary_colors=[], tone="warm",
                 styles=["modern"], features=["pet-friendly"],
                 suitable_for=["home"], opacity="opaque", usage="upholstery",
-                pattern_type="solid", image="", price_sar_per_m=100)
+                pattern_type="solid", image="", price_usd_per_m=100)
     items = [dict(base, code="P-MED", snag_risk="medium"),
              dict(base, code="P-HI", snag_risk="high")]
     monkeypatch.setattr(cat, "_SPECS", items)
@@ -570,13 +570,14 @@ def test_enrich_relaxed_feature_specifics():
 
 
 def test_enrich_budget_over_numbers():
-    turn = {"needs_all": [], "needs_any": [], "budgets": [100],
+    turn = {"needs_all": [], "needs_any": [], "budgets": [50],
             "tones": [], "relaxed": ["max_price"],
             "protected": [], "pet_safe": False, "has_kids": False}
     out = c.enrich([{"code": "FA-VL-01", "reason": "r"}], turn)
     rb = out[0]["relaxed_budget"]
-    price = c.get_fabric("FA-VL-01")["price_sar_per_m"]
-    assert rb == {"price": price, "over": price - 100, "budget": 100}
+    price = c.get_fabric("FA-VL-01")["price_usd_per_m"]
+    assert price > 50
+    assert rb == {"price": price, "over": price - 50, "budget": 50}
     assert "under-budget" not in out[0]["matched"]
 
 
@@ -745,7 +746,7 @@ def test_grounding_fallback_top3():
         assert "closest matches" in out["reply"]
         assert "```" not in out["reply"]
         enriched = out["recommendations"]
-        assert all("price_sar_per_m" in r for r in enriched)
+        assert all("price_usd_per_m" in r for r in enriched)
         log = json.load(open(log_path, encoding="utf-8"))
         assert log[-1]["path"] == "fallback"
         assert log[-1]["final_codes"] == codes
@@ -862,18 +863,21 @@ def test_greeting_collapses_model_stutter():
 
 def test_budget_tiers_derive_from_catalog():
     lo, hi = c.budget_tiers()
-    assert (lo, hi) == (80, 150)
-    assert "Under 80 SAR" in c.SYSTEM_PROMPT
-    assert "never with $" in c.SYSTEM_PROMPT
+    assert (lo, hi) == (20, 40)
+    assert "Under $20" in c.SYSTEM_PROMPT
+    assert "US dollars" in c.SYSTEM_PROMPT
 
 
-def test_sar_option_rewrites_dollars():
-    assert c.sar_option("Under $80") == "Under 80 SAR"
+def test_sar_option_rewrites_riyals_to_dollars():
+    assert c.sar_option("Under 80 SAR") == "Under $80"
+    assert c.sar_option("تحت ١٠٠ ر.س") == "تحت $١٠٠" or \
+        c.sar_option("100 ريال") == "$100"
+    assert c.sar_option("Under $80") == "Under $80"
     assert c.sar_option("80–150") == "80–150"
     assert c.sar_option("No limit") == "No limit"
     block = "Pick one.\n```options\n%s\n```" % json.dumps(
-        ["Under $80", "No limit"])
-    assert c.extract_options(block) == ["Under 80 SAR", "No limit"]
+        ["Under 80 SAR", "No limit"])
+    assert c.extract_options(block) == ["Under $80", "No limit"]
 
 
 def test_preview_fabric_needs_seen_code_and_photo(tmp_path, monkeypatch):
@@ -1151,7 +1155,7 @@ def test_rec_turn_suppresses_prose_disclosure():
     # The relaxed budget is disclosed once, on the card's receipt line —
     # never repeated as a prose sentence on the same turn.
     summaries, relaxed = search_catalog(
-        usage="upholstery", max_price=50, limit=50)
+        usage="upholstery", max_price=15, limit=50)
     assert "max_price" in relaxed
     codes = [s["code"] for s in summaries[:3]]
 
@@ -1179,10 +1183,10 @@ def test_no_rec_turn_still_discloses():
         fake.n += 1
         if fake.n == 1:
             return tool_call("search_catalog",
-                             {"usage": "upholstery", "max_price": 50})
+                             {"usage": "upholstery", "max_price": 15})
         return final_text("Blue is a great choice. What tone do you like?")
 
-    out = c.chat("test-disclosure-no-recs", "blue sofa under 50",
+    out = c.chat("test-disclosure-no-recs", "blue sofa under 15",
                  chat_fn=fake)
     assert out["recommendations"] == []
     assert "To find these" in out["reply"]

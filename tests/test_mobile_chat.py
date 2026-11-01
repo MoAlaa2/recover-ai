@@ -25,7 +25,7 @@ IMG_TURN = {
     "reply": "I can see a sofa in a bright room. Which style do you like?",
     "recommendations": [{
         "code": "FA-NL-07", "name_en": "Nordic Linen",
-        "name_ar": "كتان نورديك", "price_sar_per_m": 155,
+        "name_ar": "كتان نورديك", "price_usd_per_m": 155,
         "image": "data/catalog/FA-AC-01.jpg", "features": [],
         "snag_risk": "low", "reason": "Good match.",
         "matched": [], "relaxed": [], "relaxed_features": [],
@@ -222,8 +222,8 @@ def test_room_bar_sheet_and_stream_bubble(server, page):
     assert len(cards) == 1, "recs must live in the chat, not a panel"
     assert 'data-try="FA-NL-07"' in cards[0]
     assert "Try on my photo" in cards[0]
-    assert "155 SAR" in cards[0]
-    assert "$" not in cards[0]
+    assert "$155" in cards[0]
+    assert "SAR" not in cards[0]
     assert page.get_attribute("#recs", "hidden") is not None or \
         page.evaluate("getComputedStyle(document.getElementById('recs'))"
                       ".display") == "none"
@@ -372,7 +372,7 @@ def test_arabic_cards_and_titles(server, page):
     turn_ar = dict(IMG_TURN)
     turn_ar["reply"] = "أرى كنبة في غرفة مضيئة. أي ستايل يعجبك؟"
     rec_ar = dict(IMG_TURN["recommendations"][0])
-    rec_ar["price_sar_per_m"] = 155
+    rec_ar["price_usd_per_m"] = 155
     turn_ar["recommendations"] = [rec_ar]
     turn_ar["options"] = ["كنبة فقط"]
     turn_ar["room_analysis"] = dict(IMG_TURN["room_analysis"])
@@ -401,8 +401,8 @@ def test_arabic_cards_and_titles(server, page):
     card = page.eval_on_selector(
         "#messages .mini-card", "e => e.outerHTML")
     assert "جرّبه على صورتي" in card
-    assert "ر.س" in card
-    assert "$" not in card
+    assert "$" in card
+    assert "ر.س" not in card
     title = (page.text_content("#roomFabric") or "").strip()
     sub = (page.text_content("#roomSub") or "").strip()
     assert title != sub or not sub, "room bar must not repeat: %r / %r" % (
@@ -519,8 +519,8 @@ def test_multi_assign_flow(server, page):
         "#messages .sum-card", "e => e.outerHTML")
     assert "Your picks" in card
     assert "FA-" in card
-    assert "SAR" in card
-    assert "$" not in card
+    assert "$" in card
+    assert "SAR" not in card
     assert "Preliminary estimate" in card
     assert "Total" in card
     assert "https://wa.me/?text=" in card
@@ -613,8 +613,8 @@ def test_multi_assign_flow_ar(server, page):
     card = page.eval_on_selector(
         "#messages .sum-card", "e => e.outerHTML")
     assert "اختياراتك" in card
-    assert "ر.س" in card
-    assert "$" not in card
+    assert "$" in card
+    assert "ر.س" not in card
     assert "تقدير مبدئي" in card
     assert "الإجمالي" in card
     assert "https://wa.me/?text=" in card
@@ -784,19 +784,19 @@ def test_auto_preview_swaps_chosen_target(server, page):
 
 
 QUOTE_TURN = {
-    "reply": "About 16.5 m at 95 SAR/m — 1,567.5 SAR, preliminary.",
+    "reply": "About 16.5 m at $25/m — $412.5, preliminary.",
     "recommendations": [], "options": [], "detected_lang": "en",
     "quote": {"target": "sofa", "code": "FA-NL-07", "meters": 16.5,
-              "price_sar_per_m": 155, "line_total": 2557.5},
+              "price_usd_per_m": 155, "line_total": 2557.5},
     "targets": {"available": ["sofa"], "chosen": ["sofa"],
                 "assignments": {"sofa": "FA-NL-07"}}}
 
 QUOTE_BODY = {"items": [{"target": "sofa", "code": "FA-NL-07",
                          "fabric_name_en": "Nordic Linen",
                          "fabric_name_ar": "كتان نورديك",
-                         "meters": 16.5, "price_sar_per_m": 155,
+                         "meters": 16.5, "price_usd_per_m": 155,
                          "line_total": 2557.5, "note": ""}],
-              "total": 2557.5, "missing": [], "currency": "SAR",
+              "total": 2557.5, "missing": [], "currency": "USD",
               "preliminary": True,
               "co2": {"kg": 52, "waste_kg": 48, "source": "EPD NEPD-1805-759"}}
 
@@ -827,7 +827,7 @@ def test_single_quote_posts_summary_card_and_actions(server, page):
     page.click('.composer button[type="submit"]')
     page.wait_for_selector("#messages .sum-card", timeout=30000)
     card = page.eval_on_selector("#messages .sum-card", "e => e.innerText")
-    assert "16.5 m" in card and "2557.5 SAR" in card
+    assert "16.5 m" in card and "$2557.5" in card
     assert "Total" in card and "52" in card
     assert page.query_selector("#messages .sum-card .sum-actions a")
     assert page.query_selector("#messages .sum-card .sum-copy")

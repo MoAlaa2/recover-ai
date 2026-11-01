@@ -90,7 +90,7 @@ def _matches(item, flt):
     if flt.get("opacity") and item["opacity"] != flt["opacity"]:
         return False
     if flt.get("max_price") is not None and \
-            item["price_sar_per_m"] > flt["max_price"]:
+            item["price_usd_per_m"] > flt["max_price"]:
         return False
     if flt.get("snag_levels") is not None and \
             item.get("snag_risk") not in flt["snag_levels"]:
@@ -125,7 +125,7 @@ def compact(item):
         "material": item["material"],
         "primary_color": item["primary_color"],
         "pattern_type": item["pattern_type"],
-        "price_sar_per_m": item["price_sar_per_m"],
+        "price_usd_per_m": item["price_usd_per_m"],
         "image": item.get("image", ""),
         "usage": item["usage"],
         "tone": item["tone"],
@@ -292,11 +292,11 @@ SCOPE_KEEP_WORDS = [
     "أبغى", "أبي", "ودي", "بيت", "منزل", "شقة",
 ]
 
-# Prices, budget ranges and measurements ("80-150 SAR", "١٠٠-٢٥٠ ر.س",
+# Prices, budget ranges and measurements ("$80-150", "١٠٠-٢٥٠ دولار",
 # "3×2.5", "2.5 m") look like arithmetic to the decline rules below but
 # are ordinary consultant answers (the budget chips send exactly these).
 SCOPE_KEEP_PATTERNS = [
-    r"sar\b|riyal|ر\.?\s?س|ريال",
+    r"sar\b|riyal|ر\.?\s?س|ريال|usd\b|dollar|\$|دولار",
     r"^\s*[\d.,]+\s*(?:m|cm|م|سم|متر)?\s*[-–x×*]\s*[\d.,]+\s*"
     r"(?:m|cm|م|سم|متر|sar|ر\.?\s?س)?\s*$",
     r"\d\s*(?:m|cm|mm|م|سم|متر|meters?|metres?)\b",

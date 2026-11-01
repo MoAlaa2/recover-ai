@@ -297,16 +297,16 @@ def run_phase(pg, lang, tag, photo, all_words, fallback_text,
         except Exception:
             need_epd = True
         if needles is None:
-            needles = (["SAR", "Total", "Preliminary estimate",
+            needles = (["$", "Total", "Preliminary estimate",
                         "https://wa.me/?text="]
                        if lang == "en" else
-                       ["ر.س", "الإجمالي", "تقدير مبدئي",
+                       ["$", "الإجمالي", "تقدير مبدئي",
                         "https://wa.me/?text="])
         if need_epd and "EPD NEPD-1805-759" not in needles:
             needles = needles + ["EPD NEPD-1805-759"]
         for needle in needles:
             assert needle in card, "summary missing: %s" % needle
-        assert "$" not in card
+        assert "SAR" not in card and "ر.س" not in card
         wa_text = pg.evaluate(
             "() => decodeURIComponent(document.querySelector("
             "'#messages .sum-card .sum-actions a.seeit').href"

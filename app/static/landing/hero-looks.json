@@ -12,7 +12,7 @@
      "name_ar": "مخمل الزعفران",
      "image": "data/catalog/FA-AC-01.jpg",
      "material": "cotton velvet",
-     "price_sar_per_m": 95,
+     "price_usd_per_m": 25,
      "label_en": null,
      "label_ar": null,
      "scores": {
@@ -31,7 +31,7 @@
      "name_ar": "مخمل الحبر",
      "image": "data/catalog/FA-AC-08.jpg",
      "material": "cotton velvet",
-     "price_sar_per_m": 105,
+     "price_usd_per_m": 28,
      "label_en": null,
      "label_ar": null,
      "scores": {
@@ -61,7 +61,7 @@
      "name_ar": "مريمية الكتان",
      "image": "data/catalog/FA-AC-05.jpg",
      "material": "linen canvas",
-     "price_sar_per_m": 68,
+     "price_usd_per_m": 18,
      "label_en": null,
      "label_ar": null,
      "scores": {
@@ -80,7 +80,7 @@
      "name_ar": "شوفان الكتان",
      "image": "data/catalog/FA-AC-03.jpg",
      "material": "linen canvas",
-     "price_sar_per_m": 65,
+     "price_usd_per_m": 17,
      "label_en": null,
      "label_ar": null,
      "scores": {
@@ -110,7 +110,7 @@
      "name_ar": "ياقوت الليل",
      "image": "data/catalog/FA-VL-04.jpg",
      "material": "cotton velvet",
-     "price_sar_per_m": 225,
+     "price_usd_per_m": 60,
      "label_en": null,
      "label_ar": null,
      "scores": {
@@ -129,7 +129,7 @@
      "name_ar": "سوق الهندسة",
      "image": "data/catalog/FA-AC-13.jpg",
      "material": "geometric print",
-     "price_sar_per_m": 75,
+     "price_usd_per_m": 20,
      "label_en": "Left cushion",
      "label_ar": "الوسادة اليسرى",
      "scores": {
@@ -148,7 +148,7 @@
      "name_ar": "مخمل الطين",
      "image": "data/catalog/FA-AC-04.jpg",
      "material": "cotton velvet",
-     "price_sar_per_m": 88,
+     "price_usd_per_m": 23,
      "label_en": "Middle cushion",
      "label_ar": "الوسادة الوسطى",
      "scores": {
@@ -167,7 +167,7 @@
      "name_ar": "شوفان الكتان",
      "image": "data/catalog/FA-AC-03.jpg",
      "material": "linen canvas",
-     "price_sar_per_m": 65,
+     "price_usd_per_m": 17,
      "label_en": "Right cushion",
      "label_ar": "الوسادة اليمنى",
      "scores": {

@@ -38,5 +38,5 @@ def test_swap_stream_done_includes_fabric_meta(monkeypatch):
     # Real catalog name, not the code echoed back.
     assert fabric.get("name_en") == "Emerald Royale"
     assert fabric.get("name_ar")
-    assert isinstance(fabric.get("price_sar_per_m"), (int, float))
+    assert isinstance(fabric.get("price_usd_per_m"), (int, float))
     assert fabric.get("image")

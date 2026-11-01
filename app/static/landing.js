@@ -149,7 +149,7 @@
         '<div class="lp-cap-name">' + esc(name) + "</div>" +
         '<div class="lp-cap-code">' + esc(it.code) +
         (it.material ? " · " + esc(it.material) : "") +
-        (it.price_sar_per_m ? " · " + esc(it.price_sar_per_m) + " SAR/m"
+        (it.price_usd_per_m ? " · $" + esc(it.price_usd_per_m) + "/m"
                             : "") + "</div></div>" +
         '<span class="lp-cap-badge"' + (tip ? ' title="' + esc(tip) + '"' : "") +
         ">" + esc(badge) + "</span></div>";
@@ -193,8 +193,8 @@
           esc(name) + '"><div class="lp-cap-meta">' +
           '<div class="lp-cap-name">' + esc(name) + "</div>" +
           '<div class="lp-cap-code">' + esc(f.code) + " · " +
-          esc(f.material || "") + " · " + esc(f.price_sar_per_m || "") +
-          " SAR/m</div></div>" +
+          esc(f.material || "") + " · $" + esc(f.price_usd_per_m || "") +
+          "/m</div></div>" +
           '<span class="lp-cap-badge">' +
           esc(t("verifiedBadge").replace("%d", FALLBACK.score)) +
           "</span></div>";

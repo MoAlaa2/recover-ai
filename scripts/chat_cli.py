@@ -45,7 +45,7 @@ def clean_path(raw):
 def show_result(result):
     print("\n%s\n" % result.get("reply", ""))
     for rec in result.get("recommendations", []):
-        print("  %(code)s | %(name_en)s | %(price_sar_per_m)d SAR/m\n"
+        print("  %(code)s | %(name_en)s | %(price_usd_per_m)d SAR/m\n"
               "    %(reason)s" % rec)
     room = result.get("room_analysis")
     if room:

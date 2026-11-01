@@ -91,7 +91,7 @@ def item_record(target, code, scores, checks, label_en=None,
     return {"target": target, "code": code, "name_en": f["name_en"],
             "name_ar": f["name_ar"], "image": f["image"],
             "material": f.get("material", ""),
-            "price_sar_per_m": f.get("price_sar_per_m"),
+            "price_usd_per_m": f.get("price_usd_per_m"),
             "label_en": label_en, "label_ar": label_ar,
             "scores": scores, "delta_e": checks.get("delta_e"),
             "coverage": checks.get("coverage")}

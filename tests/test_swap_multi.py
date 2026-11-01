@@ -391,7 +391,7 @@ def test_fabrics_browse_filters():
     assert resp.status_code == 200
     fabrics = resp.json()["fabrics"]
     assert 1 <= len(fabrics) <= 5
-    assert all("code" in f and "price_sar_per_m" in f for f in fabrics)
+    assert all("code" in f and "price_usd_per_m" in f for f in fabrics)
 
 
 def test_assignments_roundtrip():

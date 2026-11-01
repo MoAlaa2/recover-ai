@@ -322,7 +322,9 @@ def test_quote_pieces_uses_standard_yardage_and_co2():
         {"id": 2, "name": "chair", "type": "armchair", "code": "FA-NL-03"},
         {"id": 3, "name": "none", "type": "armchair", "code": None}])
     assert [i["meters"] for i in q["items"]] == [16.5, 5.5]
-    assert q["total"] == 16.5 * 95 + 5.5 * 110
+    from app.services.catalog import get_fabric
+    assert q["total"] == (16.5 * get_fabric("FA-AC-01")["price_usd_per_m"]
+                          + 5.5 * get_fabric("FA-NL-03")["price_usd_per_m"])
     assert q["co2"]["kg"] == pytest.approx(52 * 1.35, abs=0.1)
     assert q["preliminary"] is True
 
@@ -424,7 +426,7 @@ def test_proposal_pdf_endpoint_en_and_ar(client):
 def test_render_proposal_shapes_arabic_and_fits_one_page():
     import pypdfium2 as pdfium
     items = [{"label": "الكنبة", "code": "FA-AC-01", "name": "مخمل",
-              "material": "cotton velvet", "price_sar_per_m": 95,
+              "material": "cotton velvet", "price_usd_per_m": 95,
               "meters": 16.5, "line_total": 1567.5, "swatch": None}] * 6
     pdf = proposal.render_proposal(
         {"mode": "plan", "prepared_by": "x", "before": None, "after": None,
