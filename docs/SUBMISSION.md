@@ -85,7 +85,7 @@ deployed app.
 ## Try it
 
 Live app: https://moalaa2--recover-ai-web.us-east.modal.run
-Demo lock: [username / password, or state that the lock is removed]
+Demo lock: the site is behind Basic Auth. Username and password: [paste from .env.demo]
 Fastest path: open /consult?sample=living, tap Try on a fabric, then
 Apply to all.
 
