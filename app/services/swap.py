@@ -769,6 +769,7 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
                            fabric, concept, key,
                            t_end - time.monotonic(), call_timeout())
 
+    best["scores"]["match"] = match_score(best["scores"], fabric)
     result_name = "swap-%s.jpg" % tag
     mask_name = "swapmask-%s.png" % tag
     best["result"].save(os.path.join(out_dir, result_name), "JPEG",
@@ -779,6 +780,20 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
             "mask_url": os.path.join(base, mask_name),
             "scores": best["scores"], "attempts": attempts,
             "checks": best["checks"], "target": target}
+
+
+def match_score(scores, fabric=None):
+    """The badge number: the lowest Spark score that applies.
+
+    For a plain fabric the "pattern" score asks "is it plain?" and
+    Spark answers 0 when a patterned pillow or rug is in view, so it
+    is left out (the ΔE gate already proved the colour).
+    """
+    keys = ["color", "pattern", "scale", "isolation"]
+    if fabric is not None and fabric.get("plain_or_patterned") != "patterned":
+        keys.remove("pattern")
+    vals = [int(scores.get(k) or 0) for k in keys]
+    return min(vals) if vals else 0
 
 
 def needs_retry(checks, scores, fabric=None):
@@ -1164,6 +1179,7 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                               "residue_mask": union_mask,
                               "extra_swatches": job.get(
                                   "extra_swatches") or ()})
+        best["scores"]["match"] = match_score(best["scores"], fabric)
         best["result"].save(img_path, "JPEG", quality=90)
         best["mask"].save(mask_path)
         with open(meta_path, "w", encoding="utf-8") as f:

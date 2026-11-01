@@ -13,8 +13,9 @@ def test_sofa_and_cushions_count_once():
     assert (co2, waste) == (52.0, 48.0)
 
 
-def test_cushions_alone_keep_the_sofa():
-    assert im.avoided({"cushions": "FA-AC-02"}) == (52.0, 48.0)
+def test_cushions_alone_count_nothing():
+    """Re-covering loose pillows is not a sofa kept out of landfill."""
+    assert im.avoided({"cushions": "FA-AC-02"}) == (0.0, 0.0)
 
 
 def test_armchair_scales():

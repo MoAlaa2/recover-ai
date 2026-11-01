@@ -2710,7 +2710,8 @@
     var scores = res.scores || {};
     var vals = [scores.color, scores.pattern, scores.scale,
                 scores.isolation].map(function (v) { return v || 0; });
-    var match = Math.min.apply(null, vals);
+    var match = (scores.match !== undefined && scores.match !== null) ?
+      scores.match : Math.min.apply(null, vals);
     var before = state.roomPhoto ?
       "/" + state.roomPhoto.replace(/^\/+/, "") : "";
     var after = "/" + (res.result_url || "").replace(/^\/+/, "");
@@ -2776,7 +2777,8 @@
     var scores = entry.scores || {};
     var vals = [scores.color, scores.pattern, scores.scale,
                 scores.isolation].map(function (v) { return v || 0; });
-    var match = Math.min.apply(null, vals);
+    var match = (scores.match !== undefined && scores.match !== null) ?
+      scores.match : Math.min.apply(null, vals);
     $("swapTitle").textContent = t("tailoring")
       .replace("%s", (t("pieceYou") || {})[swapTarget()] || "");
     renderSwapResult("/" + (entry.before_url || "").replace(/^\/+/, ""),
@@ -2834,7 +2836,8 @@
     var scores = entry.scores || {};
     var vals = [scores.color, scores.pattern, scores.scale,
                 scores.isolation].map(function (v) { return v || 0; });
-    var match = Math.min.apply(null, vals);
+    var match = (scores.match !== undefined && scores.match !== null) ?
+      scores.match : Math.min.apply(null, vals);
     // Fold the auto-preview turn's reply text into this message so the
     // swap never produces a second bubble.
     var followHtml = "";
@@ -3611,10 +3614,17 @@
         document.body.classList.contains("sheet-open")) closeSheet();
     });
     function fitAppHeight() {
-      var h = (window.visualViewport && window.visualViewport.height) ||
-        window.innerHeight;
+      var vv = window.visualViewport;
+      var h = (vv && vv.height) || window.innerHeight;
       document.documentElement.style.setProperty(
         "--app-height", Math.round(h) + "px");
+      // iOS scrolls the layout viewport to the focused composer when
+      // the keyboard opens, which leaves the bar mid-screen over a
+      // blank page; the app already fits the visual viewport, so pin
+      // the page back to the top.
+      if (vv && (vv.offsetTop > 0 || window.scrollY > 0) && isNarrow()) {
+        window.scrollTo(0, 0);
+      }
     }
     fitAppHeight();
     window.addEventListener("resize", fitAppHeight);
@@ -3622,6 +3632,7 @@
     document.addEventListener("scroll", fitAppHeight, { passive: true });
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", fitAppHeight);
+      window.visualViewport.addEventListener("scroll", fitAppHeight);
     }
     $("canvasImg").addEventListener("load", renderOutlines);
     $("assignRow").addEventListener("click", function (e) {

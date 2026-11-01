@@ -21,12 +21,13 @@ CO2_FACTORS = {
     "throw-pillow": 0.0,
 }
 
-# Consultant target -> yardage piece. Cushions belong to the sofa, so
-# sofa + cushions count one sofa, never two. Curtains map to nothing.
+# Consultant target -> piece. Loose pillows and curtains have no
+# sourced figure and count as nothing (never a whole sofa); sofa +
+# cushions count one sofa.
 TARGET_PIECE = {
     "sofa": "sofa-3-seat",
     "armchair": "armchair",
-    "cushions": "sofa-3-seat",
+    "cushions": "throw-pillow",
     "curtains": None,
 }
 

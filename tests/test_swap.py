@@ -309,3 +309,12 @@ def test_single_swap_refines_the_sliver_past_an_occluder(tmp_path,
     throw_px = out.getpixel((100, 50))
     assert max(abs(a - b) for a, b in zip(throw_px, want)) > 40, (
         "throw not recoloured", throw_px, want)
+
+
+def test_match_score_ignores_pattern_for_plain_fabrics():
+    scores = {"color": 9, "pattern": 0, "scale": 9, "isolation": 10}
+    assert s.match_score(scores, {"plain_or_patterned": "plain"}) == 9
+    assert s.match_score(scores, {"plain_or_patterned": "patterned"}) == 0
+    assert s.match_score(scores, None) == 0
+    assert s.match_score({"color": 7, "scale": 8, "isolation": 9,
+                          "pattern": 9}, {"plain_or_patterned": "plain"}) == 7
