@@ -39,17 +39,33 @@
     <button id="sheetClose" class="sheet-close" type="button" aria-label="Close">×</button>
     <div id="canvasWrap" class="canvas">
       <div id="canvasEmpty" class="canvas-empty">
-        <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload a room photo">
-          <i data-lucide="image-plus" aria-hidden="true"></i>
-          <span data-i18n="canvasEmpty">Drop a photo of your sofa or chair</span>
+        <div class="start-head">
+          <h2 class="start-title" data-i18n="startTitle">See your sofa in a new fabric</h2>
+          <p class="start-sub" data-i18n="startSub">Drop a photo of the piece. ReCover finds it, suggests fabrics that fit your life and shows them on your own photo.</p>
         </div>
-        <button id="uploadBtn" class="seeit" type="button"><i data-lucide="upload" aria-hidden="true"></i><span data-i18n="uploadPhoto">Upload</span></button>
-        <p class="sample-label" data-i18n="trySample">Or try a sample room:</p>
-        <div class="sample-row" id="sampleRow">
-          <button type="button" data-sample="living"><img src="/data/samples/living.jpg" alt="living" loading="lazy"><span data-i18n="sampleLiving">Living room</span></button>
-          <button type="button" data-sample="majlis"><img src="/data/samples/majlis.jpg" alt="majlis" loading="lazy"><span data-i18n="sampleMajlis">Majlis</span></button>
-          <button type="button" data-sample="armchair"><img src="/data/samples/armchair.jpg" alt="armchair" loading="lazy"><span data-i18n="sampleArmchair">Armchair</span></button>
+        <div class="start-grid">
+          <div class="start-drop">
+            <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload a room photo">
+              <i data-lucide="image-plus" aria-hidden="true"></i>
+              <span data-i18n="canvasEmpty">Drop a photo of your sofa or chair</span>
+            </div>
+            <button id="uploadBtn" class="seeit" type="button"><i data-lucide="upload" aria-hidden="true"></i><span data-i18n="uploadPhoto">Upload</span></button>
+            <p class="start-hint" data-i18n="startHint">Any phone photo works, in any light.</p>
+          </div>
+          <div class="start-samples">
+            <p class="sample-label" data-i18n="trySample">Or try a sample room:</p>
+            <div class="sample-row" id="sampleRow">
+              <button type="button" data-sample="living"><img src="/data/samples/living.jpg" alt="living" loading="lazy"><span data-i18n="sampleLiving">Living room</span></button>
+              <button type="button" data-sample="majlis"><img src="/data/samples/majlis.jpg" alt="majlis" loading="lazy"><span data-i18n="sampleMajlis">Majlis</span></button>
+              <button type="button" data-sample="armchair"><img src="/data/samples/armchair.jpg" alt="armchair" loading="lazy"><span data-i18n="sampleArmchair">Armchair</span></button>
+            </div>
+          </div>
         </div>
+        <ol class="start-steps">
+          <li><b>1</b><span data-i18n="startStep1">Photo</span><small data-i18n="startStep1b">SAM finds the sofa, cushions and curtains in it</small></li>
+          <li><b>2</b><span data-i18n="startStep2">Fabrics</span><small data-i18n="startStep2b">Spark picks three from the catalogue for your needs</small></li>
+          <li><b>3</b><span data-i18n="startStep3">See it</span><small data-i18n="startStep3b">Muse Image tailors it on your photo, colour-checked</small></li>
+        </ol>
       </div>
       <div id="canvasPhotoWrap" class="canvas-photo" hidden>
         <img id="canvasImg" alt="">

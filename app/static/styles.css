@@ -307,11 +307,76 @@ img.avatar {
   flex-direction: column;
   gap: 14px;
 }
+.canvas-empty { display: flex; flex-direction: column; gap: 18px; }
+.canvas-empty[hidden] { display: none; }
+.start-head { text-align: center; padding-top: 6px; }
+.start-title {
+  font-family: var(--rc-display);
+  font-size: var(--rc-fs-xl);
+  font-weight: 500;
+  margin: 0 0 6px;
+}
+.start-sub {
+  margin: 0 auto;
+  max-width: 560px;
+  color: var(--rc-ink-muted);
+  font-size: var(--rc-fs-sm);
+}
+.start-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(0, 1.7fr);
+  gap: 18px;
+  align-items: stretch;
+}
+.start-drop { display: flex; flex-direction: column; gap: 10px; }
 .canvas-empty .dropzone {
-  min-height: 300px;
+  flex: 1;
+  min-height: 200px;
+  margin-top: 0;
+  flex-direction: column;
+  gap: 10px;
   font-size: var(--rc-fs-md);
 }
-.canvas-empty .seeit { align-self: center; }
+.canvas-empty .dropzone svg { width: 30px; height: 30px; }
+.canvas-empty .dropzone > span { flex: 0; }
+.canvas-empty .seeit { align-self: stretch; justify-content: center; }
+.start-hint {
+  margin: 0;
+  text-align: center;
+  font-size: var(--rc-fs-xs);
+  color: var(--rc-ink-muted);
+}
+.start-samples .sample-label { text-align: start; margin: 0 0 8px; }
+.start-steps {
+  list-style: none;
+  margin: 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--rc-line);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.start-steps li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  align-items: center;
+}
+.start-steps li b {
+  grid-row: span 2;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--rc-indigo);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--rc-fs-xs);
+  font-weight: 600;
+}
+.start-steps li span { font-weight: 600; font-size: var(--rc-fs-sm); }
+.start-steps li small { color: var(--rc-ink-muted); font-size: var(--rc-fs-xs); }
 .sample-label {
   margin: 4px 0 0;
   font-size: var(--rc-fs-sm);
@@ -536,6 +601,7 @@ img.avatar {
   .consult { grid-template-columns: 1fr; height: auto; min-height: 0; }
   .canvas-pane { order: -1; max-height: none; }
   .canvas-empty .dropzone { min-height: 150px; }
+  .start-grid, .start-steps { grid-template-columns: 1fr; }
   .canvas-photo img#canvasImg { max-height: 240px; }
   .chat-pane { border-inline-start: none; border-top: 1px solid var(--rc-line); min-height: 70vh; }
   .consult-bar .crumb { display: none; }
