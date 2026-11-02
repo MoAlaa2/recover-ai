@@ -517,6 +517,7 @@ def summary_text(wa_id, lang):
     from app.services import catalog as catalog_mod
     from app.services import impact as impact_mod
     from app.services import meterage as meterage_mod
+    from app.services.money import format_money as money
     session = consultant_mod.SESSIONS.get(wa_session_id(wa_id), {})
     assignments = session.get("assignments", {})
     fabrics = {}
@@ -542,15 +543,16 @@ def summary_text(wa_id, lang):
                 "needs measurements" if lang != "ar" else
                 "يحتاج مقاسات"))
         else:
-            lines.append("• %s → %s (%s): %s m × $%s = $%s" % (
+            lines.append("• %s → %s (%s): %s m × %s = %s" % (
                 item["target"], name, item["code"], item["meters"],
-                item["price_usd_per_m"], item["line_total"]))
+                money(item["price_usd_per_m"], lang),
+                money(item["line_total"], lang)))
     if lang == "ar":
-        lines.append("الإجمالي (تقدير مبدئي): $%s" % res["total"])
+        lines.append("الإجمالي (تقدير مبدئي): %s" % money(res["total"], lang))
         lines.append("تقدير مبدئي — المقاس النهائي من المنجّد.")
     else:
-        lines.append("Total (preliminary estimate): $%s"
-                     % res["total"])
+        lines.append("Total (preliminary estimate): %s"
+                     % money(res["total"], lang))
         lines.append("Preliminary estimate — your upholsterer will "
                      "measure.")
     co2, waste = impact_mod.avoided(assignments)

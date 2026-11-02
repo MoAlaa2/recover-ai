@@ -23,6 +23,7 @@
       steps: { photo: "Preparing your photo…", search: "Checking 80 fabrics…", claw: "Checking pet and kid safety…", details: "Picking the best 3…", room: "Looking at your room…" },
       needPhoto: "Please upload a room photo first, then tap “See it in my space” again.",
       uploadRetry: "The upload failed on our side — please try again.",
+      langSwitchConfirm: "Switching language starts a new consultation. Continue?",
       roomView: "View",
       roomSub: "Your room",
       takePhoto: "Take or upload a photo",
@@ -139,6 +140,7 @@
       steps: { photo: "أجهز صورتك…", search: "أدوّر بين الثمانين قماش…", claw: "أتأكد من الأمان للحيوانات والأطفال…", details: "أختار لك أفضل 3…", room: "أطالع غرفتك…" },
       needPhoto: "ارفع صورة غرفتك أول، بعدين اضغط “شاهدها في مساحتك”.",
       uploadRetry: "ما تم الرفع من جهتنا — حاول مرة ثانية.",
+      langSwitchConfirm: "تغيير اللغة يبدأ استشارة جديدة. نكمل؟",
       roomView: "عرض",
       roomSub: "غرفتك",
       takePhoto: "صوّر أو ارفع صورة",
@@ -253,6 +255,7 @@
       micLabel: "आवाज़ से पूछें",
       needPhoto: "पहले कमरे की फोटो भेजें, फिर “इसे अपनी जगह पर देखें” दबाएँ।",
       uploadRetry: "अपलोड हमारी तरफ़ से विफल हुआ — फिर कोशिश करें।",
+      langSwitchConfirm: "भाषा बदलने से नया परामर्श शुरू होगा। जारी रखें?",
       roomView: "देखें",
       roomSub: "आपका कमरा",
       takePhoto: "फोटो लें या अपलोड करें",
@@ -369,6 +372,7 @@
       micLabel: "Entrée vocale",
       needPhoto: "Envoyez d'abord une photo, puis touchez « Voir chez moi ».",
       uploadRetry: "L'envoi a échoué de notre côté — réessayez.",
+      langSwitchConfirm: "Changer de langue démarre une nouvelle consultation. Continuer ?",
       roomView: "Voir",
       roomSub: "Votre pièce",
       takePhoto: "Prendre ou envoyer une photo",
@@ -485,6 +489,7 @@
       micLabel: "Entrada de voz",
       needPhoto: "Sube primero una foto y luego toca «Verlo en mi espacio».",
       uploadRetry: "La subida falló de nuestro lado — inténtalo de nuevo.",
+      langSwitchConfirm: "Cambiar el idioma inicia una nueva consulta. ¿Continuar?",
       roomView: "Ver",
       roomSub: "Tu espacio",
       takePhoto: "Toma o sube una foto",
@@ -749,9 +754,15 @@
     return state.lang === "ar" ? toArabicDigits(text) : text;
   }
 
+  function money(n) {
+    if (window.RC && window.RC.money) return window.RC.money(n, state.lang);
+    if (n === undefined || n === null) return "";
+    return "$" + (state.lang === "ar" ? toArabicDigits(n) : n);
+  }
+
   function formatPrice(usd) {
-    if (state.lang === "ar") return "$" + toArabicDigits(usd) + "/م";
-    return "$" + usd + "/m";
+    if (usd === undefined || usd === null) return "";
+    return money(usd) + (state.lang === "ar" ? "/م" : "/m");
   }
 
   function notFeatureLabel(key) {
@@ -764,11 +775,9 @@
   }
 
   function budgetPill(rb) {
-    var price = "$" + rb.price + "/m";
-    var over = "$" + rb.over;
+    var price = formatPrice(rb.price);
+    var over = money(rb.over);
     if (state.lang === "ar") {
-      price = "$" + toArabicDigits(rb.price) + "/م";
-      over = "$" + toArabicDigits(rb.over);
       return price + " — أعلى من ميزانيتك بـ " + over;
     }
     if (state.lang === "hi") return price + " — बजट से " + over + " ज़्यादा";
@@ -880,6 +889,12 @@
       chipsEl.appendChild(b);
     });
     if ((list || []).length) chipsEl.hidden = false;
+  }
+
+  // A conversation worth protecting: the user said or sent something.
+  function hasConversation() {
+    return !!(state.roomPhoto ||
+              (messagesEl && messagesEl.querySelector(".msg.me")));
   }
 
   function setLang(code, greet) {
@@ -1832,11 +1847,7 @@
     return n + " " + t("meterUnit");
   }
 
-  function fmtMoney(n) {
-    if (n === undefined || n === null) return "";
-    if (state.lang === "ar") return "$" + toArabicDigits(n);
-    return "$" + n;
-  }
+  function fmtMoney(n) { return money(n); }
 
   function fmtNum(n) {
     if (n === undefined || n === null) return "";
@@ -3228,6 +3239,9 @@
   }
 
   function preparePhoto(file) {
+    if (window.RC && window.RC.prepareImage) {
+      return window.RC.prepareImage(file);
+    }
     if (typeof createImageBitmap === "undefined") {
       return Promise.resolve(file);
     }
@@ -3247,7 +3261,7 @@
     function canvasToJpeg(canvas) {
       function viaDataURL() {
         try {
-          var parts = canvas.toDataURL("image/jpeg", 0.85).split(",");
+          var parts = canvas.toDataURL("image/jpeg", 0.88).split(",");
           var bin = atob(parts[1]);
           var arr = new Uint8Array(bin.length);
           for (var i = 0; i < bin.length; i++) {
@@ -3263,7 +3277,7 @@
           try {
             canvas.toBlob(function (blob) {
               resolve(blob || viaDataURL() || file);
-            }, "image/jpeg", 0.85);
+            }, "image/jpeg", 0.88);
             return;
           } catch (e) {}
         }
@@ -3476,7 +3490,14 @@
     if (window.RCSwitcher && $("switcherMount")) {
       window.RCSwitcher.mount($("switcherMount"), {
         getLang: function () { return state.lang; },
-        onPick: function (code) { setLang(code, true); }
+        onPick: function (code) {
+          if (code === state.lang) return;
+          if (hasConversation() && !window.confirm(t("langSwitchConfirm"))) {
+            if (window.RCSwitcher) window.RCSwitcher.refresh();
+            return;
+          }
+          setLang(code, true);
+        }
       });
     }
 

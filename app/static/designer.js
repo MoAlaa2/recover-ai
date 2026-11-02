@@ -111,6 +111,12 @@
     return state.lang === "ar" ? toArabicDigits(s) : s;
   }
   function fmt(key, value) { return t(key).replace("%s", value); }
+  function money(n) {
+    if (window.RC && window.RC.money) {
+      return window.RC.money(n, state.lang, { symbol: false });
+    }
+    return num(n, 2);
+  }
   function typeLabel(type) {
     var m = t("types") || {};
     return m[type] || STRINGS.en.types[type] || type;
@@ -162,9 +168,15 @@
     if (!file || state.busy) return;
     state.busy = true;
     status(t("uploading"), true);
-    var fd = new FormData();
-    fd.append("file", file, file.name || "plan.png");
-    fetch("/api/designer/plan", { method: "POST", body: fd })
+    var isPdf = /pdf/i.test(file.type || "") || /\.pdf$/i.test(file.name || "");
+    var prep = (!isPdf && window.RC && window.RC.prepareImage) ?
+      window.RC.prepareImage(file) : Promise.resolve(file);
+    prep.then(function (ready) {
+      var fd = new FormData();
+      fd.append("file", ready,
+                ready === file ? (file.name || "plan.png") : "plan.jpg");
+      return fetch("/api/designer/plan", { method: "POST", body: fd });
+    })
       .then(function (r) {
         if (!r.ok) throw new Error("upload");
         return r.json();
@@ -411,7 +423,7 @@
             esc(name) + '" loading="lazy">' +
             '<div class="browse-n" dir="auto">' + esc(name) + "</div>" +
             '<div class="browse-m">' + esc(f.code) + " · " +
-            esc(fmt("sarPerM", num(f.price_usd_per_m, 0))) + "</div>" +
+            esc(fmt("sarPerM", money(f.price_usd_per_m))) + "</div>" +
             '<button type="button" class="seeit" data-apply="' +
             esc(f.code) + '"><span>' + esc(t("applyOne")) +
             "</span></button></div>";
@@ -559,13 +571,13 @@
     var lines = (q.items || []).map(function (it) {
       return '<div class="sum-row"><div>' + num(it.id, 0) + " " + esc(it.name) +
         " · " + esc(it.code) + " · " + esc(fmt("meters", num(it.meters))) +
-        " × " + esc(fmt("sarPerM", num(it.price_usd_per_m, 0))) + " = " +
-        esc(fmt("sar", num(it.line_total, 2))) + "</div></div>";
+        " × " + esc(fmt("sarPerM", money(it.price_usd_per_m))) + " = " +
+        esc(fmt("sar", money(it.line_total))) + "</div></div>";
     }).join("");
     var html = lines;
     if (q.items && q.items.length) {
       html += '<div class="sum-total"><b>' + esc(t("totalLabel")) + "</b> " +
-        esc(fmt("sar", num(q.total, 2))) + "</div>" +
+        esc(fmt("sar", money(q.total))) + "</div>" +
         '<p class="coming">' + esc(t("preliminaryNote")) + "</p>";
       if (q.co2 && q.co2.kg > 0) {
         html += '<div class="co2-line"><i data-lucide="leaf" aria-hidden="true"></i><div>' +

@@ -1031,12 +1031,10 @@ RELAX_MATCH = {
 
 
 def _money(value, arabic):
-    """Format a USD amount, Arabic-Indic digits for Arabic."""
-    text = str(int(round(value)))
-    if arabic:
-        text = "".join("٠١٢٣٤٥٦٧٨٩"[int(c)] if c.isdigit() else c
-                       for c in text)
-    return text
+    """Whole-dollar amount (no symbol), shared formatter."""
+    from app.services.money import format_money
+    return format_money(int(round(value)), "ar" if arabic else "en",
+                        symbol=False)
 
 
 def _relax_phrase(key, arabic, budget_over=0, specific=()):

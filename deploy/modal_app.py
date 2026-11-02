@@ -21,6 +21,25 @@ import modal
 
 app = modal.App("recover-ai")
 
+
+def _build_hash():
+    """Short commit hash at deploy time, baked into the asset URLs."""
+    try:
+        import subprocess
+        out = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
+                             capture_output=True, text=True, timeout=5,
+                             cwd=os.path.dirname(os.path.dirname(
+                                 os.path.abspath(__file__))))
+        if out.returncode == 0 and out.stdout.strip():
+            return out.stdout.strip()
+    except Exception:  # noqa: BLE001 - fall back to a timestamp
+        pass
+    import time
+    return str(int(time.time()))
+
+
+BUILD = _build_hash()
+
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("ffmpeg")
@@ -337,7 +356,7 @@ class DemoLockMiddleware:
              modal.Secret.from_name("recover-baseten"),
              modal.Secret.from_name("recover-whatsapp")],
     volumes={"/root/recover/uploads": vol},
-    env={"DEMO_LOCK": "1", "SPARK_OPEN_FALLBACK": "1"},
+    env={"DEMO_LOCK": "1", "SPARK_OPEN_FALLBACK": "1", "RC_BUILD": BUILD},
     min_containers=1,
     max_containers=1,
     timeout=900,

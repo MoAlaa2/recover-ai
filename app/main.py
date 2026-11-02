@@ -18,14 +18,45 @@ app.include_router(whatsapp_router)
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 
-# Bumped once per process start (= per deploy): static asset URLs carry
-# it as a query string so phones never run a stale cached bundle, while
-# the HTML shell itself is never cached.
-VERSION = str(int(time.time()))
 
-VERSIONED_ASSETS = ("app.js", "landing.js", "switcher.js", "strings.js",
-                    "designer.js", "styles.css", "landing.css",
-                    "switcher.css", "designer.css", "brand/brand.css")
+
+def _build_version():
+    """Commit hash of the running code, so asset URLs change exactly
+    when the code does. RC_BUILD is set by the Modal deploy (the image
+    has no .git); local runs read git; anything else falls back to
+    the process start time."""
+    env = os.environ.get("RC_BUILD", "").strip()
+    if env:
+        return env
+    try:
+        import subprocess
+        out = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"], capture_output=True,
+            text=True, timeout=5,
+            cwd=os.path.dirname(os.path.dirname(__file__)))
+        if out.returncode == 0 and out.stdout.strip():
+            return out.stdout.strip()
+    except Exception:  # noqa: BLE001 - no git, no problem
+        pass
+    return str(int(time.time()))
+
+
+# Static asset URLs carry the build version as a query string, so a
+# phone never runs a stale cached bundle, while the HTML shell itself
+# is never cached.
+VERSION = _build_version()
+
+VERSIONED_ASSETS = ("common.js", "app.js", "landing.js", "switcher.js",
+                    "strings.js", "designer.js", "styles.css",
+                    "landing.css", "switcher.css", "designer.css",
+                    "brand/brand.css")
+
+# A week, immutable: versioned assets change URL when they change.
+ASSET_CACHE = "public, max-age=604800, immutable"
+ASSET_EXTS = (".js", ".css", ".svg", ".jpg", ".jpeg", ".png", ".webp",
+              ".json", ".woff", ".woff2", ".ico")
+# Uploads, share links and APIs are never cached by this rule.
+NO_ASSET_CACHE_PREFIXES = ("/api/", "/uploads/", "/share/", "/webhook/")
 
 
 def _versioned_html(name):
@@ -73,6 +104,22 @@ async def uploads_allowlist(request, call_next):
     if not _is_public_upload_path(request.url.path):
         return Response("not found", status_code=404)
     return await call_next(request)
+
+
+def _is_cacheable_asset(path):
+    if path.startswith(NO_ASSET_CACHE_PREFIXES):
+        return False
+    return path.lower().endswith(ASSET_EXTS)
+
+
+@app.middleware("http")
+async def asset_cache_headers(request, call_next):
+    response = await call_next(request)
+    if (request.method == "GET" and response.status_code == 200
+            and _is_cacheable_asset(request.url.path)
+            and "cache-control" not in response.headers):
+        response.headers["Cache-Control"] = ASSET_CACHE
+    return response
 
 
 app.mount("/data/catalog", StaticFiles(

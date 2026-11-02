@@ -5,6 +5,7 @@ Fix 4 (streaming empty reply still yields a non-empty assistant bubble
 with the options lead-in), and Fix 5 (?sample= chats with the photo, so
 room analysis precedes the first reply).
 """
+import io
 import json
 import os
 import shutil
@@ -827,7 +828,7 @@ def test_single_quote_posts_summary_card_and_actions(server, page):
     page.click('.composer button[type="submit"]')
     page.wait_for_selector("#messages .sum-card", timeout=30000)
     card = page.eval_on_selector("#messages .sum-card", "e => e.innerText")
-    assert "16.5 m" in card and "$2557.5" in card
+    assert "16.5 m" in card and "$2,557.50" in card
     assert "Total" in card and "52" in card
     assert page.query_selector("#messages .sum-card .sum-actions a")
     assert page.query_selector("#messages .sum-card .sum-copy")
@@ -1007,3 +1008,68 @@ def test_second_piece_builds_on_the_finished_look(server, page):
     assert len(seen["multi"]) == 1
     pairs = sorted((a["target"], a["code"]) for a in seen["multi"][0])
     assert pairs == [("curtains", "FA-AC-01"), ("sofa", "FA-NL-07")]
+
+
+def test_language_switch_confirms_before_wiping(server, page):
+    """A conversation with messages asks before a language switch wipes
+    it; dismissing keeps everything, accepting starts fresh in the new
+    language."""
+    page.goto(server + "/consult", wait_until="networkidle")
+    upload_photo(page)
+    before = page.eval_on_selector_all("#messages .msg", "e => e.length")
+    assert before >= 2
+    seen = []
+
+    def pick(code_native, accept):
+        def on_dialog(d):
+            seen.append(d.message)
+            if accept:
+                d.accept()
+            else:
+                d.dismiss()
+        page.once("dialog", on_dialog)
+        page.click(".rcsw-btn")
+        page.click(".rcsw-live:has-text('%s')" % code_native)
+        page.wait_for_timeout(600)
+
+    pick("العربية", accept=False)
+    assert seen and "new consultation" in seen[0]
+    assert page.eval_on_selector_all("#messages .msg",
+                                     "e => e.length") == before
+    assert page.get_attribute("html", "dir") != "rtl"
+
+    pick("العربية", accept=True)
+    assert len(seen) == 2 and "new consultation" in seen[1]
+    page.wait_for_selector("#welcomeMsg", timeout=15000)
+    assert page.eval_on_selector_all("#messages .msg.me",
+                                     "e => e.length") == 0
+    assert "استشارة" in (page.text_content("#messages") or "") or \
+        page.get_attribute("html", "dir") == "rtl"
+
+
+def test_photo_is_prepared_in_the_browser(server, page):
+    """A real iPhone HEIC leaves the phone as a JPEG with its long edge
+    at or under 2048 px, a fraction of the original bytes."""
+    from PIL import Image
+    src = os.path.join(BASE_DIR, "tests/fixtures/IMG_6327.HEIC")
+    sent = []
+
+    def on_request(req):
+        if req.url.endswith("/api/upload"):
+            sent.append(req)
+    page.on("request", on_request)
+    page.goto(server + "/consult", wait_until="networkidle")
+    page.wait_for_selector("#welcomeMsg", timeout=15000)
+    page.set_input_files("#fileInput", src)
+    page.wait_for_selector("#roomBar:not([hidden])", timeout=60000)
+    assert sent, "no upload request"
+    body = sent[0].post_data_buffer or b""
+    assert b'filename="photo.jpg"' in body
+    assert b"image/jpeg" in body
+    assert len(body) < os.path.getsize(src) // 2, len(body)
+    path = page.evaluate("document.querySelector('#roomThumb').src")
+    img = Image.open(io.BytesIO(
+        urllib.request.urlopen(path, timeout=20).read()))
+    assert img.format == "JPEG"
+    assert max(img.size) <= 2048, img.size
+    assert img.size[1] > img.size[0], "portrait photo must stay portrait"

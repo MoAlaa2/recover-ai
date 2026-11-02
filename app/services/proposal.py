@@ -141,6 +141,11 @@ def draw_text(d, x, y, text, size, lang, bold=False, color=INK,
     return width
 
 
+def fmt_money(value, lang):
+    from app.services.money import format_money
+    return format_money(value, lang, symbol=False)
+
+
 def fmt_num(value, lang, decimals=1):
     if value is None:
         return "—"
@@ -269,11 +274,11 @@ def render_proposal(data, lang="en"):
                   else "—", 18, lang, align=a_opp)
         price = it.get("price_usd_per_m")
         draw_text(d, col_x("price", True), y + 6,
-                  fmt_num(price, lang) if price is not None else "—", 18,
+                  fmt_money(price, lang) if price is not None else "—", 18,
                   lang, align=a_opp)
         line = it.get("line_total")
         draw_text(d, col_x("line", True), y + 6,
-                  (fmt_num(line, lang, 2) + " " + s["sar"]) if line is not None
+                  (fmt_money(line, lang) + " " + s["sar"]) if line is not None
                   else "—", 18, lang, bold=True, align=a_opp)
         y += row_h
         d.line([left, y, right, y], fill=LINE, width=1)
@@ -282,7 +287,7 @@ def render_proposal(data, lang="en"):
     y += 18
     total = data.get("total")
     if total is not None:
-        amount = "%s %s" % (fmt_num(total, lang, 2), s["sar"])
+        amount = "%s %s" % (fmt_money(total, lang), s["sar"])
         w = text_width(shape(amount, lang), 26, True)
         draw_text(d, end, y, amount, 26, lang, bold=True, align=a_opp)
         label_x = (left + w + 18) if rtl else (right - w - 18)
