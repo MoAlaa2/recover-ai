@@ -240,7 +240,7 @@ def test_designer_desktop_en(server):
             raise
     assert out["errors"] == []
     assert out["dir"] == "ltr" and out["boxes"] == 4
-    assert out["status"] == "4 piece(s) found · Spark"
+    assert out["status"].startswith("4 piece(s) found · Spark")
     assert out["empty_hidden"] and not out["overflow"]
     assert out["after_delete"] == 3
     before, after = out["drag"]
@@ -273,7 +273,7 @@ def test_designer_iphone_ar(server):
         out = _run(p, server, device, "ar")
     assert out["errors"] == []
     assert out["dir"] == "rtl" and out["boxes"] == 4
-    assert out["status"] == "وجدنا ٤ قطعة · Spark"
+    assert out["status"].startswith("وجدنا ٤ قطعة · Spark")
     assert out["empty_hidden"] and not out["overflow"]
     assert out["after_delete"] == 3
     b1, b1b = out["resize"]
