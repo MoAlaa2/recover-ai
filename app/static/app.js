@@ -5,6 +5,7 @@
   var STRINGS = {
     en: {
       tagline: "Change the look, not the furniture.",
+      greeting: "Hi, I'm your ReCover consultant. Show me the piece you'd like to recover: a photo, a sample room, or just tell me what it is.",
       forYou: "For you",
       dropHint: "Drop a room photo here, or tap to choose one",
       placeholder: "Ask about fabrics…",
@@ -125,6 +126,7 @@
     },
     ar: {
       tagline: "غيّر القماش، لا الأثاث.",
+      greeting: "أهلاً، أنا مستشار ReCover. وريني القطعة اللي تبي تنجدها: صورة، غرفة نموذجية، أو قل لي هي إيش.",
       forYou: "اخترنا لك",
       dropHint: "أسقط صورة غرفتك هنا، أو اضغط لاختيار صورة",
       placeholder: "اسأل عن الأقمشة…",
@@ -245,6 +247,7 @@
     },
     hi: {
       tagline: "लुक बदलें, फर्नीचर नहीं।",
+      greeting: "नमस्ते, मैं आपका ReCover सलाहकार हूँ। जिस चीज़ को नया कपड़ा देना है वह दिखाइए: फ़ोटो, नमूना कमरा, या बस बताइए वह क्या है।",
       forYou: "आपके लिए",
       dropHint: "कमरे की फोटो यहाँ डालें, या चुनने के लिए टैप करें",
       placeholder: "कपड़ों के बारे में पूछें…",
@@ -365,6 +368,7 @@
     },
     fr: {
       tagline: "Changez le look, pas le mobilier.",
+      greeting: "Bonjour, je suis votre conseiller ReCover. Montrez-moi la pièce à recouvrir : une photo, une pièce d'exemple, ou dites-moi simplement de quoi il s'agit.",
       forYou: "Pour vous",
       dropHint: "Déposez une photo de la pièce, ou touchez pour choisir",
       placeholder: "Posez vos questions tissus…",
@@ -485,6 +489,7 @@
     },
     es: {
       tagline: "Cambia el look, no el sofá.",
+      greeting: "Hola, soy tu asesor ReCover. Muéstrame la pieza que quieres retapizar: una foto, una sala de muestra o dime qué es.",
       forYou: "Para ti",
       dropHint: "Suelta una foto de la habitación, o toca para elegir",
       placeholder: "Pregunta por telas…",
@@ -743,9 +748,6 @@
 
   var UI_LANGS = ["en", "ar", "hi", "fr", "es"];
   var RTL_LANGS = ["ar", "ur", "fa"];
-  var GREET = { ar: "مرحبا", hi: "नमस्ते", fr: "Bonjour", es: "Hola",
-                en: "Hello" };
-
   function t(key) {
     var pack = STRINGS[state.lang] || {};
     if (pack[key] !== undefined) return pack[key];
@@ -3955,28 +3957,16 @@
       .catch(function () { return false; });
   }
 
+  // The first message is fixed copy, shown at once: a model round trip
+  // for a greeting cost every visitor about ten seconds of a blinking
+  // bubble before they could do anything.
   function bootGreeting() {
-    typingOn();
-    var sid = state.sessionId;
-    postJSON("/api/chat", {
-      session_id: sid,
-      message: GREET[state.lang] || "Hello",
-      lang: state.lang
-    }, 60000, 1)
-      .then(function (res) {
-        if (sid !== state.sessionId) return;
-        typingOff();
-        handleResult(res);
-        chipsEl.hidden = false;
-        renderWelcome();
-        fetchPreviews();
-      })
-      .catch(function () {
-        if (sid !== state.sessionId) return;
-        typingOff();
-        addMsg(t("sendFail"), "them");
-        renderWelcome();
-      });
+    addMsg(t("greeting"), "them");
+    state.booted = false;
+    renderChips();
+    chipsEl.hidden = false;
+    renderWelcome();
+    fetchPreviews();
   }
 
   function fetchPreviews() {

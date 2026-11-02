@@ -1079,3 +1079,20 @@ def test_photo_is_prepared_in_the_browser(server, page):
     assert img.format == "JPEG"
     assert max(img.size) <= 2048, img.size
     assert img.size[1] > img.size[0], "portrait photo must stay portrait"
+
+
+def test_greeting_is_instant_and_local(server, page):
+    """The first message is fixed copy: no model round trip, chips and
+    the sample row are there before any request answers."""
+    calls = []
+    page.route("**/api/chat", lambda r: (calls.append(1), r.fulfill(
+        status=500)))
+    page.route("**/api/chat/stream", lambda r: (calls.append(1), r.fulfill(
+        status=500)))
+    page.goto(server + "/consult?new=1", wait_until="domcontentloaded")
+    page.wait_for_selector("#welcomeMsg", timeout=5000)
+    first = page.text_content("#messages .msg.them") or ""
+    assert "ReCover consultant" in first
+    assert calls == [], "the greeting must not call the model"
+    assert page.get_attribute("#chips", "hidden") is None
+    assert "Upholstery" in (page.text_content("#chips") or "")
