@@ -59,12 +59,29 @@ ASSET_EXTS = (".js", ".css", ".svg", ".jpg", ".jpeg", ".png", ".webp",
 NO_ASSET_CACHE_PREFIXES = ("/api/", "/uploads/", "/share/", "/webhook/")
 
 
+def current_version():
+    """The deploy serves one hash per build. A local server has edits
+    the hash does not know about, so it adds the newest asset mtime:
+    an immutable week-long cache must never hide an unsaved change."""
+    if os.environ.get("RC_BUILD", "").strip():
+        return VERSION
+    latest = 0
+    for asset in VERSIONED_ASSETS:
+        try:
+            latest = max(latest, os.stat(
+                os.path.join(STATIC_DIR, asset)).st_mtime)
+        except OSError:
+            pass
+    return "%s-%x" % (VERSION, int(latest))
+
+
 def _versioned_html(name):
     with open(os.path.join(STATIC_DIR, name), encoding="utf-8") as f:
         html = f.read()
+    version = current_version()
     for asset in VERSIONED_ASSETS:
         html = html.replace('"/%s"' % asset,
-                            '"/%s?v=%s"' % (asset, VERSION))
+                            '"/%s?v=%s"' % (asset, version))
     return html
 
 

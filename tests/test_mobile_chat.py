@@ -289,6 +289,12 @@ def test_try_runs_swap_with_steps_and_bubble(server, page):
     thumbs = page.eval_on_selector_all(
         "#messages img.swap-thumb", "e => e.length")
     assert thumbs >= 1, "swap result must post as a chat image bubble"
+    # The next step is a button, never an either/or question a "yes"
+    # could answer wrong.
+    chips = page.text_content("#chips") or ""
+    assert "Estimate the meters" in chips and "Browse all fabrics" in chips
+    follow = page.text_content("#messages .chat-follow") or ""
+    assert "?" not in follow
     assert (page.text_content("#roomFabric") or "").strip() == \
         "Nordic Linen"
     page.click("#messages img.swap-thumb")

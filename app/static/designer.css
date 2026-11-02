@@ -163,7 +163,36 @@
 .dz-render { width: 100%; justify-content: center; }
 .dz-render[disabled] { opacity: 0.5; cursor: not-allowed; }
 
-.dz-modal { max-width: 880px; }
+.dz-modal { max-width: 960px; }
+/* The consult page parks its swap dialog over the chat column on
+   desktop; the designer has no chat column, so its render dialog is
+   a real centred modal with a full backdrop. */
+@media (min-width: 720px) {
+  .designer-page .modal {
+    justify-content: center;
+    background: rgba(17, 20, 28, 0.55);
+    padding: 18px;
+  }
+  .designer-page .modal-card.dz-modal { max-width: 960px; }
+}
+.dz-modal .ba img { max-height: 56vh; object-fit: contain; background: var(--rc-chalk); }
+
+/* Fabric picker: a compact grid that scrolls inside the sidebar
+   instead of growing the page by a screen or two. */
+.dz-browse .browse-grid {
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 8px;
+  max-height: 52vh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-inline-end: 2px;
+}
+.dz-browse .browse-card { padding: 6px; }
+.dz-browse .browse-card img { aspect-ratio: 16/9; }
+.dz-browse .browse-n,
+.dz-browse .browse-m { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dz-browse .browse-n { margin-top: 4px; }
+.dz-browse .browse-card .seeit { padding: 6px 8px; font-size: var(--rc-fs-xs); margin-top: 4px; }
 
 .dz-scale {
   margin: 10px 0 0;

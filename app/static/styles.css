@@ -1291,7 +1291,12 @@ body.modal-open { overflow: hidden; }
   flex: none;
 }
 
-.chat-swap-row > div { flex: 1; min-width: 0; font-size: var(--rc-fs-sm); }
+.chat-swap-row { flex-wrap: wrap; }
+/* Name and code · price never break mid-word: the badge drops to its
+   own line when the bubble is too narrow for all three. */
+.chat-swap-row > div { flex: 1 1 150px; min-width: 0; font-size: var(--rc-fs-sm); }
+.chat-swap-row .match-badge { margin-inline-start: auto; white-space: nowrap; flex: none; }
+.chat-swap-m { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .match-badge.small { font-size: var(--rc-fs-xs); padding: 4px 10px; }
 

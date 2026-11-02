@@ -44,7 +44,10 @@
       pieceYou: { sofa: "sofa", armchair: "armchair", curtains: "curtains", cushions: "cushions" },
       stepRetry: "Refining the fit",
       tryAgain: "Try again",
-      followSwap: "Looks lovely in your space. Want to see the next fabric on it, or should I estimate the meters?",
+      followSwap: "Looks lovely in your space. Pick what happens next:",
+      followMeters: "Estimate the meters",
+      followNext: "Show another fabric",
+      followBrowse: "Browse all fabrics",
       emptyLeadOptions: "Sure — which of these works for you?",
       emptyLeadRecs: "Here are my top picks for you:",
       emptyLeadGeneric: "Could you tell me a little more about what you need?",
@@ -179,7 +182,10 @@
       pieceYou: { sofa: "كنبتك", armchair: "كرسيك", curtains: "ستارتك", cushions: "وسايدك" },
       stepRetry: "أضبط المقاس",
       tryAgain: "حاول مرة ثانية",
-      followSwap: "شكلها حلو في مجلسك. تبي أجرب القماش الثاني، ولا أحسب لك الأمتار؟",
+      followSwap: "شكلها حلو في مجلسك. اختار الخطوة الجاية:",
+      followMeters: "احسب الأمتار",
+      followNext: "جرّب قماش ثاني",
+      followBrowse: "تصفّح كل الأقمشة",
       emptyLeadOptions: "تمام — أي واحد يناسبك؟",
       emptyLeadRecs: "هذه أفضل اختياراتي لك:",
       emptyLeadGeneric: "ممكن تقول لي أكثر عن اللي تحتاجه؟",
@@ -318,7 +324,10 @@
       pieceYou: { sofa: "आपका सोफ़ा", armchair: "आपकी कुर्सी", curtains: "आपके पर्दे", cushions: "आपके कुशन" },
       stepRetry: "फिट ठीक कर रहा हूँ",
       tryAgain: "फिर से कोशिश करें",
-      followSwap: "आपके स्थान पर सुंदर लग रहा है। अगला कपड़ा देखना चाहेंगे, या मीटर का अनुमान लगाऊँ?",
+      followSwap: "आपके स्थान पर सुंदर लग रहा है। आगे क्या करें, चुनें:",
+      followMeters: "मीटर का अनुमान लगाएँ",
+      followNext: "दूसरा कपड़ा दिखाएँ",
+      followBrowse: "सभी कपड़े देखें",
       emptyLeadOptions: "बताइए — इनमें से कौन सा चलेगा?",
       emptyLeadRecs: "ये मेरे सबसे अच्छे सुझाव हैं:",
       emptyLeadGeneric: "अपनी ज़रूरत के बारे में थोड़ा और बताइए?",
@@ -435,7 +444,10 @@
       pieceYou: { sofa: "canapé", armchair: "fauteuil", curtains: "rideaux", cushions: "coussins" },
       stepRetry: "J'ajuste l'application",
       tryAgain: "Réessayer",
-      followSwap: "C'est ravissant chez vous. Voir le tissu suivant, ou estimer le métrage ?",
+      followSwap: "C'est ravissant chez vous. Choisissez la suite :",
+      followMeters: "Estimer le métrage",
+      followNext: "Essayer un autre tissu",
+      followBrowse: "Parcourir tous les tissus",
       emptyLeadOptions: "Dites-moi — lequel vous convient ?",
       emptyLeadRecs: "Voici mes meilleurs choix :",
       emptyLeadGeneric: "Pouvez-vous m'en dire un peu plus ?",
@@ -552,7 +564,10 @@
       pieceYou: { sofa: "sofá", armchair: "sillón", curtains: "cortinas", cushions: "cojines" },
       stepRetry: "Ajusto la aplicación",
       tryAgain: "Reintentar",
-      followSwap: "Se ve precioso en tu espacio. ¿Vemos la siguiente tela o calculo los metros?",
+      followSwap: "Se ve precioso en tu espacio. Elige el siguiente paso:",
+      followMeters: "Calcular los metros",
+      followNext: "Probar otra tela",
+      followBrowse: "Ver todas las telas",
       emptyLeadOptions: "Dime — ¿cuál te conviene?",
       emptyLeadRecs: "Estas son mis mejores opciones:",
       emptyLeadGeneric: "¿Me cuentas un poco más lo que necesitas?",
@@ -2949,7 +2964,7 @@
       "<div><div><b>" + esc(name) + "</b>" +
       (entry.target ? ' <span class="chat-swap-target">' +
         esc(targetLabel(entry.target)) + "</span>" : "") +
-      "</div><div>" + esc(entry.fabric_code) +
+      '</div><div class="chat-swap-m">' + esc(entry.fabric_code) +
       (meta.price !== undefined ? " · " + esc(formatPrice(meta.price)) : "") +
       "</div></div>" +
       '<span class="match-badge small">' +
@@ -2968,6 +2983,27 @@
     }
     messagesEl.scrollTop = messagesEl.scrollHeight;
     icons();
+    renderActionChips(followSwapActions(entry.target));
+  }
+
+  // "yes" to an either/or question went to recommendations; the three
+  // real next steps are buttons instead.
+  function followSwapActions(target) {
+    function ask(key) {
+      return function () {
+        chipsEl.hidden = true;
+        state.booted = true;
+        send(t(key));
+      };
+    }
+    return [
+      { label: t("followMeters"), run: ask("followMeters") },
+      { label: t("followNext"), run: ask("followNext") },
+      { label: t("followBrowse"), run: function () {
+        chipsEl.hidden = true;
+        openBrowse(target);
+      } }
+    ];
   }
 
   function renderStrip() {

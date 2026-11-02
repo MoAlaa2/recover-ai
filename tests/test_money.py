@@ -6,7 +6,7 @@ import subprocess
 import pytest
 from fastapi.testclient import TestClient
 
-from app.main import ASSET_CACHE, VERSION, app
+from app.main import ASSET_CACHE, VERSION, app, current_version
 from app.services.money import format_money
 
 
@@ -50,8 +50,8 @@ def test_versioned_assets_cache_a_week_html_never():
     client = TestClient(app)
     page = client.get("/consult")
     assert page.headers["cache-control"] == "no-store"
-    assert "/common.js?v=%s" % VERSION in page.text
-    asset = client.get("/app.js?v=%s" % VERSION)
+    assert "/common.js?v=%s" % current_version() in page.text
+    asset = client.get("/app.js?v=%s" % current_version())
     assert asset.status_code == 200
     assert asset.headers["cache-control"] == ASSET_CACHE
     assert "immutable" in ASSET_CACHE and "max-age=604800" in ASSET_CACHE
@@ -68,3 +68,22 @@ def test_version_is_a_commit_hash_when_git_is_present():
                           capture_output=True, text=True).stdout.strip()
     if head:
         assert VERSION == head
+
+
+def test_local_version_tracks_asset_edits(monkeypatch, tmp_path):
+    """Without RC_BUILD (local dev) the version moves with the newest
+    static file, so an immutable cache never serves a stale edit."""
+    import os
+    from app import main as m
+    monkeypatch.delenv("RC_BUILD", raising=False)
+    before = m.current_version()
+    assert before.startswith(VERSION + "-")
+    path = os.path.join(m.STATIC_DIR, "common.js")
+    st = os.stat(path)
+    try:
+        os.utime(path, (st.st_atime, st.st_mtime + 10 ** 6))
+        assert m.current_version() != before
+    finally:
+        os.utime(path, (st.st_atime, st.st_mtime))
+    monkeypatch.setenv("RC_BUILD", "abc1234")
+    assert m.current_version() == VERSION
