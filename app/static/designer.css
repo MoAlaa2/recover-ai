@@ -11,6 +11,10 @@
 }
 
 .dz-stage {
+  /* The sidebar (pieces + picker) is the long column; the plan stays
+     in view while it scrolls instead of leaving a blank half page. */
+  position: sticky;
+  top: 16px;
   background: var(--rc-paper);
   border: 1px solid var(--rc-line);
   border-radius: var(--rc-r-md);
@@ -236,7 +240,7 @@ body.ar .dz-box .dz-handle { right: auto; left: -8px; cursor: nesw-resize; }
 
 @media (max-width: 900px) {
   .designer { grid-template-columns: 1fr; padding: 12px; gap: 12px; }
-  .dz-stage { min-height: 0; padding: 10px; }
+  .dz-stage { min-height: 0; padding: 10px; position: static; }
   .dz-row { grid-template-columns: 24px minmax(0, 1fr) auto; }
   .dz-row .dz-fab { grid-column: 2 / span 2; justify-self: start; max-width: 100%; }
   .dz-row .dz-del { grid-column: 3; grid-row: 1; }
