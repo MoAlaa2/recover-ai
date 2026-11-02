@@ -19,3 +19,12 @@ def test_landing_html_versioned_and_uncached():
     assert resp.status_code == 200
     assert resp.headers["cache-control"] == "no-store"
     assert "/landing.js?v=" in resp.text
+
+
+def test_versioned_asset_immutable_on_get_and_head():
+    client = TestClient(app)
+    for method in ("get", "head"):
+        resp = getattr(client, method)("/app.js?v=x")
+        assert resp.status_code == 200
+        assert resp.headers["cache-control"] == (
+            "public, max-age=604800, immutable")

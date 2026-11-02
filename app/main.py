@@ -115,7 +115,7 @@ def _is_cacheable_asset(path):
 @app.middleware("http")
 async def asset_cache_headers(request, call_next):
     response = await call_next(request)
-    if (request.method == "GET" and response.status_code == 200
+    if (request.method in ("GET", "HEAD") and response.status_code == 200
             and _is_cacheable_asset(request.url.path)
             and "cache-control" not in response.headers):
         response.headers["Cache-Control"] = ASSET_CACHE
