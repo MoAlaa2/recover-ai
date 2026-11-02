@@ -388,3 +388,22 @@ def test_pillow_guard_leaves_the_mask_when_nothing_or_too_much_is_found(
         raise s.SwapError("down")
     monkeypatch.setattr(s, "segment", boom)
     assert s.pillow_guard(edited, seat, "k", 5, size) is seat
+
+
+def test_cushions_fall_back_to_a_bed_pillow(monkeypatch):
+    """"throw pillows on the sofa" finds nothing on a floor mattress;
+    the cushions swap then asks SAM for a plain pillow."""
+    asked = []
+
+    def fake_segment(img, concept, key=None, timeout=1):
+        asked.append(concept)
+        if concept == "pillow":
+            return [{"box": (10, 10, 50, 40), "frame_size": (100, 100)}]
+        return []
+
+    monkeypatch.setattr(s, "segment", fake_segment)
+    recs = s.segment_with_fallback(b"x", s.TARGET_CONCEPTS["cushions"],
+                                   "cushions", "k", 5)
+    assert recs and asked == [s.TARGET_CONCEPTS["cushions"], "pillow"]
+    assert s.segment_with_fallback(b"x", "window curtains", "curtains",
+                                   "k", 5) == []

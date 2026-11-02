@@ -66,8 +66,10 @@ def test_model_assign_cannot_retarget_user_choice(tmp_path, monkeypatch):
     assert "Just show me" in one["options"], one["options"]
     two = c.chat(sid, "Cool", chat_fn=fake)
     assert len(two["recommendations"]) == 3
-    assert two["preview"] == {"code": "FA-AC-12", "target": "cushions"}
-    assert two["targets"]["assignments"] == {"cushions": "FA-AC-12"}
+    # Recommendations never start a render by themselves, and the
+    # model's sofa guess never lands on the sofa.
+    assert not two.get("preview")
+    assert "sofa" not in (two["targets"].get("assignments") or {})
     assert two["targets"]["chosen"] == ["cushions"]
 
 
@@ -153,6 +155,9 @@ def test_quote_turn_has_no_relaxation_note_or_chips(tmp_path, monkeypatch):
 
     c.chat(sid, "Just show me", chat_fn=fake)
     turn = c.SESSIONS[sid]
+    # The user taps Try on the top pick: the client records it exactly
+    # like POST /api/session/{sid}/assignments does.
+    turn.setdefault("assignments", {})["sofa"] = "FA-AC-12"
     out = c.chat(sid, "how many meters / how much?", chat_fn=fake)
     assert out["quote"] and out["quote"]["target"] == "sofa"
     assert out["quote"]["code"] == "FA-AC-12"

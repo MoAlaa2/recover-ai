@@ -987,7 +987,7 @@ def test_chosen_targets_and_curtains_usage(tmp_path, monkeypatch):
     assert search_args and search_args[-1].get("usage") == "curtains"
 
 
-def test_auto_apply_top_pick_multi(tmp_path, monkeypatch):
+def test_top_pick_is_not_auto_applied(tmp_path, monkeypatch):
     from PIL import Image as PILImage
     room = tmp_path / "room.jpg"
     PILImage.new("RGB", (64, 48), (10, 20, 30)).save(str(room))
@@ -1022,8 +1022,9 @@ def test_auto_apply_top_pick_multi(tmp_path, monkeypatch):
     out = c.chat("t-auto", "ok, what do you suggest?",
                  image_path=str(room), chat_fn=fake)
     assert len(out["recommendations"]) == 3
-    assert out["preview"] == {"code": "FA-AC-01", "target": "sofa"}
-    assert out["targets"]["assignments"] == {"sofa": "FA-AC-01"}
+    # Recommendations alone never start a render or record a pick.
+    assert not out.get("preview")
+    assert not out["targets"].get("assignments")
 
 
 def test_analysis_cached_per_image_hash(tmp_path, monkeypatch):

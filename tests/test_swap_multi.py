@@ -129,7 +129,8 @@ def test_multi_skips_failed_item_keeps_rest(tmp_path, monkeypatch):
     room = make_room(tmp_path)
 
     def fake_segment(room_bytes, concept, key=None, timeout=120):
-        if concept == s.TARGET_CONCEPTS["cushions"]:
+        # No pillows under any prompt, the sofa prompt included.
+        if "pillow" in concept or "cushion" in concept:
             return []
         return [{"box": (0, 0, 90, 90), "frame_size": (100, 100)}]
 

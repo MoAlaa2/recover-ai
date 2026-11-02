@@ -229,6 +229,8 @@ SOFA_ALIASES = ("bench", "bench seat", "upholstered bench", "settee",
 # window seat), these name the upholstered part it does find.
 FALLBACK_PROMPTS = {
     "sofa": ("seat cushion", "upholstered bench"),
+    # A pillow on a bed or a floor mattress is not "on the sofa".
+    "cushions": ("pillow", "pillows on the bed"),
 }
 
 CONCEPT_PROMPTS = {

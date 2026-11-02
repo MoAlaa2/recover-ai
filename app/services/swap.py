@@ -750,8 +750,8 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
             seg_bytes, (width, height), key, call_timeout())
     else:
         full_mask = None
-        records = segment(seg_bytes, concept, key,
-                          timeout=call_timeout())
+        records = segment_with_fallback(seg_bytes, concept, target, key,
+                                        call_timeout())
     if not records:
         raise SwapError("could not find the %s in this photo" % concept)
     raw_mask = full_mask if full_mask is not None else sam_mask(
@@ -880,6 +880,23 @@ SOFA_WOOD_CONCEPT = "wooden base of the sofa"
 # A wood mask this large relative to the sofa is a mis-segmentation
 # (the whole sofa), not a frame: ignore it rather than erase the sofa.
 WOOD_MAX_SHARE = 0.5
+
+
+def segment_with_fallback(seg_bytes, concept, target, key, timeout):
+    """SAM records for the concept, else for the target's fallback
+    prompts (a bed pillow for cushions, a bench seat for sofa)."""
+    records = segment(seg_bytes, concept, key, timeout=timeout)
+    if records:
+        return records
+    from app.services.targets import FALLBACK_PROMPTS
+    for alt in FALLBACK_PROMPTS.get(target, ()):
+        try:
+            records = segment(seg_bytes, alt, key, timeout=timeout)
+        except SwapError:
+            records = []
+        if records:
+            return records
+    return []
 
 
 def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
@@ -1137,8 +1154,8 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                         seg_bytes, (width, height), key, call_timeout(),
                         keep_pillows=True)
                 else:
-                    records = segment(seg_bytes, concept, key,
-                                      timeout=call_timeout())
+                    records = segment_with_fallback(
+                        seg_bytes, concept, target, key, call_timeout())
                     if not records:
                         raise SwapError("could not find the %s in this "
                                         "photo" % concept)

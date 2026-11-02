@@ -531,8 +531,7 @@ TOOLS = [
         "name": "assign_fabric",
         "description": "Record which fabric goes on which item "
                        "(sofa, cushions or curtains). Call it for every "
-                       "pick the user confirms, including the auto-applied "
-                       "top pick.",
+                       "pick the user confirms.",
         "parameters": {"type": "object",
                        "properties": {"target": {"type": "string"},
                                       "code": {"type": "string"}},
@@ -2275,21 +2274,10 @@ def _chat(session_id, message, image_path=None, chat_fn=None,
     if (turn.get("preview") and not turn["preview"].get("target")
             and len(chosen_targets) == 1):
         turn["preview"]["target"] = chosen_targets[0]
-    # Auto-apply rides the session photo, not just the current request:
-    # a follow-up text turn ("sofa") after the photo turn must still
-    # top-pick into the chosen item.
-    assigned_now = turn.get("assigned_now") or {}
-    if (recommendations and chosen_targets and turn.get("image")
-            and not turn.get("preview")
-            and (chosen_targets[0] not in session.get("assignments", {})
-                 or chosen_targets[0] in assigned_now)):
-        # A pick the model recorded this turn is previewed as-is; else
-        # the top recommendation is applied to the chosen item.
-        top_code = assigned_now.get(chosen_targets[0]) or \
-            recommendations[0]["code"]
-        session.setdefault("assignments", {})[chosen_targets[0]] = top_code
-        turn["preview"] = {"code": top_code,
-                           "target": chosen_targets[0]}
+    # Recommendations never start a render on their own: the user taps
+    # Try (or asks for a code) and that is the only way a swap begins.
+    # A preview here comes from the preview_fabric tool, i.e. a request
+    # in the user's own words.
 
     reply = strip_block(final_text)
     options = extract_options(reply) or []
