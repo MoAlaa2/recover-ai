@@ -88,3 +88,14 @@ def test_wait_for_image_false_when_absent(tmp_path):
     from app.api import chat as chat_api
     assert chat_api._wait_for_image(
         str(tmp_path / "never.jpg"), tries=1) is False
+
+
+def test_oversized_upload_rejected(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.api.chat.UPLOAD_MAX_BYTES", 2000)
+    buf = io.BytesIO()
+    Image.radial_gradient("L").resize((400, 400)).save(buf, format="PNG")
+    assert len(buf.getvalue()) > 2000
+    resp = post(client(tmp_path, monkeypatch), "big.png", buf.getvalue(),
+                "image/png")
+    assert resp.status_code == 413
+    assert not list(tmp_path.iterdir()), "nothing kept on disk"

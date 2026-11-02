@@ -1719,6 +1719,10 @@ def ensure_just_show_option(options, lang):
     from app.services.targets import SKIP_WORDS
     line = JUST_SHOW_LINES.get(lang or "en", JUST_SHOW_LINES["en"])
     opts = list(options or [])
+    # The model is told to offer "Just show me" verbatim; in another
+    # language that English chip is swapped for the localized one.
+    en = JUST_SHOW_LINES["en"].lower()
+    opts = [line if str(o).strip().lower() == en else o for o in opts]
     low = [str(o).strip().lower() for o in opts]
     # The model's own skip chip in any language counts as present.
     if any(line.lower() == o or any(w in o for w in SKIP_WORDS)

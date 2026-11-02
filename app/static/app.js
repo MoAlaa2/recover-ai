@@ -22,7 +22,7 @@
       micLabel: "Voice input",
       steps: { photo: "Preparing your photo…", search: "Checking 80 fabrics…", claw: "Checking pet and kid safety…", details: "Picking the best 3…", room: "Looking at your room…" },
       needPhoto: "Please upload a room photo first, then tap “See it in my space” again.",
-      uploadRetry: "Upload didn't go through — check your connection and try again.",
+      uploadRetry: "The upload failed on our side — please try again.",
       roomView: "View",
       roomSub: "Your room",
       takePhoto: "Take or upload a photo",
@@ -138,7 +138,7 @@
       micLabel: "إدخال صوتي",
       steps: { photo: "أجهز صورتك…", search: "أدوّر بين الثمانين قماش…", claw: "أتأكد من الأمان للحيوانات والأطفال…", details: "أختار لك أفضل 3…", room: "أطالع غرفتك…" },
       needPhoto: "ارفع صورة غرفتك أول، بعدين اضغط “شاهدها في مساحتك”.",
-      uploadRetry: "ما تم الرفع — تأكد من الاتصال وحاول مرة ثانية.",
+      uploadRetry: "ما تم الرفع من جهتنا — حاول مرة ثانية.",
       roomView: "عرض",
       roomSub: "غرفتك",
       takePhoto: "صوّر أو ارفع صورة",
@@ -252,7 +252,7 @@
       voiceTranscribing: "आपकी आवाज़ लिख रहा हूँ",
       micLabel: "आवाज़ से पूछें",
       needPhoto: "पहले कमरे की फोटो भेजें, फिर “इसे अपनी जगह पर देखें” दबाएँ।",
-      uploadRetry: "अपलोड नहीं हुआ — कनेक्शन देखकर फिर कोशिश करें।",
+      uploadRetry: "अपलोड हमारी तरफ़ से विफल हुआ — फिर कोशिश करें।",
       roomView: "देखें",
       roomSub: "आपका कमरा",
       takePhoto: "फोटो लें या अपलोड करें",
@@ -368,7 +368,7 @@
       voiceTranscribing: "Je transcris votre voix",
       micLabel: "Entrée vocale",
       needPhoto: "Envoyez d'abord une photo, puis touchez « Voir chez moi ».",
-      uploadRetry: "Envoi interrompu — vérifiez la connexion et réessayez.",
+      uploadRetry: "L'envoi a échoué de notre côté — réessayez.",
       roomView: "Voir",
       roomSub: "Votre pièce",
       takePhoto: "Prendre ou envoyer une photo",
@@ -484,7 +484,7 @@
       voiceTranscribing: "Transcribo tu voz",
       micLabel: "Entrada de voz",
       needPhoto: "Sube primero una foto y luego toca «Verlo en mi espacio».",
-      uploadRetry: "No se pudo subir — revisa tu conexión e inténtalo de nuevo.",
+      uploadRetry: "La subida falló de nuestro lado — inténtalo de nuevo.",
       roomView: "Ver",
       roomSub: "Tu espacio",
       takePhoto: "Toma o sube una foto",
@@ -1282,6 +1282,8 @@
         '<span class="cc-t"><span class="cc-n" dir="auto">' + esc(name) +
         '</span><span class="cc-m">' + esc(r.code) + " · " +
         esc(formatPrice(r.price_usd_per_m)) + "</span>" +
+        (r.receipt ? '<span class="cc-r" dir="auto">' + esc(r.receipt) +
+          "</span>" : "") +
         '<span class="cc-s">' + esc(status) + statusBadge +
         "</span></span></button>";
     }).join("");
@@ -2537,6 +2539,9 @@
     $("swapSteps").hidden = false;
     $("swapTimeoutMsg").hidden = true;
     $("swapRetryBtn").hidden = true;
+    if ($("swapAbortBtn")) $("swapAbortBtn").hidden = true;
+    var spn = $("swapLoading").querySelector(".spinner");
+    if (spn) spn.hidden = false;
     if ($("swapTrace")) $("swapTrace").hidden = true;
     if ($("hoodToggle")) $("hoodToggle").hidden = true;
     state.pendingSwapModel = null;
@@ -2575,6 +2580,13 @@
     var b = $("swapRetryBtn");
     b.textContent = t("tryAgain");
     b.hidden = false;
+    // A failed check is a resting state: no spinner, no clock, and a
+    // way out that does not depend on finding the backdrop.
+    var sp = $("swapLoading").querySelector(".spinner");
+    if (sp) sp.hidden = true;
+    if ($("swapClock")) $("swapClock").hidden = true;
+    if (swapClock) { clearInterval(swapClock); swapClock = null; }
+    if ($("swapAbortBtn")) $("swapAbortBtn").hidden = false;
   }
 
   function startSwapAttempt(code, target, meta, attempt, seq) {
@@ -2784,9 +2796,14 @@
     state.pendingSwapLabel = null;
     if (entry.target && SWAP_TARGETS.indexOf(entry.target) >= 0) {
       // A finished single swap is a pick too: the next piece builds
-      // on it (see tryFabric) instead of starting from the photo.
+      // on it (see tryFabric) instead of starting from the photo. The
+      // server keeps the pick as well, because every chat turn echoes
+      // the server's assignments back over the client's.
       state.assignments = state.assignments || {};
       state.assignments[entry.target] = code;
+      postJSON("/api/session/" + encodeURIComponent(state.sessionId) +
+               "/assignments", { target: entry.target, code: code },
+               30000, 1).catch(function () {});
       renderAssignRow();
     }
     state.canvasView = "/" + (res.result_url || "").replace(/^\/+/, "");
@@ -3642,6 +3659,7 @@
       baUpdate(Number(e.target.value));
     });
     $("swapClose").addEventListener("click", closeSwap);
+    if ($("swapAbortBtn")) $("swapAbortBtn").addEventListener("click", closeSwap);
     $("swapRetryBtn").addEventListener("click", function () {
       if (state.swapCode) tryFabric(state.swapCode, state.swapTarget);
     });
@@ -3720,19 +3738,34 @@
     // later, before treating it as broken.
     function retryRoomImg(el, onDead) {
       var cur = el.getAttribute("src") || "";
-      if (!cur || cur.indexOf("imgRetry=1") >= 0 ||
-          el.dataset.imgRetry === cur) {
+      var m = /imgRetry=(\d+)/.exec(cur);
+      var n = m ? parseInt(m[1], 10) : 0;
+      if (!cur || n >= 3) {
         if (onDead) onDead();
         return;
       }
-      el.dataset.imgRetry = cur;
+      var base = cur.replace(/[?&]imgRetry=\d+/, "");
       setTimeout(function () {
-        el.src = cur + (cur.indexOf("?") < 0 ? "?" : "&") + "imgRetry=1";
-      }, 1500);
+        el.src = base + (base.indexOf("?") < 0 ? "?" : "&") +
+          "imgRetry=" + (n + 1);
+      }, 1500 * (n + 1));
     }
     $("canvasImg").addEventListener("error", function () {
       retryRoomImg($("canvasImg"));
     });
+    // The before/after pair in the result modal is the moment the
+    // whole flow builds to: a first-GET 404 on the fresh result must
+    // not leave it blank.
+    ["baAfterImg", "baBeforeImg", "baFabricImg"].forEach(function (id) {
+      var el = $(id);
+      if (el) el.addEventListener("error", function () { retryRoomImg(el); });
+    });
+    messagesEl.addEventListener("error", function (e) {
+      var img = e.target;
+      if (img && img.tagName === "IMG" && img.classList.contains("swap-thumb")) {
+        retryRoomImg(img);
+      }
+    }, true);
     $("roomThumb").addEventListener("error", function () {
       retryRoomImg($("roomThumb"), function () {
         var bar = $("roomBar");

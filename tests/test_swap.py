@@ -82,7 +82,7 @@ def test_swap_endpoint_shape(monkeypatch):
                                          "attempts": 1})
     client = TestClient(app)
     resp = client.post("/api/swap", json={"session_id": "s",
-                                          "image_path": "uploads/x.jpg",
+                                          "image_path": "data/samples/living.jpg",
                                           "fabric_code": "FA-NL-02"})
     assert resp.status_code == 200
     body = resp.json()

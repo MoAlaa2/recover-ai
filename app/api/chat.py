@@ -107,8 +107,18 @@ def upload(file: UploadFile = File(...)):
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     name = "%s%s" % (uuid.uuid4().hex, ext)
     raw = os.path.join(UPLOAD_DIR, name)
+    written = 0
     with open(raw, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+        while True:
+            chunk = file.file.read(1024 * 1024)
+            if not chunk:
+                break
+            written += len(chunk)
+            if written > UPLOAD_MAX_BYTES:
+                f.close()
+                os.remove(raw)
+                raise HTTPException(413, "photo too large (max 25 MB)")
+            f.write(chunk)
     dest = os.path.join(UPLOAD_DIR, uuid.uuid4().hex + ".jpg")
     if not convert_to_jpg(raw, dest):
         os.remove(raw)
@@ -161,6 +171,7 @@ class SwapMultiRequest(BaseModel):
 
 @router.post("/swap")
 def swap_fabric(req: SwapRequest):
+    _check_image(req.image_path)
     target = _swap_target(req)
     try:
         res = swap(req.image_path, req.fabric_code, target)
@@ -168,6 +179,8 @@ def swap_fabric(req: SwapRequest):
         raise HTTPException(400, str(exc))
     except RuntimeError as exc:
         raise HTTPException(502, str(exc))
+    except Exception:  # noqa: BLE001 - never a bare 500 on the demo
+        raise HTTPException(400, "swap failed")
     record_preview(req.session_id, req.fabric_code, res,
                          req.image_path or "")
     return res
@@ -210,6 +223,7 @@ def _wait_for_image(path, tries=4):
 
 
 IMAGE_MAX_BYTES = 20 * 1024 * 1024
+UPLOAD_MAX_BYTES = 25 * 1024 * 1024
 SAMPLES_DIR = os.path.join(BASE_DIR, "data", "samples")
 
 
@@ -368,9 +382,14 @@ def fabric_list(suitable_for: str = "", usage: str = "",
     upholstery/curtains. Ranked by the same catalog search.
     """
     from app.services import catalog as catalog_mod
-    flt = ([suitable_for] if suitable_for in ("sofa", "armchair",
-                                              "cushions", "curtains")
-           else None)
+    # The catalog's suitable_for is home/hotel/kids/office; a piece
+    # name selects the matching usage instead (the Browse panel for the
+    # curtains must list curtain fabrics, not upholstery velvets).
+    piece_usage = {"sofa": "upholstery", "armchair": "upholstery",
+                   "cushions": "cushions", "curtains": "curtains"}
+    flt = None
+    if not usage and suitable_for in piece_usage:
+        usage = piece_usage[suitable_for]
     norm_usage = catalog_mod.normalize_usage(usage) if usage else None
     fabrics, _ = catalog_mod.search_catalog(
         usage=norm_usage, suitable_for=flt,
@@ -486,6 +505,10 @@ def session_quote(session_id: str):
 
 def _swap_target(req: SwapRequest):
     target = (req.target or "").lower()
+    if target and target not in ("sofa", "armchair", "curtains", "cushions"):
+        # A named but unknown piece is a client error, never a silent
+        # sofa swap.
+        raise HTTPException(400, "unknown target: %s" % target)
     if target not in ("sofa", "armchair", "curtains", "cushions"):
         session = consultant.SESSIONS.get(req.session_id, {})
         piece = session.get("detected_piece")

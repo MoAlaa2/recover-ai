@@ -1361,3 +1361,15 @@ def test_enrich_target_follows_the_named_piece_when_nothing_matched():
     assert c.enrich([{"code": "FA-NL-02", "reason": ""}], turn)[0]["target"] == ""
     turn = {"chosen_targets": [], "session": {"topic": "bed"}}
     assert c.enrich([{"code": "FA-NL-02", "reason": ""}], turn)[0]["target"] == ""
+
+
+def test_just_show_chip_is_localized_not_duplicated():
+    from app.services.consultant import ensure_just_show_option
+    out = ensure_just_show_option(["كنبة", "ستائر", "Just show me"], "ar")
+    assert "Just show me" not in out
+    assert out.count("وريني الحين") == 1
+    # English stays English; a present localized chip is not doubled.
+    assert ensure_just_show_option(["Sofa", "Just show me"], "en") == [
+        "Sofa", "Just show me"]
+    assert ensure_just_show_option(["Canapé", "Montrez-moi"], "fr") == [
+        "Canapé", "Montrez-moi"]
