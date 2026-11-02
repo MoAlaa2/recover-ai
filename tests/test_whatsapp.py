@@ -140,7 +140,7 @@ def test_dedupe_and_text_turn(env, outbox, waid, monkeypatch):
     assert second.status_code == 200
     assert calls == ["hi"], "Meta retries must not re-run the turn"
     texts = [p for p in outbox if p.get("type") == "text"]
-    assert texts and texts[0]["text"]["body"] == "Pick one"
+    assert not texts, "the reply rides inside the buttons message"
     buttons = [p for p in outbox if p.get("type") == "interactive"]
     assert buttons
     action = buttons[0]["interactive"]["action"]["buttons"]
@@ -353,3 +353,24 @@ def test_parse_webhook_shapes():
     assert got[3][1]["payload"] == "chip:x"
     assert wa.parse_webhook({}) == []
     assert wa.parse_webhook({"entry": [{"changes": []}]}) == []
+
+
+def test_reply_with_options_is_sent_once(env, waid, outbox):
+    """A question with chips goes out as ONE interactive message that
+    carries the reply; no separate text copy (the user saw every
+    reply twice). A long reply keeps the text and a short body."""
+    wa.consultant_mod.SESSIONS[wa.wa_session_id(waid)] = {
+        "messages": [], "lang": "en"}
+    wa.send_turn_result(waid, {
+        "reply": "What mood would you love for them?",
+        "options": ["Warm", "Cool"], "recommendations": [],
+        "targets": {"available": ["cushions"], "chosen": ["cushions"]}})
+    assert [p.get("type") for p in outbox] == ["interactive"]
+    assert outbox[0]["interactive"]["body"]["text"] == \
+        "What mood would you love for them?"
+    del outbox[:]
+    long = "x" * 1500
+    wa.send_turn_result(waid, {"reply": long, "options": ["Warm"],
+                               "recommendations": [], "targets": {}})
+    assert [p.get("type") for p in outbox] == ["text", "interactive"]
+    assert outbox[1]["interactive"]["body"]["text"] == "Choose:"

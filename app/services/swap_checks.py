@@ -377,7 +377,8 @@ def covered_pieces(result_image, mask, swatch_bytes, pieces=None):
 
 
 def run_checks(original, result_image, mask, swatch_bytes, base=None,
-               residue_mask=None, extra_swatches=(), pieces=False):
+               residue_mask=None, extra_swatches=(), pieces=False,
+               min_changed=0.0):
     """All checks. original is the untouched room photo; base is the
     image the edit was made on (the sofa result for chained pillows);
     residue_mask widens the residue search (sofa ∪ pillows).
@@ -402,11 +403,16 @@ def run_checks(original, result_image, mask, swatch_bytes, base=None,
         fail = REASON_COLOUR
     elif not cover["ok"]:
         fail = REASON_COVERAGE
+    elif changed < min_changed:
+        # A patterned fabric close to the old colour passes the colour
+        # cells even where the model painted nothing (gingham patches
+        # on an off-white sofa): the mask must visibly change.
+        fail = REASON_COVERAGE
     elif not residue["ok"]:
         fail = REASON_RESIDUE
     out = {"delta_e": colour["delta_e"], "delta_l": colour["delta_l"],
            "coverage": cover["coverage"], "changed": changed,
-           "residue": residue["residue"],
+           "min_changed": min_changed, "residue": residue["residue"],
            "ok": fail is None, "fail": fail}
     if pieces and fail in (REASON_COLOUR, REASON_COVERAGE):
         found = covered_pieces(
@@ -416,7 +422,8 @@ def run_checks(original, result_image, mask, swatch_bytes, base=None,
             kept, n_cov, n_all = found
             sub = run_checks(original, result_image, kept, swatch_bytes,
                              base=base, residue_mask=kept,
-                             extra_swatches=extra_swatches)
+                             extra_swatches=extra_swatches,
+                             min_changed=min_changed)
             if sub["ok"]:
                 sub["pieces"] = {"covered": n_cov, "total": n_all}
                 sub["_mask"] = kept

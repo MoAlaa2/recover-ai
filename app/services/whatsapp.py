@@ -24,6 +24,7 @@ GRAPH_VERSION = "v21.0"
 TEXT_LIMIT = 4096
 BUTTON_TITLE_LIMIT = 20
 LIST_ROW_LIMIT = 10
+INTERACTIVE_BODY_LIMIT = 1024
 SESSION_TTL_S = 24 * 3600
 MAX_SEEN_IDS = 200
 
@@ -635,15 +636,23 @@ def send_turn_result(wa_id, out):
     options = out.get("options", [])
     recs = out.get("recommendations", [])
     targets = out.get("targets", {})
-    for chunk in split_text(reply):
-        if chunk.strip():
-            send_payload(text_payload(wa_id, chunk))
+    # The reply travels once: inside the buttons/list message when
+    # there are options (an interactive body holds 1024 chars), as
+    # plain text otherwise. Sending both showed every reply twice.
+    inline = bool(options and not recs
+                  and len(reply or "") <= INTERACTIVE_BODY_LIMIT)
+    if not inline:
+        for chunk in split_text(reply):
+            if chunk.strip():
+                send_payload(text_payload(wa_id, chunk))
     if recs:
         send_recommendations(wa_id, recs, lang)
     elif options:
         force_list = bool(targets.get("available")
                           and not targets.get("chosen"))
-        options_message(wa_id, reply, options, force_list=force_list)
+        body = reply if inline else (
+            "اختر:" if lang == "ar" else "Choose:")
+        options_message(wa_id, body, options, force_list=force_list)
     preview = out.get("preview") or {}
     if preview.get("code"):
         run_try_swap(wa_id, preview["code"],

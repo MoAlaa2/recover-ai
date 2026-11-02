@@ -407,3 +407,48 @@ def test_cushions_fall_back_to_a_bed_pillow(monkeypatch):
     assert recs and asked == [s.TARGET_CONCEPTS["cushions"], "pillow"]
     assert s.segment_with_fallback(b"x", "window curtains", "curtains",
                                    "k", 5) == []
+
+
+def test_partial_pillows_retry_rank_and_corrective():
+    ok = {"ok": True, "pieces": {"covered": 4, "total": 6}}
+    full = {"ok": True, "pieces": {"covered": 6, "total": 6}}
+    good = {"color": 9, "pattern": 9, "scale": 9, "isolation": 9}
+    assert s.needs_retry(ok, good)
+    assert not s.needs_retry(full, good)
+    assert s.pieces_missing(ok) == 2 and s.pieces_missing({"ok": True}) == 0
+    weaker = {"color": 7, "pattern": 7, "scale": 7, "isolation": 7}
+    assert s._rank({"scores": weaker, "checks": full}) > \
+        s._rank({"scores": good, "checks": ok})
+    text = s._corrective(good, "throw pillows on the sofa", ok)
+    assert "EVERY pillow" in text and "6" in text and "2" in text
+    assert s.min_changed_for({"plain_or_patterned": "patterned"}) == \
+        s.PATTERN_MIN_CHANGED
+    assert s.min_changed_for({"plain_or_patterned": "plain"}) == 0.0
+
+
+def test_refine_pieces_recolours_the_skipped_pillows(monkeypatch):
+    """Two pillows, the first edit did one; the aimed pass paints the
+    other and only that pillow is pasted and counted."""
+    size = (100, 60)
+    left = _box(size, (5, 5, 45, 55))
+    right = _box(size, (55, 5, 95, 55))
+    room = solid((120, 120, 120), size)
+    yellow = (240, 200, 40)
+    first = room.copy()
+    first.paste(solid(yellow, size), (0, 0), left)
+    best = {"result": first, "mask": left, "scores": {"color": 9},
+            "checks": {"ok": True, "pieces": {"covered": 1, "total": 2}}}
+    swatch = io.BytesIO()
+    solid(yellow).save(swatch, "PNG")
+    monkeypatch.setattr(s, "edit_room",
+                        lambda *a, **k: solid(yellow, (1, 1)))
+    out = s.refine_pieces(best, room, [left, right], swatch.getvalue(),
+                          {"code": "X"}, "throw pillows on the sofa", "k",
+                          remaining_s=60, timeout=10)
+    assert out["checks"]["pieces"] == {"covered": 2, "total": 2}
+    assert out["checks"]["refine_pieces"] == 1
+    assert out["result"].getpixel((75, 30))[:3] == yellow
+    outside = out["result"].getpixel((50, 2))[:3]
+    assert max(abs(c - 120) for c in outside) <= 6, \
+        "nothing outside the pillows changes (feather aside): %r" % (outside,)
+    assert out["mask"].getpixel((75, 30)) == 255

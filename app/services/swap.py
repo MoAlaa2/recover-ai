@@ -51,6 +51,16 @@ VERIFY_LABELS = ("color", "pattern", "scale", "isolation")
 # cannot judge (motif and weave scale) may trigger it: colour has the
 # ΔE gate and isolation is guaranteed by compositing inside the mask.
 RETRY_SCORES = ("pattern", "scale")
+# A patterned fabric must visibly change at least this share of the
+# mask (a full gingham on an off-white sofa changes ~0.84; the model's
+# "patches" edit changed a third). Plain fabrics are exempt: a
+# like-for-like colour legitimately changes little.
+PATTERN_MIN_CHANGED = 0.4
+
+
+def min_changed_for(fabric):
+    return PATTERN_MIN_CHANGED if (fabric or {}).get(
+        "plain_or_patterned") == "patterned" else 0.0
 RETRY_MIN_SCORE = 6
 
 # Hard per-model-call cap (seconds). No single network call may hang
@@ -539,6 +549,58 @@ def refine_slivers(result, gap, swatch_bytes, fabric, concept, key,
     return paste_strict(result, edited, pasted, feather=3), pasted
 
 
+PIECES_TEXT = ("recolour the %s that still show their old fabric in the "
+               "new fabric: every pillow, on the seat and on the floor "
+               "too, must be in the new fabric; change nothing else")
+
+
+def refine_pieces(best, room, pieces, swatch_bytes, fabric, concept, key,
+                  remaining_s, timeout):
+    """Aimed edit on the composite for the pillows the first edit left
+    in the old fabric. Pasted strictly inside those pillows, kept only
+    where they now pass the coverage check. Never raises."""
+    if not pieces or remaining_s < REFINE_MIN_BUDGET_S:
+        return best
+    try:
+        result = best["result"]
+        width, height = result.size
+        todo = [c for c in pieces
+                if not swap_checks.coverage_check(result, c, swatch_bytes)["ok"]]
+        if not todo:
+            return best
+        gap = todo[0].convert("L")
+        for c in todo[1:]:
+            gap = ImageChops.lighter(gap, c.convert("L"))
+        small = result.copy()
+        small.thumbnail((1600, 1600), Image.LANCZOS)
+        buf = io.BytesIO()
+        small.save(buf, "JPEG", quality=92)
+        edited = edit_room(buf.getvalue(), swatch_bytes, fabric, concept, key,
+                           PIECES_TEXT % concept,
+                           timeout=min(REFINE_EDIT_TIMEOUT, timeout)).resize(
+                               (width, height), Image.BILINEAR)
+        image2 = paste_strict(result, edited, gap, feather=3)
+        done = [c for c in todo
+                if swap_checks.coverage_check(image2, c, swatch_bytes)["ok"]]
+        if not done:
+            best["checks"]["refine_pieces"] = 0
+            return best
+        kept = done[0].convert("L")
+        for c in done[1:]:
+            kept = ImageChops.lighter(kept, c.convert("L"))
+        image3 = paste_strict(result, edited, kept, feather=3)
+        checks = dict(best["checks"])
+        pcs = dict(checks.get("pieces") or {})
+        pcs["covered"] = int(pcs.get("covered", 0)) + len(done)
+        checks["pieces"] = pcs
+        checks["refine_pieces"] = len(done)
+        return dict(best, result=image3, checks=checks,
+                    mask=ImageChops.lighter(best["mask"].convert("L"), kept))
+    except Exception as exc:  # noqa: BLE001 - never fails a swap
+        best["checks"]["refine_error"] = str(exc)[:160]
+        return best
+
+
 def refine_seat(best, room, raw_mask, seg_bytes, swatch_bytes, fabric,
                 concept, key, remaining_s, timeout, check_kwargs=None):
     """Apply the hidden-sliver pass to a passing seat candidate.
@@ -689,6 +751,12 @@ def verify(swatch_bytes, result_image, fabric, piece_label, api_key=None,
 def _corrective(scores, concept, checks=None):
     if checks and not checks.get("ok"):
         return swap_checks.corrective_for(checks.get("fail"), concept)
+    if checks and pieces_missing(checks):
+        pcs = checks["pieces"]
+        return ("recolour EVERY pillow in the new fabric: all %d of "
+                "them, the ones on the back of the sofa, on the seat "
+                "and on the floor alike; %d still show their old fabric "
+                "and must not" % (pcs["total"], pieces_missing(checks)))
     worst = min(scores, key=scores.get)
     hints = {
         "color": ("match the swatch color exactly on every cushion and "
@@ -798,7 +866,8 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
                         timeout=call_timeout())
         attempts = round_no + 1
         checks = swap_checks.run_checks(room, result, mask,
-                                        swatch_bytes, pieces=pieces)
+                                        swatch_bytes, pieces=pieces,
+                                        min_changed=min_changed_for(fabric))
         kept = checks.pop("_mask", None)
         if kept is not None:
             # Only the recoloured pillows change; untouched ones keep
@@ -813,6 +882,13 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
             break
     if not best["checks"]["ok"]:
         raise CheckFailed(best["checks"]["fail"], best["checks"], target)
+
+    # Pillows the model skipped get an aimed pass of their own.
+    if target == "cushions" and pieces_missing(best["checks"]):
+        step("retry")
+        best = refine_pieces(best, room, pieces, swatch_bytes, fabric,
+                             concept, key, t_end - time.monotonic(),
+                             call_timeout())
 
     # Seats: recolour the slivers hidden past a throw, a table or the
     # pillows that the strict mask left in the old fabric (best effort,
@@ -860,16 +936,32 @@ def needs_retry(checks, scores, fabric=None):
     is skipped there."""
     if not checks.get("ok"):
         return True
+    if pieces_missing(checks):
+        return True
     keys = RETRY_SCORES
     if fabric is not None and fabric.get("plain_or_patterned") != "patterned":
         keys = tuple(k for k in keys if k != "pattern")
     return min(int(scores.get(k, 0)) for k in keys) < RETRY_MIN_SCORE
 
 
+def pieces_missing(checks):
+    """Pillows the edit left in the old fabric (0 when not per-piece)."""
+    pcs = (checks or {}).get("pieces") or {}
+    return max(0, int(pcs.get("total", 0)) - int(pcs.get("covered", 0)))
+
+
+def _pieces_share(checks):
+    pcs = (checks or {}).get("pieces") or {}
+    total = int(pcs.get("total", 0))
+    return (int(pcs.get("covered", 0)) / float(total)) if total else 1.0
+
+
 def _rank(cand):
-    """Passing checks first, then the Spark minimum and sum."""
+    """Passing checks first, then the share of pillows actually
+    recoloured, then the Spark minimum and sum."""
     scores = cand["scores"]
-    return (bool(cand.get("checks", {}).get("ok")),
+    checks = cand.get("checks", {})
+    return (bool(checks.get("ok")), _pieces_share(checks),
             min(scores.values()), sum(scores.values()))
 
 
@@ -1225,7 +1317,8 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                     residue_mask=union_mask,
                     extra_swatches=job.get("extra_swatches") or (),
                     pieces=(record_masks(records, (width, height))
-                            if target == "cushions" else False))
+                            if target == "cushions" else False),
+                    min_changed=min_changed_for(fabric))
                 kept = checks.pop("_mask", None)
                 if kept is not None:
                     mask = ImageChops.multiply(mask.convert("L"),

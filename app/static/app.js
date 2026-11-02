@@ -2254,6 +2254,11 @@
     } else {
       renderCanvasRow();
       appendRecsLine();
+      var row = $("canvasRow");
+      if (row && !row.hidden && row.scrollIntoView) {
+        try { row.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+        catch (e) {}
+      }
     }
   }
 

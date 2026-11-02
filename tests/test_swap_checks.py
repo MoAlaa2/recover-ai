@@ -331,3 +331,23 @@ def test_single_swap_cushions_keeps_only_recoloured_pillows(
     assert saved_mask[20, 20] and not saved_mask[20, 70]
     out = Image.open(os.path.join(os.getcwd(), res["result_url"]))
     assert out.getpixel((70, 20)) != (110, 110, 110)
+
+
+def test_patterned_fabric_must_visibly_change_the_mask():
+    """Like-for-like colour: a gingham near the old off-white passes
+    the colour cells even where nothing was painted. With min_changed
+    the patches edit fails as low coverage; without it, it passes."""
+    size = (96, 48)
+    mask = box_mask(size, (0, 0, 96, 48))
+    room = solid((200, 200, 196), size)
+    res = room.copy()
+    # The model painted only the left third (a slightly darker check).
+    res.paste(solid((176, 176, 172), size), (0, 0),
+              box_mask(size, (0, 0, 32, 48)))
+    swatch = png_bytes(solid((196, 196, 192)))
+    assert sc.run_checks(room, res, mask, swatch)["ok"]
+    out = sc.run_checks(room, res, mask, swatch, min_changed=0.4)
+    assert out["fail"] == sc.REASON_COVERAGE and out["changed"] < 0.4
+    full = room.copy()
+    full.paste(solid((176, 176, 172), size), (0, 0), mask)
+    assert sc.run_checks(room, full, mask, swatch, min_changed=0.4)["ok"]

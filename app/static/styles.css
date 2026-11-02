@@ -414,7 +414,8 @@ img.avatar {
 .canvas-photo img#canvasImg {
   display: block;
   width: 100%;
-  max-height: 72vh;
+  /* Leaves room for the three picks under the photo on a laptop. */
+  max-height: 56vh;
   object-fit: contain;
   background: var(--rc-chalk);
 }
