@@ -707,6 +707,13 @@ def analyze_room(image_path, lang=None):
     """
     path = image_path if os.path.isabs(image_path) else \
         os.path.join(BASE_DIR, image_path)
+    try:
+        from app.services import sample_cache
+        hit = sample_cache.get_analysis(image_path, lang)
+        if hit is not None:
+            return hit
+    except Exception:  # noqa: BLE001 - cache is best-effort
+        pass
     key = (_image_hash(path), lang)
     if key in ANALYSES:
         return ANALYSES[key]

@@ -96,6 +96,11 @@
       sampleMajlis: "Majlis",
       sampleArmchair: "Armchair",
       sampleCurtains: "Curtains",
+      sampleSofaPillows: "Sofa & pillows",
+      sampleSageCurtains: "Curtains",
+      sampleNavyLiving: "Living room",
+      sampleMajlisBurgundy: "Majlis",
+      sampleMustardArmchair: "Armchair",
       holdBefore: "Hold for before",
       previewing: "Previewing",
       compareSide: "Compare side by side",
@@ -235,6 +240,11 @@
       sampleMajlis: "مجلس",
       sampleArmchair: "كرسي",
       sampleCurtains: "ستائر",
+      sampleSofaPillows: "كنبة ووسائد",
+      sampleSageCurtains: "ستائر",
+      sampleNavyLiving: "غرفة معيشة",
+      sampleMajlisBurgundy: "مجلس",
+      sampleMustardArmchair: "كرسي",
       holdBefore: "اضغط لرؤية قبل",
       previewing: "تُعرض الآن",
       compareSide: "قارن جنباً إلى جنب",
@@ -358,6 +368,11 @@
       sampleMajlis: "मजलिस",
       sampleArmchair: "कुर्सी",
       sampleCurtains: "परदे",
+      sampleSofaPillows: "सोफ़ा और तकिये",
+      sampleSageCurtains: "परदे",
+      sampleNavyLiving: "लिविंग रूम",
+      sampleMajlisBurgundy: "मजलिस",
+      sampleMustardArmchair: "कुर्सी",
       holdBefore: "पहले देखने के लिए दबाएँ",
       previewing: "दिखाया जा रहा है",
       compareSide: "साथ-साथ तुलना करें",
@@ -479,6 +494,11 @@
       sampleMajlis: "Majlis",
       sampleArmchair: "Fauteuil",
       sampleCurtains: "Rideaux",
+      sampleSofaPillows: "Canapé et coussins",
+      sampleSageCurtains: "Rideaux",
+      sampleNavyLiving: "Salon",
+      sampleMajlisBurgundy: "Majlis",
+      sampleMustardArmchair: "Fauteuil",
       holdBefore: "Maintenez pour avant",
       previewing: "Aperçu en cours",
       compareSide: "Comparer côte à côte",
@@ -600,6 +620,11 @@
       sampleMajlis: "Majlis",
       sampleArmchair: "Sillón",
       sampleCurtains: "Cortinas",
+      sampleSofaPillows: "Sofá y cojines",
+      sampleSageCurtains: "Cortinas",
+      sampleNavyLiving: "Salón",
+      sampleMajlisBurgundy: "Majlis",
+      sampleMustardArmchair: "Sillón",
       holdBefore: "Mantén para ver el antes",
       previewing: "Vista previa",
       compareSide: "Comparar lado a lado",
@@ -1268,6 +1293,11 @@
     div.className = "msg them";
     div.id = "welcomeMsg";
     div.innerHTML = AVATAR + '<div dir="auto"><div class="sample-row">' +
+      '<button type="button" data-sample="sofa_pillows"><img src="/data/samples/sofa_pillows.jpg" alt="sofa_pillows"><span>' + esc(t("sampleSofaPillows")) + "</span></button>" +
+      '<button type="button" data-sample="sage_curtains"><img src="/data/samples/sage_curtains.jpg" alt="sage_curtains"><span>' + esc(t("sampleSageCurtains")) + "</span></button>" +
+      '<button type="button" data-sample="navy_living"><img src="/data/samples/navy_living.jpg" alt="navy_living"><span>' + esc(t("sampleNavyLiving")) + "</span></button>" +
+      '<button type="button" data-sample="majlis_burgundy"><img src="/data/samples/majlis_burgundy.jpg" alt="majlis_burgundy"><span>' + esc(t("sampleMajlisBurgundy")) + "</span></button>" +
+      '<button type="button" data-sample="mustard_armchair"><img src="/data/samples/mustard_armchair.jpg" alt="mustard_armchair"><span>' + esc(t("sampleMustardArmchair")) + "</span></button>" +
       '<button type="button" data-sample="living"><img src="/data/samples/living.jpg" alt="living"><span>' + esc(t("sampleLiving")) + "</span></button>" +
       '<button type="button" data-sample="curtains"><img src="/data/samples/curtains.jpg" alt="curtains"><span>' + esc(t("sampleCurtains")) + "</span></button>" +
       '<button type="button" data-sample="majlis"><img src="/data/samples/majlis.jpg" alt="majlis"><span>' + esc(t("sampleMajlis")) + "</span></button>" +
@@ -2165,18 +2195,10 @@
   }
 
   function loadSample(id) {
-    if (["living", "curtains", "majlis", "armchair"].indexOf(id) < 0) {
+    if (SAMPLE_IDS.indexOf(id) < 0) {
       return;
     }
-    fetch("/data/samples/" + id + ".jpg")
-      .then(function (r) {
-        if (!r.ok) throw new Error("sample");
-        return r.blob();
-      })
-      .then(function (blob) {
-        upload(new File([blob], id + ".jpg", { type: "image/jpeg" }));
-      })
-      .catch(function () { addMsg(t("uploadFail"), "them"); });
+    useSamplePhoto(id);
   }
 
   function renderRecs(recs) {
@@ -3367,19 +3389,7 @@
         // photo: a chat failure must never leave a broken canvas behind.
         savedPath = up.data.image_path;
         state.outlines = [];
-        // Warm the item targets while the chat runs: detection and SAM
-        // are independent of the conversation, so the sheet opens ready.
-        fetchReq("/api/session/" + encodeURIComponent(state.sessionId) +
-                 "/targets?image_path=" + encodeURIComponent(savedPath),
-                 { method: "GET", timeoutMs: 120000, retries: 0 })
-          .then(function (targets) {
-            if (targets && targets.targets &&
-                savedPath === state.roomPhoto) {
-              state.outlines = targets.targets;
-              renderOutlines();
-            }
-          })
-          .catch(function () {});
+        warmTargets(savedPath);
         return streamChat("", savedPath).then(function (res) {
           if (res) return res;
           // One re-upload: the file may have missed the volume on a
@@ -3397,39 +3407,81 @@
           });
         });
       })
-      .then(function (res) {
-        if (!res) {
-          dropPending();
-          return;
-        }
-        if (res.fallback && res.reply) finalizePending(res.reply);
-        state.roomPhoto = savedPath;
-        state.canvasView = null;
-        handleStreamResult(res);
-        if (state.expectFirst === "sample") {
-          state.expectFirst = null;
-          chipsEl.hidden = false;
-        }
-        if (state.pendingSwapCode) {
-          var code = state.pendingSwapCode;
-          state.pendingSwapCode = null;
-          tryFabric(code);
+      .then(function (res) { finishPhotoTurn(res, savedPath); })
+      .catch(function (err) { failPhotoTurn(err, savedPath); });
+  }
+
+  function warmTargets(savedPath) {
+    // Warm the item targets while the chat runs: detection and SAM
+    // are independent of the conversation, so the sheet opens ready.
+    fetchReq("/api/session/" + encodeURIComponent(state.sessionId) +
+             "/targets?image_path=" + encodeURIComponent(savedPath),
+             { method: "GET", timeoutMs: 120000, retries: 0 })
+      .then(function (targets) {
+        if (targets && targets.targets &&
+            savedPath === state.roomPhoto) {
+          state.outlines = targets.targets;
+          renderOutlines();
         }
       })
-      .catch(function (err) {
-        dropPending();
-        state.expectFirst = null;
-        state.roomPhoto = null;
-        state.canvasView = null;
-        renderCanvas();
-        if (typeof console !== "undefined" && console.error) {
-          console.error("upload failed",
-                        err && (err.status || err.message));
-        }
-        var key = savedPath ? "sendFail"
-          : (err && err.status === 400 ? "uploadFail" : "uploadRetry");
-        addMsg(t(key), "them");
-      });
+      .catch(function () {});
+  }
+
+  function finishPhotoTurn(res, savedPath) {
+    if (!res) {
+      dropPending();
+      return;
+    }
+    if (res.fallback && res.reply) finalizePending(res.reply);
+    state.roomPhoto = savedPath;
+    state.canvasView = null;
+    handleStreamResult(res);
+    if (state.expectFirst === "sample") {
+      state.expectFirst = null;
+      chipsEl.hidden = false;
+    }
+    if (state.pendingSwapCode) {
+      var code = state.pendingSwapCode;
+      state.pendingSwapCode = null;
+      tryFabric(code);
+    }
+  }
+
+  function failPhotoTurn(err, savedPath) {
+    dropPending();
+    state.expectFirst = null;
+    state.roomPhoto = null;
+    state.canvasView = null;
+    renderCanvas();
+    if (typeof console !== "undefined" && console.error) {
+      console.error("upload failed",
+                    err && (err.status || err.message));
+    }
+    var key = savedPath ? "sendFail"
+      : (err && err.status === 400 ? "uploadFail" : "uploadRetry");
+    addMsg(t(key), "them");
+  }
+
+  var SAMPLE_IDS = ["sofa_pillows", "sage_curtains", "navy_living",
+    "majlis_burgundy", "mustard_armchair",
+    "living", "curtains", "majlis", "armchair"];
+
+  function useSamplePhoto(id) {
+    // Samples are served files, not uploads: chat with the sample path
+    // directly so the server cache (analysis, targets, masks) hits by
+    // file hash with no upload round-trip. Baked into the deploy, so
+    // the upload retry below can never trigger for them.
+    var savedPath = "data/samples/" + id + ".jpg";
+    addMsg("", "me", "/" + savedPath);
+    chipsEl.hidden = true;
+    state.booted = true;
+    pendingBubble();
+    showStep("photo");
+    state.outlines = [];
+    warmTargets(savedPath);
+    streamChat("", savedPath)
+      .then(function (res) { finishPhotoTurn(res, savedPath); })
+      .catch(function (err) { failPhotoTurn(err, savedPath); });
   }
 
   var recorder = null, recChunks = [], recStart = 0, recTick = null;
@@ -3864,7 +3916,7 @@
       state.pinned = true;
     }
     var sample = params.get("sample");
-    var hasSample = ["living", "majlis", "armchair"].indexOf(sample) >= 0;
+    var hasSample = SAMPLE_IDS.indexOf(sample) >= 0;
     if (params.get("new") === "1") {
       // Landing CTAs start a fresh consultation; the flag is dropped
       // from the URL so a later refresh restores this session instead.

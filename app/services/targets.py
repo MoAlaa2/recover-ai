@@ -369,6 +369,13 @@ def _component_boxes(mask, min_area_frac=0.005, max_boxes=8):
 
 def detect_targets(image_path, api_key=None):
     """List + segment + persist masks. Returns target dicts for the API."""
+    try:
+        from app.services import sample_cache
+        hit = sample_cache.get_targets(image_path)
+        if hit is not None:
+            return hit
+    except Exception:  # noqa: BLE001 - cache is best-effort
+        pass
     # Shared cached listing with chat (available_types): one vision
     # call per photo for both, so chips and outlines never disagree.
     types = available_types(image_path, api_key)

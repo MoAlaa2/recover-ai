@@ -142,8 +142,14 @@ def test_welcome_empty_state(server, page):
     page.wait_for_selector("#welcomeMsg", timeout=15000)
     page.wait_for_function("document.fonts.status === 'loaded'",
                            timeout=15000)
+    # Judge sample set: the 5 new rooms first, then the 4 legacy ones.
     assert page.eval_on_selector_all(
-        "#welcomeMsg [data-sample]", "e => e.length") == 4
+        "#welcomeMsg [data-sample]", "e => e.length") == 9
+    first = page.eval_on_selector_all(
+        "#welcomeMsg [data-sample]",
+        "els => els.map(e => e.getAttribute('data-sample'))")
+    assert first[:5] == ["sofa_pillows", "sage_curtains", "navy_living",
+                         "majlis_burgundy", "mustard_armchair"]
     assert page.eval_on_selector_all(
         "#welcomeMsg [data-upload]", "e => e.length") == 1
     box = page.evaluate("() => ({sw: document.documentElement.scrollWidth,"
