@@ -33,10 +33,18 @@ EXPECTED = {
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--only", default="",
+                    help="comma-separated sample ids")
+    args = ap.parse_args()
+    wanted = {s.strip() for s in args.only.split(",") if s.strip()}
     os.makedirs(sample_cache.CACHE_DIR, exist_ok=True)
     os.makedirs(sample_cache.MASKS_DIR, exist_ok=True)
     report = {}
-    for sid in sample_cache.SAMPLE_IDS:
+    ids = [s for s in sample_cache.SAMPLE_IDS
+           if not wanted or s in wanted]
+    for sid in ids:
         rel = os.path.join("data", "samples", sid + ".jpg")
         if not os.path.isfile(os.path.join(BASE_DIR, rel)):
             print("MISSING %s" % rel, flush=True)

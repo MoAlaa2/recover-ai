@@ -39,7 +39,7 @@ PIECE_USAGE = {"sofa": "upholstery", "armchair": "upholstery",
 
 CANDIDATE_ENV_FILES = [
     os.path.join(BASE_DIR, ".env.demo"),
-    os.path.dirname(BASE_DIR, ".env.demo"),
+    os.path.join(os.path.dirname(BASE_DIR), ".env.demo"),
     os.path.expanduser("~/.env.demo"),
 ]
 
@@ -256,8 +256,8 @@ def run_one(pw_browser, device, sample, run_n):
                     "#messages .mini-card", "e => e.length") > 0:
                 break
         cards = pg.eval_on_selector_all(
-            "#messages .mini-card",
-            "e => e.map(x => ({code: x.getAttribute('data-fabric'), "
+            "#messages .mini-try",
+            "e => e.map(x => ({code: x.getAttribute('data-try'), "
             "target: x.getAttribute('data-target')}))")
         res["rec_s"] = round(time.perf_counter() - t1, 1)
         res["recs"] = cards[-3:] if len(cards) >= 3 else cards
@@ -313,11 +313,16 @@ def run_one(pw_browser, device, sample, run_n):
             res["multi_s"] = round(time.perf_counter() - t3, 1)
             results = (multi or {}).get("results", []) if isinstance(
                 multi, dict) else []
-            if results:
+            if len(results) == len(codes) and all(
+                    r.get("result_url") for r in results):
                 last = results[-1].get("result_url", "")
                 res["multi_dl"] = save(
                     last, os.path.join(
                         DESK_DIR, sample, "multi-run%d.jpg" % run_n))
+            else:
+                res["issues"].append(
+                    "multi results %d/%d" % (len(results),
+                                             len(codes)))
             skipped = (multi or {}).get("skipped", [])
             if skipped:
                 res["issues"].append("multi skipped %r" % (skipped,))
@@ -327,11 +332,25 @@ def run_one(pw_browser, device, sample, run_n):
         try:
             quote = api("GET", "/api/session/" + sid + "/quote",
                         timeout=120)
-            dumped = json.dumps(quote, ensure_ascii=False)
-            res["quote_ok"] = ("$" in dumped and "SAR" not in dumped
-                               and "ر.س" not in dumped)
+            # Curtains lines legitimately show "needs measure" until the
+            # user gives window dimensions; that is product behavior,
+            # not a sample failure. Everything else must total.
+            res["quote_total"] = (quote or {}).get("total")
+            items = (quote or {}).get("items", []) if isinstance(
+                quote, dict) else []
+            bad = [i for i in items
+                   if i.get("target") != "curtains"
+                   and i.get("line_total") is None]
+            res["quote_ok"] = (
+                isinstance(quote, dict)
+                and quote.get("currency") == "USD"
+                and not bad
+                and {i.get("target") for i in quote.get("items", [])}
+                >= set(codes))
+            res["quote_missing"] = (quote or {}).get("missing", [])
             if not res["quote_ok"]:
-                res["issues"].append("quote needles missing")
+                res["issues"].append("quote bad: %s" % json.dumps(
+                    quote, ensure_ascii=False)[:200])
         except Exception as exc:  # noqa: BLE001
             res["quote_ok"] = False
             res["issues"].append("quote failed: %s" % str(exc)[:160])
