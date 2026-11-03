@@ -687,8 +687,33 @@ def pillow_guard(edited, mask, key, timeout, size):
     return ImageChops.subtract(mask.convert("L"), pillows.convert("L"))
 
 
+FRAME_MAX_CHANGED = 0.02   # share of out-of-mask pixels allowed to differ
+
+
+def frame_changed_share(original, result, union_mask, margin=16,
+                        threshold=20, work_side=640):
+    """Share of pixels outside the (dilated) union of piece masks that
+    differ from the original photo. 0 for a strict composite."""
+    small = original.convert("RGB").copy()
+    small.thumbnail((work_side, work_side))
+    res = result.convert("RGB").resize(small.size, Image.BILINEAR)
+    m = union_mask.convert("L").resize(small.size, Image.NEAREST)
+    k = max(3, int(margin * small.size[0] / float(original.size[0])) | 1)
+    outside = np.asarray(m.filter(ImageFilter.MaxFilter(k))) <= 127
+    if not outside.any():
+        return 0.0
+    diff = np.abs(np.asarray(small).astype(int)
+                  - np.asarray(res).astype(int)).max(axis=2)
+    return float((diff[outside] > threshold).mean())
+
+
 def paste_strict(original, edited, mask, feather=6):
-    """Composite edited onto original strictly inside mask (feathered).
+    """Composite edited onto original strictly inside mask, feathered
+    OUTWARD: the mask is dilated by 2*feather before the blur, so every
+    pixel of the mask itself is pasted at full opacity and the soft
+    edge falls just outside it. A blur on the bare mask mixed the
+    original fabric back in along the inner edge (a ring of the old
+    colour around every piece).
 
     Unlike paste_mask there is no change-map intersection: the caller
     guarantees edited differs from original only where intended. Used
@@ -698,7 +723,16 @@ def paste_strict(original, edited, mask, feather=6):
         edited = edited.resize(original.size, Image.LANCZOS)
     if mask.size != original.size:
         mask = mask.resize(original.size, Image.LANCZOS)
-    soft = mask.filter(ImageFilter.GaussianBlur(feather))
+    soft = mask.convert("L")
+    if feather > 0:
+        # Grow by half the feather and blur by a quarter: full opacity
+        # over the whole mask, a 2-3 px soft edge just outside it, and
+        # the pillow guard's margin (about 12 px) stays intact.
+        grow = max(1, int(feather) // 2)
+        soft = soft.filter(ImageFilter.MaxFilter(2 * grow + 1))
+        soft = soft.filter(ImageFilter.GaussianBlur(max(0.75, feather / 4.0)))
+        # Inside the mask the alpha is 1: the blur never eats inward.
+        soft = ImageChops.lighter(soft, mask.convert("L"))
     out = original.copy()
     out.paste(edited, (0, 0), soft)
     return out
@@ -1618,8 +1652,15 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
         # sofa result) last: never let a cached sofa paste over them.
         pieces.sort(key=lambda piece: 1 if piece[3] == "cushions" else 0)
     final = room.copy()
+    union = Image.new("L", room.size, 0)
     for img, mask, _, _ in pieces:
         final = paste_strict(final, img, mask)
+        union = ImageChops.lighter(union, mask.convert("L"))
+    # A swap never changes the framing: outside every piece the result
+    # must still be the photo. A paste only ever writes inside its own
+    # mask, so anything else means a wrong-size or wrong-photo input.
+    if frame_changed_share(room, final, union) > FRAME_MAX_CHANGED:
+        raise SwapError("result changed the photo outside the pieces")
     final_name = "swapmulti-%s-final.jpg" % uuid.uuid4().hex
     final.save(os.path.join(out_dir, final_name), "JPEG", quality=90)
     base = os.path.relpath(out_dir, BASE_DIR)

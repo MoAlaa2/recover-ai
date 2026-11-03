@@ -1,5 +1,6 @@
 """Fabric swap tests (model calls are faked or offline)."""
 import io
+import numpy as np
 import os
 
 import pytest
@@ -430,8 +431,8 @@ def test_refine_pieces_recolours_the_skipped_pillows(monkeypatch):
     """Two pillows, the first edit did one; the aimed pass paints the
     other and only that pillow is pasted and counted."""
     size = (100, 60)
-    left = _box(size, (5, 5, 45, 55))
-    right = _box(size, (55, 5, 95, 55))
+    left = _box(size, (10, 10, 40, 50))
+    right = _box(size, (60, 10, 90, 50))
     room = solid((120, 120, 120), size)
     yellow = (240, 200, 40)
     first = room.copy()
@@ -448,7 +449,7 @@ def test_refine_pieces_recolours_the_skipped_pillows(monkeypatch):
     assert out["checks"]["pieces"] == {"covered": 2, "total": 2}
     assert out["checks"]["refine_pieces"] == 1
     assert out["result"].getpixel((75, 30))[:3] == yellow
-    outside = out["result"].getpixel((50, 2))[:3]
+    outside = out["result"].getpixel((50, 30))[:3]
     assert max(abs(c - 120) for c in outside) <= 6, \
         "nothing outside the pillows changes (feather aside): %r" % (outside,)
     assert out["mask"].getpixel((75, 30)) == 255
@@ -586,3 +587,21 @@ def test_sofa_full_mask_cuts_the_legs_out(monkeypatch):
     _, mask = s.sofa_full_mask(b"x", size, "k", 5)
     assert mask.getpixel((25, 85)) == 0 and mask.getpixel((174, 85)) == 0
     assert mask.getpixel((100, 50)) == 255
+
+
+def test_paste_strict_feathers_outward_no_halo():
+    """Every pixel inside the mask takes the edited colour at full
+    opacity; the soft edge lies outside the mask."""
+    size = (120, 80)
+    orig = solid((120, 120, 120), size)
+    edit = solid((240, 200, 40), size)
+    mask = _box(size, (30, 20, 90, 60))
+    out = s.paste_strict(orig, edit, mask, feather=6)
+    arr = np.asarray(out).astype(int)
+    inside = arr[21:59, 31:89]
+    assert np.abs(inside - np.array([240, 200, 40])).max() <= 2, "no ring of the old colour inside"
+    # 1 px inside the edge is still full opacity
+    assert np.abs(arr[20, 60] - np.array([240, 200, 40])).max() <= 3
+    # Far outside the mask the original is untouched
+    assert tuple(arr[5, 5]) == (120, 120, 120)
+    assert tuple(arr[75, 115]) == (120, 120, 120)

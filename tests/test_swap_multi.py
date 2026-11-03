@@ -527,3 +527,37 @@ def test_multi_refines_seat_slivers_past_a_throw(tmp_path, monkeypatch):
     assert max(abs(a - b) for a, b in zip(final.getpixel((100, 50)),
                                           (20, 60, 140))) > 40
     assert all(abs(c - 120) <= 3 for c in final.getpixel((10, 10)))
+
+
+def test_multi_rejects_a_result_that_reframed_the_photo(tmp_path, monkeypatch):
+    """The final composite must leave everything outside the pieces as
+    the photo; a paste that changed the room is a bug, not a result."""
+    room = tmp_path / "room.jpg"
+    solid((120, 120, 120), (100, 100)).save(str(room))
+    monkeypatch.setattr(s, "segment", lambda *a, **k: [
+        {"box": (0, 0, 90, 90), "frame_size": (100, 100)}])
+    monkeypatch.setattr(s, "sam_mask",
+                        lambda records, size: Image.new("L", size, 255))
+    monkeypatch.setattr(s, "edit_room", lambda *a, **k: solid((9, 9, 9)))
+    monkeypatch.setattr(s, "verify", lambda *a, **k: {
+        "color": 8, "pattern": 8, "scale": 8, "isolation": 8})
+    # A paste that ignores its mask and returns the edited frame whole.
+    monkeypatch.setattr(s, "paste_strict",
+                        lambda original, edited, mask, feather=6: edited.resize(original.size))
+    small = Image.new("L", (100, 100), 0)
+    small.paste(255, (40, 40, 60, 60))
+    monkeypatch.setattr(s, "sofa_full_mask",
+                        lambda *a, **k: ([{"box": (40, 40, 60, 60)}], small))
+    with pytest.raises(s.SwapError):
+        s.swap_multi(str(room), [{"target": "sofa", "code": "FA-AC-01"}],
+                     api_key="k", out_dir=str(tmp_path / "o"))
+
+
+def test_frame_changed_share_is_zero_for_a_strict_composite():
+    orig = solid((120, 120, 120), (200, 100))
+    edit = solid((240, 200, 40), (200, 100))
+    mask = Image.new("L", (200, 100), 0)
+    mask.paste(255, (50, 20, 150, 80))
+    out = s.paste_strict(orig, edit, mask)
+    assert s.frame_changed_share(orig, out, mask) == 0.0
+    assert s.frame_changed_share(orig, edit, mask) > 0.5
