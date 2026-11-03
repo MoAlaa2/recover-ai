@@ -496,6 +496,32 @@ def test_sofa_full_mask_adds_the_arm_panels_near_the_sofa(monkeypatch):
     assert s._box_touches(arms[0], sofa) and not s._box_touches(arms[1], sofa)
 
 
+def test_sofa_full_mask_adds_the_backrest_behind_a_stain(monkeypatch):
+    """The sofa record stops short of a stained back cushion; the
+    backrest record fills it in, and the pillows still come out."""
+    size = (200, 100)
+    sofa = [{"box": (20, 40, 180, 90), "frame_size": (200, 100)}]
+    back = [{"box": (20, 10, 180, 45), "frame_size": (200, 100)}]
+    pillow = [{"box": (30, 20, 60, 50), "frame_size": (200, 100)}]
+
+    def fake_segment(img, concept, key=None, timeout=1):
+        if concept == s.TARGET_CONCEPTS["sofa"]:
+            return sofa
+        if concept == s.SOFA_BACK_CONCEPT:
+            return back
+        if concept == s.TARGET_CONCEPTS["cushions"]:
+            return pillow
+        return []
+
+    monkeypatch.setattr(s, "segment", fake_segment)
+    monkeypatch.setattr(s, "sam_mask",
+                        lambda records, sz: _union(sz, records))
+    _, mask = s.sofa_full_mask(b"x", size, "k", 5)
+    assert mask.getpixel((120, 25)) == 255, "backrest joins the sofa"
+    assert mask.getpixel((45, 35)) == 0, "the pillow is still cut out"
+    assert mask.getpixel((100, 70)) == 255
+
+
 def _union(size, records):
     out = Image.new("L", size, 0)
     for r in records:

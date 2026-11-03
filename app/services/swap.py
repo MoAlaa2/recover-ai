@@ -967,6 +967,7 @@ def _rank(cand):
 
 SOFA_CUSHIONS_CONCEPT = "cushions"
 SOFA_ARM_CONCEPT = "armrest"
+SOFA_BACK_CONCEPT = "sofa backrest"
 # Enclosed gaps up to this share of the mask are filled (a shadow patch
 # on a back cushion); anything larger is a real opening.
 FILL_HOLE_MAX_SHARE = 0.08
@@ -1072,7 +1073,7 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
     """
     from concurrent.futures import ThreadPoolExecutor
     concepts = [TARGET_CONCEPTS["sofa"], SOFA_CUSHIONS_CONCEPT,
-                SOFA_WOOD_CONCEPT, SOFA_ARM_CONCEPT]
+                SOFA_WOOD_CONCEPT, SOFA_ARM_CONCEPT, SOFA_BACK_CONCEPT]
     if keep_pillows:
         concepts.append(TARGET_CONCEPTS["cushions"])
 
@@ -1113,9 +1114,14 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
     # is lit or worn differently (the whole right arm stayed in the old
     # fabric). Only arms that touch the sofa's own box count, so a
     # chair's arm elsewhere in the room is left alone.
-    arms = outs[3]
-    if arms and not isinstance(arms, Exception):
-        near = [r for r in arms if _box_touches(r, records)]
+    # Likewise the backrest: a shadow or stain on a back cushion makes
+    # SAM's "sofa" and "cushions" records stop short of it, and the
+    # patch stayed in the old fabric. "sofa backrest" names the whole
+    # back cushion, stain included.
+    for part in (outs[3], outs[4]):
+        if not part or isinstance(part, Exception):
+            continue
+        near = [r for r in part if _box_touches(r, records)]
         if near:
             try:
                 mask = ImageChops.lighter(mask, sam_mask(near, size))
@@ -1135,7 +1141,7 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
         except (SwapError, sam_codec.MaskError):
             pass
     if keep_pillows:
-        pillows = outs[4]
+        pillows = outs[5]
         if pillows and not isinstance(pillows, Exception):
             try:
                 mask = ImageChops.subtract(mask, sam_mask(pillows, size))
