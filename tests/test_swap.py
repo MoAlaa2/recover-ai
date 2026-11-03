@@ -452,3 +452,52 @@ def test_refine_pieces_recolours_the_skipped_pillows(monkeypatch):
     assert max(abs(c - 120) for c in outside) <= 6, \
         "nothing outside the pillows changes (feather aside): %r" % (outside,)
     assert out["mask"].getpixel((75, 30)) == 255
+
+
+def test_fill_holes_closes_enclosed_gaps_only():
+    from PIL import ImageDraw
+    m = Image.new("L", (200, 120), 0)
+    d = ImageDraw.Draw(m)
+    d.rectangle((20, 20, 180, 100), fill=255)
+    d.rectangle((90, 40, 110, 60), fill=0)     # a shadow patch: enclosed
+    d.rectangle((120, 0, 140, 100), fill=0)    # open to the border: kept
+    out = s.fill_holes(m)
+    assert out.getpixel((100, 50)) == 255
+    assert out.getpixel((130, 50)) == 0 and out.getpixel((5, 5)) == 0
+    # A hole bigger than the share limit is a real opening.
+    big = Image.new("L", (200, 120), 0)
+    ImageDraw.Draw(big).rectangle((0, 0, 199, 119), fill=255)
+    ImageDraw.Draw(big).rectangle((40, 30, 160, 90), fill=0)
+    assert s.fill_holes(big, max_share=0.08).getpixel((100, 60)) == 0
+
+
+def test_sofa_full_mask_adds_the_arm_panels_near_the_sofa(monkeypatch):
+    """SAM's "sofa" record drops the right arm's outer face; the
+    armrest records that touch the sofa box are unioned in, a chair's
+    arm across the room is not."""
+    size = (200, 100)
+    sofa = [{"box": (20, 20, 150, 90), "frame_size": (200, 100)}]
+    arms = [{"box": (150, 40, 170, 90), "frame_size": (200, 100)},
+            {"box": (185, 40, 199, 90), "frame_size": (200, 100)}]
+
+    def fake_segment(img, concept, key=None, timeout=1):
+        if concept == s.TARGET_CONCEPTS["sofa"]:
+            return sofa
+        if concept == s.SOFA_ARM_CONCEPT:
+            return arms
+        return []
+
+    monkeypatch.setattr(s, "segment", fake_segment)
+    monkeypatch.setattr(s, "sam_mask",
+                        lambda records, sz: _union(sz, records))
+    _, mask = s.sofa_full_mask(b"x", size, "k", 5)
+    assert mask.getpixel((160, 60)) == 255, "adjacent arm joins the sofa"
+    assert mask.getpixel((192, 60)) == 0, "a far arm is not the sofa"
+    assert s._box_touches(arms[0], sofa) and not s._box_touches(arms[1], sofa)
+
+
+def _union(size, records):
+    out = Image.new("L", size, 0)
+    for r in records:
+        out.paste(255, tuple(int(v) for v in r["box"]))
+    return out

@@ -966,6 +966,71 @@ def _rank(cand):
 
 
 SOFA_CUSHIONS_CONCEPT = "cushions"
+SOFA_ARM_CONCEPT = "armrest"
+# Enclosed gaps up to this share of the mask are filled (a shadow patch
+# on a back cushion); anything larger is a real opening.
+FILL_HOLE_MAX_SHARE = 0.08
+
+
+def _box_touches(record, records, margin=0.05):
+    """True when the record's box overlaps any of the records' boxes
+    widened by margin of their size."""
+    try:
+        x0, y0, x1, y1 = (float(v) for v in record.get("box"))
+    except (TypeError, ValueError):
+        return False
+    for other in records or []:
+        try:
+            ox0, oy0, ox1, oy1 = (float(v) for v in other.get("box"))
+        except (TypeError, ValueError):
+            continue
+        mx = (ox1 - ox0) * margin
+        my = (oy1 - oy0) * margin
+        if (x0 <= ox1 + mx and x1 >= ox0 - mx
+                and y0 <= oy1 + my and y1 >= oy0 - my):
+            return True
+    return False
+
+
+def fill_holes(mask, max_share=FILL_HOLE_MAX_SHARE, work_side=800):
+    """Fill background regions not connected to the image border, each
+    at most max_share of the mask's area. Computed on a small copy."""
+    from PIL import ImageDraw
+    w, h = mask.size
+    scale = min(1.0, work_side / float(max(w, h)))
+    small = mask.convert("L")
+    if scale < 1.0:
+        small = small.resize((max(1, int(w * scale)), max(1, int(h * scale))),
+                             Image.BILINEAR)
+    binary = small.point(lambda v: 255 if v > 127 else 0)
+    padded = Image.new("L", (binary.size[0] + 2, binary.size[1] + 2), 0)
+    padded.paste(binary, (1, 1))
+    # Flood the outside with a marker; what stays 0 is enclosed.
+    ImageDraw.floodfill(padded, (0, 0), 128)
+    arr = np.asarray(padded)
+    enclosed = (arr == 0)
+    if not enclosed.any():
+        return mask
+    mask_area = max(1, int((arr == 255).sum()))
+    # Label each enclosed blob by flood-filling it; skip ones too big.
+    holes = np.zeros_like(enclosed)
+    work = padded.copy()
+    ys, xs = np.nonzero(enclosed)
+    for y, x in zip(ys, xs):
+        if work.getpixel((int(x), int(y))) != 0:
+            continue
+        before = np.asarray(work).copy()
+        ImageDraw.floodfill(work, (int(x), int(y)), 64)
+        blob = (np.asarray(work) == 64) & (before == 0)
+        if blob.sum() <= max_share * mask_area:
+            holes |= blob
+        # Mark visited either way so the loop moves on.
+        work = Image.fromarray(np.where(blob, 32, np.asarray(work)).astype(np.uint8))
+    filled = np.where(holes[1:-1, 1:-1], 255, np.asarray(binary)).astype(np.uint8)
+    out = Image.fromarray(filled)
+    if scale < 1.0:
+        out = out.resize((w, h), Image.BILINEAR)
+    return ImageChops.lighter(mask.convert("L"), out)
 # SAM's "sofa" record includes an exposed wooden plinth/frame; a sofa
 # swap must leave the wood alone, so it is segmented and cut out.
 SOFA_WOOD_CONCEPT = "wooden base of the sofa"
@@ -1007,7 +1072,7 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
     """
     from concurrent.futures import ThreadPoolExecutor
     concepts = [TARGET_CONCEPTS["sofa"], SOFA_CUSHIONS_CONCEPT,
-                SOFA_WOOD_CONCEPT]
+                SOFA_WOOD_CONCEPT, SOFA_ARM_CONCEPT]
     if keep_pillows:
         concepts.append(TARGET_CONCEPTS["cushions"])
 
@@ -1044,6 +1109,21 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
             mask = ImageChops.lighter(mask, sam_mask(extra, size))
         except (SwapError, sam_codec.MaskError):
             pass
+    # The arm panels: SAM's "sofa" record drops an outer arm face that
+    # is lit or worn differently (the whole right arm stayed in the old
+    # fabric). Only arms that touch the sofa's own box count, so a
+    # chair's arm elsewhere in the room is left alone.
+    arms = outs[3]
+    if arms and not isinstance(arms, Exception):
+        near = [r for r in arms if _box_touches(r, records)]
+        if near:
+            try:
+                mask = ImageChops.lighter(mask, sam_mask(near, size))
+            except (SwapError, sam_codec.MaskError):
+                pass
+    # A shadow or stain on a cushion comes back as a hole in the
+    # union; anything fully enclosed by upholstery is upholstery.
+    mask = fill_holes(mask, FILL_HOLE_MAX_SHARE)
     wood = outs[2]
     if wood and not isinstance(wood, Exception):
         try:
@@ -1055,7 +1135,7 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
         except (SwapError, sam_codec.MaskError):
             pass
     if keep_pillows:
-        pillows = outs[3]
+        pillows = outs[4]
         if pillows and not isinstance(pillows, Exception):
             try:
                 mask = ImageChops.subtract(mask, sam_mask(pillows, size))
