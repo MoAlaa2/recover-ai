@@ -253,6 +253,21 @@ def masks_for(image_path, types, api_key=None):
     for target in types:
         if target not in TARGET_TYPES:
             continue
+        if target == "sofa":
+            # The same mask the swap paints: SAM's bare "sofa" record
+            # drops back cushions, an arm face or a stained panel, so
+            # the picker outline (and the exported mask) showed half a
+            # sofa while the swap covered all of it.
+            try:
+                from app.services import swap as swap_mod
+                _, full = swap_mod.sofa_full_mask(
+                    swap_mod._small_copy(room_bytes, 1600), room.size,
+                    key, swap_mod.MODEL_TIMEOUT, keep_pillows=True)
+                if full is not None and full.getbbox():
+                    masks[target] = full.convert("L")
+                    continue
+            except Exception:  # noqa: BLE001 - plain record below
+                pass
         records = []
         try:
             records = segment(room_bytes,

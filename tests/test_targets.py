@@ -347,3 +347,22 @@ def test_match_targets_bench_words_pick_the_sofa():
     assert t.match_targets("Bench seat", avail) == (["sofa"], {})
     assert t.match_targets("the settee", avail) == (["sofa"], {})
     assert t.match_targets("الدكة", avail) == (["sofa"], {})
+
+
+def test_picker_sofa_mask_is_the_swap_full_mask(tmp_path, monkeypatch):
+    """The outline the judge taps is built like the swap mask (arms,
+    backrest, holes filled), not from SAM's bare sofa record."""
+    from PIL import Image
+    from app.services import swap as swap_mod
+    room = tmp_path / "room.jpg"
+    Image.new("RGB", (200, 100), (120, 120, 120)).save(str(room))
+    full = Image.new("L", (200, 100), 0)
+    full.paste(255, (10, 10, 190, 90))
+    calls = []
+    monkeypatch.setattr(swap_mod, "sofa_full_mask",
+                        lambda *a, **k: (calls.append(k), ([{"box": (10, 10, 190, 90)}], full))[1])
+    monkeypatch.setattr(t, "segment", lambda *a, **k: [])
+    masks = t.masks_for(str(room), ["sofa"], api_key="k")
+    assert calls and calls[0].get("keep_pillows") is True
+    assert masks["sofa"].getpixel((100, 50)) == 255
+    assert masks["sofa"].getpixel((5, 5)) == 0
