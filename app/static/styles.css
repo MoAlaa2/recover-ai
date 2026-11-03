@@ -1316,8 +1316,8 @@ body.modal-open { overflow: hidden; }
   mask-repeat: no-repeat;
 }
 .ol-fill.assigned { background: var(--rc-saffron); }
-.ol-fill.hover { opacity: 0.18; }
-.ol-fill.sel { opacity: 0.24; }
+.ol-fill.hover { opacity: 0.12; }
+.ol-fill.sel { opacity: 0.16; }
 .ol-tap {
   position: absolute;
   pointer-events: auto;

@@ -824,6 +824,13 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
         raise SwapError("could not find the %s in this photo" % concept)
     raw_mask = full_mask if full_mask is not None else sam_mask(
         records, (width, height))
+    if concept == TARGET_CONCEPTS["armchair"]:
+        try:
+            sofa_recs = segment(seg_bytes, TARGET_CONCEPTS["sofa"], key,
+                                timeout=call_timeout())
+        except SwapError:
+            sofa_recs = None
+        raw_mask = separate_seats(raw_mask, sofa_recs, (width, height))
     # Pillows are judged per piece (see swap_checks.run_checks).
     pieces = record_masks(records, (width, height)) \
         if target == "cushions" else False
@@ -966,6 +973,31 @@ def _rank(cand):
 
 
 SOFA_CUSHIONS_CONCEPT = "cushions"
+# Another seat's mask is cut out of this seat's mask only when it is
+# clearly a different piece: at most this share of the seat's area.
+OTHER_SEAT_MAX_SHARE = 0.6
+
+
+def separate_seats(mask, other_records, size):
+    """mask minus the other seat (records or a mask), when that other
+    seat is a distinct, smaller piece. Never erases the seat itself."""
+    if other_records is None or isinstance(other_records, Exception):
+        return mask
+    try:
+        other = other_records if isinstance(other_records, Image.Image) \
+            else (sam_mask(other_records, size) if other_records else None)
+    except (SwapError, sam_codec.MaskError):
+        return mask
+    if other is None:
+        return mask
+    seat = _mask_coverage(mask, size)
+    share = _mask_coverage(ImageChops.multiply(mask.convert("L"), other.convert("L")), size) / max(1e-6, seat)
+    if share <= 0 or share > OTHER_SEAT_MAX_SHARE:
+        return mask
+    cut = ImageChops.subtract(mask.convert("L"), other.convert("L"))
+    if _mask_coverage(cut, size) < 0.3 * seat:
+        return mask
+    return cut
 SOFA_ARM_CONCEPT = "armrest"
 SOFA_BACK_CONCEPT = "sofa backrest"
 # Enclosed gaps up to this share of the mask are filled (a shadow patch
@@ -1073,7 +1105,8 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
     """
     from concurrent.futures import ThreadPoolExecutor
     concepts = [TARGET_CONCEPTS["sofa"], SOFA_CUSHIONS_CONCEPT,
-                SOFA_WOOD_CONCEPT, SOFA_ARM_CONCEPT, SOFA_BACK_CONCEPT]
+                SOFA_WOOD_CONCEPT, SOFA_ARM_CONCEPT, SOFA_BACK_CONCEPT,
+                TARGET_CONCEPTS["armchair"]]
     if keep_pillows:
         concepts.append(TARGET_CONCEPTS["cushions"])
 
@@ -1140,8 +1173,13 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
                 mask = ImageChops.subtract(mask, wood_mask)
         except (SwapError, sam_codec.MaskError):
             pass
+    # A sofa and an armchair in one room: SAM's "sofa" record often
+    # swallows the armchair, the edit then recolours only the sofa and
+    # the coverage check fails. The armchair is cut back out when it is
+    # a separate piece (well under the sofa's own area).
+    mask = separate_seats(mask, outs[5], size)
     if keep_pillows:
-        pillows = outs[5]
+        pillows = outs[6]
         if pillows and not isinstance(pillows, Exception):
             try:
                 mask = ImageChops.subtract(mask, sam_mask(pillows, size))

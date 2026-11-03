@@ -53,6 +53,10 @@ VERSIONED_ASSETS = ("common.js", "app.js", "landing.js", "switcher.js",
 
 # A week, immutable: versioned assets change URL when they change.
 ASSET_CACHE = "public, max-age=604800, immutable"
+# Sample rooms, their masks and catalog swatches keep their URLs when
+# they are regenerated, so they revalidate (ETag) instead of pinning a
+# stale file in the browser for a week.
+DATA_CACHE = "public, max-age=300, must-revalidate"
 ASSET_EXTS = (".js", ".css", ".svg", ".jpg", ".jpeg", ".png", ".webp",
               ".json", ".woff", ".woff2", ".ico")
 # Uploads, share links and APIs are never cached by this rule.
@@ -135,7 +139,9 @@ async def asset_cache_headers(request, call_next):
     if (request.method in ("GET", "HEAD") and response.status_code == 200
             and _is_cacheable_asset(request.url.path)
             and "cache-control" not in response.headers):
-        response.headers["Cache-Control"] = ASSET_CACHE
+        response.headers["Cache-Control"] = (
+            DATA_CACHE if request.url.path.startswith("/data/")
+            else ASSET_CACHE)
     return response
 
 

@@ -283,6 +283,13 @@ def masks_for(image_path, types, api_key=None):
         if seat in masks and "cushions" in masks:
             masks[seat] = _subtract_cushions(masks[seat],
                                              masks["cushions"])
+    if "sofa" in masks and "armchair" in masks:
+        # SAM's "sofa" record often swallows the armchair next to it
+        # (and vice versa): each seat keeps only its own pixels.
+        from app.services.swap import separate_seats
+        sofa, chair = masks["sofa"], masks["armchair"]
+        masks["sofa"] = separate_seats(sofa, chair, room.size)
+        masks["armchair"] = separate_seats(chair, sofa, room.size)
     return masks
 
 

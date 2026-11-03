@@ -6,7 +6,7 @@ import subprocess
 import pytest
 from fastapi.testclient import TestClient
 
-from app.main import ASSET_CACHE, VERSION, app, current_version
+from app.main import ASSET_CACHE, DATA_CACHE, VERSION, app, current_version
 from app.services.money import format_money
 
 
@@ -56,7 +56,8 @@ def test_versioned_assets_cache_a_week_html_never():
     assert asset.headers["cache-control"] == ASSET_CACHE
     assert "immutable" in ASSET_CACHE and "max-age=604800" in ASSET_CACHE
     sample = client.get("/data/samples/living.jpg")
-    assert sample.headers["cache-control"] == ASSET_CACHE
+    assert sample.headers["cache-control"] == DATA_CACHE
+    assert "immutable" not in DATA_CACHE and "must-revalidate" in DATA_CACHE
     api = client.get("/api/fabrics")
     assert "immutable" not in (api.headers.get("cache-control") or "")
 

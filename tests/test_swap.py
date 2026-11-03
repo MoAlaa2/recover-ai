@@ -527,3 +527,29 @@ def _union(size, records):
     for r in records:
         out.paste(255, tuple(int(v) for v in r["box"]))
     return out
+
+
+def test_sofa_mask_drops_the_armchair_beside_it(monkeypatch):
+    """SAM's sofa record covered the sofa AND the armchair; the edit
+    recoloured the sofa only and coverage failed at 70%. The armchair
+    is cut out when it is a distinct, smaller piece."""
+    size = (200, 100)
+    sofa = [{"box": (10, 30, 190, 90), "frame_size": (200, 100)}]   # swallows the chair
+    chair = [{"box": (140, 40, 190, 90), "frame_size": (200, 100)}]
+
+    def fake_segment(img, concept, key=None, timeout=1):
+        if concept == s.TARGET_CONCEPTS["sofa"]:
+            return sofa
+        if concept == s.TARGET_CONCEPTS["armchair"]:
+            return chair
+        return []
+
+    monkeypatch.setattr(s, "segment", fake_segment)
+    monkeypatch.setattr(s, "sam_mask", lambda records, sz: _union(sz, records))
+    _, mask = s.sofa_full_mask(b"x", size, "k", 5)
+    assert mask.getpixel((60, 60)) == 255, "sofa stays"
+    assert mask.getpixel((170, 70)) == 0, "the armchair is cut out"
+    # The whole seat is "the other seat" (SAM returned the same object
+    # for both prompts): nothing is cut.
+    same = _union(size, sofa)
+    assert s.separate_seats(same, sofa, size).getpixel((170, 70)) == 255

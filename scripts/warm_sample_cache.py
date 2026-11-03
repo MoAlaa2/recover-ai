@@ -41,6 +41,10 @@ def main():
     wanted = {s.strip() for s in args.only.split(",") if s.strip()}
     os.makedirs(sample_cache.CACHE_DIR, exist_ok=True)
     os.makedirs(sample_cache.MASKS_DIR, exist_ok=True)
+    # Warming must recompute: a hit on the existing cache would copy a
+    # mask file onto itself and keep stale masks forever.
+    sample_cache.get_targets = lambda image_path: None
+    sample_cache.get_analysis = lambda image_path, lang=None: None
     report = {}
     ids = [s for s in sample_cache.SAMPLE_IDS
            if not wanted or s in wanted]
