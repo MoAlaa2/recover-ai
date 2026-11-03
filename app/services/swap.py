@@ -999,6 +999,29 @@ def separate_seats(mask, other_records, size):
         return mask
     return cut
 SOFA_ARM_CONCEPT = "armrest"
+SOFA_LEGS_CONCEPT = "sofa legs"
+# Opening kernel as a share of the long side (on an 800 px copy):
+# removes slivers thinner than ~1.4% of the photo, keeps arms (~3%).
+OPEN_FRAC = 0.014
+
+
+def open_mask(mask, frac=OPEN_FRAC, work_side=800):
+    """Morphological opening (erode then dilate) on a small copy: drops
+    hairlines and slivers narrower than the kernel, keeps the body."""
+    w, h = mask.size
+    scale = min(1.0, work_side / float(max(w, h)))
+    small = mask.convert("L")
+    if scale < 1.0:
+        small = small.resize((max(1, int(w * scale)), max(1, int(h * scale))),
+                             Image.BILINEAR)
+    small = small.point(lambda v: 255 if v > 127 else 0)
+    k = max(3, int(max(small.size) * frac) | 1)
+    opened = small.filter(ImageFilter.MinFilter(k)).filter(ImageFilter.MaxFilter(k))
+    if scale < 1.0:
+        opened = opened.resize((w, h), Image.BILINEAR)
+    opened = opened.point(lambda v: 255 if v > 127 else 0)
+    # Never grow past the input: the dilation back stays inside it.
+    return ImageChops.multiply(mask.convert("L"), opened)
 SOFA_BACK_CONCEPT = "sofa backrest"
 # Enclosed gaps up to this share of the mask are filled (a shadow patch
 # on a back cushion); anything larger is a real opening.
@@ -1106,7 +1129,7 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
     from concurrent.futures import ThreadPoolExecutor
     concepts = [TARGET_CONCEPTS["sofa"], SOFA_CUSHIONS_CONCEPT,
                 SOFA_WOOD_CONCEPT, SOFA_ARM_CONCEPT, SOFA_BACK_CONCEPT,
-                TARGET_CONCEPTS["armchair"]]
+                TARGET_CONCEPTS["armchair"], SOFA_LEGS_CONCEPT]
     if keep_pillows:
         concepts.append(TARGET_CONCEPTS["cushions"])
 
@@ -1178,8 +1201,22 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
     # the coverage check fails. The armchair is cut back out when it is
     # a separate piece (well under the sofa's own area).
     mask = separate_seats(mask, outs[5], size)
+    # The legs are wood too: the "wooden base" record is the rail only,
+    # and a leg sliver stayed attached to the body (it showed in the
+    # judge outline). Cut the leg records out, then an opening drops any
+    # hairline left along a leg or a frame edge.
+    legs = outs[6]
+    if legs and not isinstance(legs, Exception):
+        try:
+            leg_mask = sam_mask(legs, size)
+            if _mask_coverage(leg_mask, size) <= WOOD_MAX_SHARE * max(
+                    1e-6, _mask_coverage(mask, size)):
+                mask = ImageChops.subtract(mask, leg_mask)
+        except (SwapError, sam_codec.MaskError):
+            pass
+    mask = open_mask(mask, OPEN_FRAC)
     if keep_pillows:
-        pillows = outs[6]
+        pillows = outs[7]
         if pillows and not isinstance(pillows, Exception):
             try:
                 mask = ImageChops.subtract(mask, sam_mask(pillows, size))

@@ -553,3 +553,36 @@ def test_sofa_mask_drops_the_armchair_beside_it(monkeypatch):
     # for both prompts): nothing is cut.
     same = _union(size, sofa)
     assert s.separate_seats(same, sofa, size).getpixel((170, 70)) == 255
+
+
+def test_open_mask_drops_a_leg_sliver_and_keeps_the_arm():
+    size = (800, 400)
+    m = Image.new("L", size, 0)
+    m.paste(255, (100, 100, 700, 300))      # body
+    m.paste(255, (100, 300, 108, 380))      # 8 px leg sliver hanging off it
+    m.paste(255, (60, 100, 100, 300))       # 40 px arm
+    out = s.open_mask(m, 0.014)
+    assert out.getpixel((104, 350)) == 0, "leg sliver dropped"
+    assert out.getpixel((80, 200)) == 255, "arm kept"
+    assert out.getpixel((400, 200)) == 255
+
+
+def test_sofa_full_mask_cuts_the_legs_out(monkeypatch):
+    size = (200, 100)
+    sofa = [{"box": (20, 20, 180, 90), "frame_size": (200, 100)}]
+    legs = [{"box": (22, 80, 30, 90), "frame_size": (200, 100)},
+            {"box": (170, 80, 178, 90), "frame_size": (200, 100)}]
+
+    def fake_segment(img, concept, key=None, timeout=1):
+        if concept == s.TARGET_CONCEPTS["sofa"]:
+            return sofa
+        if concept == s.SOFA_LEGS_CONCEPT:
+            return legs
+        return []
+
+    monkeypatch.setattr(s, "segment", fake_segment)
+    monkeypatch.setattr(s, "sam_mask", lambda records, sz: _union(sz, records))
+    monkeypatch.setattr(s, "open_mask", lambda m, *a, **k: m)
+    _, mask = s.sofa_full_mask(b"x", size, "k", 5)
+    assert mask.getpixel((25, 85)) == 0 and mask.getpixel((174, 85)) == 0
+    assert mask.getpixel((100, 50)) == 255
