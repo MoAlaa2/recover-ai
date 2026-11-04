@@ -455,14 +455,18 @@ def fill_old_fringe(final, original, mask, keep_out=None,
     if not cand.any():
         return final
     valid = ko.astype(np.float64)
-    radius = 2 * w
+    radius = w
     num = np.stack([np.asarray(Image.fromarray(
         (f[..., c] * valid * 255).astype(np.uint8)).filter(
             ImageFilter.GaussianBlur(radius))).astype(np.float64) / 255.0
         for c in range(3)], axis=-1)
     den = np.asarray(Image.fromarray((valid * 255).astype(np.uint8)).filter(
         ImageFilter.GaussianBlur(radius))).astype(np.float64) / 255.0
-    ok = cand & (den > 0.05)
+    # Only a pixel mostly surrounded by the neighbouring piece is a gap
+    # between it and the pillow; a window or wall pixel beside the
+    # pillow has little of that piece around it and stays as it is (a
+    # looser rule painted a block of curtain colour onto the window).
+    ok = cand & (den > 0.5)
     if not ok.any():
         return final
     out = f.copy()

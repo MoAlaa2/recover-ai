@@ -695,10 +695,9 @@ def test_old_pillow_fringe_is_filled_from_the_neighbouring_pieces():
     pillow = Image.new("L", size, 0)
     ImageDraw.Draw(pillow).rectangle((60, 50, 120, 100), fill=255)
     curtain = Image.new("L", size, 255)
-    ImageDraw.Draw(curtain).rectangle((54, 44, 126, 106), fill=0)   # stops 3 px short
+    ImageDraw.Draw(curtain).rectangle((58, 48, 122, 102), fill=0)   # stops 2 px short
     final = Image.new("RGB", size, terracotta)
-    ImageDraw.Draw(final).rectangle((54, 44, 126, 106), fill=beige)
-    ImageDraw.Draw(final).rectangle((57, 47, 123, 103), fill=white)
+    ImageDraw.Draw(final).rectangle((58, 48, 122, 102), fill=white)
     ImageDraw.Draw(final).rectangle((60, 50, 120, 100), fill=teal)
     out = s.fill_old_fringe(final, orig, pillow, keep_out=curtain)
     r, g, b = out.getpixel((90, 48))                                   # band pixel
@@ -706,3 +705,7 @@ def test_old_pillow_fringe_is_filled_from_the_neighbouring_pieces():
     assert out.getpixel((90, 75)) == teal                                # pillow intact
     assert out.getpixel((20, 20)) == terracotta                          # curtain intact
     assert s.fill_old_fringe(final, orig, pillow) is final              # no other piece: untouched
+    # A window beside the pillow (no painted piece around it) stays.
+    open_side = Image.new("L", size, 0)
+    ImageDraw.Draw(open_side).rectangle((0, 0, 50, 149), fill=255)       # curtain far left only
+    assert s.fill_old_fringe(final, orig, pillow, keep_out=open_side).getpixel((124, 75)) == final.getpixel((124, 75))
