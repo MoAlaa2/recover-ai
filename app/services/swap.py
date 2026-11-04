@@ -322,7 +322,10 @@ def record_masks(records, size):
 # "window curtains" mask takes the sheer behind the drapes too, and the
 # editor rightly leaves the sheer white: the drapes pass on their own
 # and the sheer keeps the photo's pixels).
-PIECEWISE_TARGETS = ("cushions", "curtains")
+PIECEWISE_TARGETS = ("cushions", "curtains", "armchair")
+# Pieces the edit skipped get an aimed second pass of their own (two
+# armchairs in one photo: the editor recolours one and leaves the other).
+REFINE_PIECE_TARGETS = ("cushions", "armchair")
 
 
 def piece_masks(target, records, size):
@@ -422,6 +425,7 @@ def _grow_once(original, edited, mask, swatch_bytes, frac, work_side):
 # a pillow on an unswapped sofa) nothing changes.
 FRINGE_FRAC = 0.008
 FRINGE_UNCHANGED_DE = 6.0
+FRINGE_PIECE_DE = 12.0
 
 
 def fill_old_fringe(final, original, mask, keep_out=None,
@@ -445,12 +449,22 @@ def fill_old_fringe(final, original, mask, keep_out=None,
     f = np.asarray(final.convert("RGB")).astype(np.float64) / 255.0
     o = np.asarray(original.convert("RGB").resize(size, Image.BILINEAR)
                    ).astype(np.float64) / 255.0
+    # The neighbouring piece's OLD colour next to this pillow: a gap
+    # pixel is the piece's mask stopping short of the pillow only when
+    # it wore that colour in the photo. The pillow's own white fringe
+    # and the window beside it do not, and stay as they are.
+    near_ko = ko & (np.asarray(m_img.filter(ImageFilter.MaxFilter(6 * w + 1))) > 127)
+    if not near_ko.any():
+        return final
+    o_lab_all = swap_checks._srgb_to_lab(o.reshape(-1, 3))
+    ko_old = o_lab_all[near_ko.reshape(-1)].mean(axis=0)
     idx = band.reshape(-1)
     f_lab = swap_checks._srgb_to_lab(f.reshape(-1, 3)[idx])
-    o_lab = swap_checks._srgb_to_lab(o.reshape(-1, 3)[idx])
+    o_lab = o_lab_all[idx]
     unchanged = np.sqrt(((f_lab - o_lab) ** 2).sum(axis=1)) < FRINGE_UNCHANGED_DE
+    was_piece = swap_checks._de2000_array(o_lab, ko_old) < FRINGE_PIECE_DE
     cand = np.zeros(idx.shape, dtype=bool)
-    cand[idx] = unchanged
+    cand[idx] = unchanged & was_piece
     cand = cand.reshape(m.shape)
     if not cand.any():
         return final
@@ -462,11 +476,7 @@ def fill_old_fringe(final, original, mask, keep_out=None,
         for c in range(3)], axis=-1)
     den = np.asarray(Image.fromarray((valid * 255).astype(np.uint8)).filter(
         ImageFilter.GaussianBlur(radius))).astype(np.float64) / 255.0
-    # Only a pixel mostly surrounded by the neighbouring piece is a gap
-    # between it and the pillow; a window or wall pixel beside the
-    # pillow has little of that piece around it and stays as it is (a
-    # looser rule painted a block of curtain colour onto the window).
-    ok = cand & (den > 0.5)
+    ok = cand & (den > 0.05)
     if not ok.any():
         return final
     out = f.copy()
@@ -723,6 +733,15 @@ def refine_slivers(result, gap, swatch_bytes, fabric, concept, key,
 PIECES_TEXT = ("recolour the %s that still show their old fabric in the "
                "new fabric: every pillow, on the seat and on the floor "
                "too, must be in the new fabric; change nothing else")
+PIECES_TEXT_GENERIC = ("recolour every %s that still shows its old fabric "
+                       "in the new fabric: each %s in the photo must be in "
+                       "the new fabric; change nothing else")
+
+
+def pieces_text(concept):
+    if concept == TARGET_CONCEPTS["cushions"]:
+        return PIECES_TEXT % concept
+    return PIECES_TEXT_GENERIC % (concept, concept)
 
 
 def refine_pieces(best, room, pieces, swatch_bytes, fabric, concept, key,
@@ -747,7 +766,7 @@ def refine_pieces(best, room, pieces, swatch_bytes, fabric, concept, key,
         buf = io.BytesIO()
         small.save(buf, "JPEG", quality=92)
         edited = edit_room(buf.getvalue(), swatch_bytes, fabric, concept, key,
-                           PIECES_TEXT % concept,
+                           pieces_text(concept),
                            timeout=min(REFINE_EDIT_TIMEOUT, timeout)).resize(
                                (width, height), Image.BILINEAR)
         image2 = paste_strict(result, edited, gap, feather=3)
@@ -1113,7 +1132,7 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
         raise CheckFailed(best["checks"]["fail"], best["checks"], target)
 
     # Pillows the model skipped get an aimed pass of their own.
-    if target == "cushions" and pieces_missing(best["checks"]):
+    if target in REFINE_PIECE_TARGETS and pieces_missing(best["checks"]):
         step("retry")
         best = refine_pieces(best, room, pieces, swatch_bytes, fabric,
                              concept, key, t_end - time.monotonic(),
@@ -1514,7 +1533,7 @@ def _union_of(records, size):
 
 # Bump when mask semantics change: stale on-disk items (garbage
 # full-frame masks) must be recomputed, never composited again.
-MASK_CACHE_VERSION = 14
+MASK_CACHE_VERSION = 15
 
 
 def swap_multi(room_path, assignments, api_key=None, out_dir=None,

@@ -616,7 +616,10 @@ def test_curtains_judged_per_panel_and_no_retry_for_the_sheer(monkeypatch):
     recs = [{"label": "curtain"}, {"label": "curtain"}]
     assert len(s.piece_masks("curtains", recs, (40, 30))) == 2
     assert len(s.piece_masks("cushions", recs, (40, 30))) == 2
+    assert len(s.piece_masks("armchair", recs, (40, 30))) == 2
     assert s.piece_masks("sofa", recs, (40, 30)) is False
+    assert "every pillow" in s.pieces_text(s.TARGET_CONCEPTS["cushions"])
+    assert "each armchair" in s.pieces_text("armchair")
     partial = {"ok": True, "pieces": {"covered": 2, "total": 3}}
     good = {"color": 9, "pattern": 9, "scale": 9, "isolation": 9}
     assert s.needs_retry(partial, good, retry_missing=True)
@@ -684,28 +687,31 @@ def test_sofa_mask_takes_a_touching_bench_but_not_a_far_or_bigger_one(monkeypatc
 
 
 def test_old_pillow_fringe_is_filled_from_the_neighbouring_pieces():
-    """A 3 px band of the old photo between the new teal pillow and the
-    new terracotta curtain (owned by neither mask) is filled with the
-    curtain colour. With no other piece nearby nothing changes."""
+    """The curtain mask stops a pixel short of the new teal pillow: that
+    pixel still wears the old beige curtain and is filled with the new
+    terracotta. The pillow's own white fringe and the white window beside
+    it are not touched, and with no other piece nothing changes."""
     from PIL import ImageDraw
     size = (200, 150)
     terracotta, white, teal, beige = (190, 100, 70), (240, 240, 238), (20, 90, 110), (205, 190, 175)
     orig = Image.new("RGB", size, beige)
-    ImageDraw.Draw(orig).rectangle((57, 47, 123, 103), fill=white)   # pillow + fringe
+    ImageDraw.Draw(orig).rectangle((130, 0, 199, 149), fill=white)     # window on the right
+    ImageDraw.Draw(orig).rectangle((60, 50, 120, 100), fill=white)      # old white pillow
+    ImageDraw.Draw(orig).rectangle((60, 101, 120, 103), fill=white)     # its fringe below
     pillow = Image.new("L", size, 0)
     ImageDraw.Draw(pillow).rectangle((60, 50, 120, 100), fill=255)
     curtain = Image.new("L", size, 255)
-    ImageDraw.Draw(curtain).rectangle((58, 48, 122, 102), fill=0)   # stops 2 px short
-    final = Image.new("RGB", size, terracotta)
-    ImageDraw.Draw(final).rectangle((58, 48, 122, 102), fill=white)
+    ImageDraw.Draw(curtain).rectangle((59, 49, 121, 103), fill=0)      # stops 1 px short above
+    ImageDraw.Draw(curtain).rectangle((130, 0, 199, 149), fill=0)      # window is not curtain
+    final = orig.copy()
+    ImageDraw.Draw(final).rectangle((0, 0, 129, 149), fill=terracotta)
+    ImageDraw.Draw(final).rectangle((59, 49, 121, 103), fill=beige)
     ImageDraw.Draw(final).rectangle((60, 50, 120, 100), fill=teal)
+    ImageDraw.Draw(final).rectangle((60, 101, 120, 103), fill=white)
     out = s.fill_old_fringe(final, orig, pillow, keep_out=curtain)
-    r, g, b = out.getpixel((90, 48))                                   # band pixel
+    r, g, b = out.getpixel((90, 49))                                   # old curtain gap
     assert abs(r - 190) < 12 and abs(g - 100) < 12 and abs(b - 70) < 12
+    assert out.getpixel((90, 102)) == white                             # white fringe untouched
     assert out.getpixel((90, 75)) == teal                                # pillow intact
-    assert out.getpixel((20, 20)) == terracotta                          # curtain intact
-    assert s.fill_old_fringe(final, orig, pillow) is final              # no other piece: untouched
-    # A window beside the pillow (no painted piece around it) stays.
-    open_side = Image.new("L", size, 0)
-    ImageDraw.Draw(open_side).rectangle((0, 0, 50, 149), fill=255)       # curtain far left only
-    assert s.fill_old_fringe(final, orig, pillow, keep_out=open_side).getpixel((124, 75)) == final.getpixel((124, 75))
+    assert out.getpixel((135, 75)) == white                             # window untouched
+    assert s.fill_old_fringe(final, orig, pillow) is final              # no other piece
