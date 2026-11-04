@@ -605,3 +605,22 @@ def test_paste_strict_feathers_outward_no_halo():
     # Far outside the mask the original is untouched
     assert tuple(arr[5, 5]) == (120, 120, 120)
     assert tuple(arr[75, 115]) == (120, 120, 120)
+
+
+def test_curtains_judged_per_panel_and_no_retry_for_the_sheer(monkeypatch):
+    """SAM's curtains mask takes the sheer between the drapes; the editor
+    leaves the sheer white. Curtains are judged per record like pillows,
+    and a panel left alone does not cost a second edit (pillows do)."""
+    monkeypatch.setattr(s, "sam_mask", lambda recs, size: Image.new(
+        "L", size, 255))
+    recs = [{"label": "curtain"}, {"label": "curtain"}]
+    assert len(s.piece_masks("curtains", recs, (40, 30))) == 2
+    assert len(s.piece_masks("cushions", recs, (40, 30))) == 2
+    assert s.piece_masks("sofa", recs, (40, 30)) is False
+    partial = {"ok": True, "pieces": {"covered": 2, "total": 3}}
+    good = {"color": 9, "pattern": 9, "scale": 9, "isolation": 9}
+    assert s.needs_retry(partial, good, retry_missing=True)
+    assert not s.needs_retry(partial, good, retry_missing=False)
+    assert s.needs_retry({"ok": False, "pieces": {"covered": 0,
+                                                 "total": 3}}, good,
+                         retry_missing=False)

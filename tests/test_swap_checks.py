@@ -351,3 +351,28 @@ def test_patterned_fabric_must_visibly_change_the_mask():
     full = room.copy()
     full.paste(solid((176, 176, 172), size), (0, 0), mask)
     assert sc.run_checks(room, full, mask, swatch, min_changed=0.4)["ok"]
+
+
+def _swatch_bytes(rgb):
+    buf = io.BytesIO(); Image.new("RGB", (16, 16), rgb).save(buf, "PNG")
+    return buf.getvalue()
+
+
+def test_coverage_allows_the_photo_own_shading():
+    """A seat whose lower third sits in deep shadow in the original: after
+    the swap the off-white fabric there is 55 L* darker than the swatch.
+    Without the original those cells fail (gate is 45 L*); with it they
+    pass because the original was just as dark there. A cell that is
+    dark where the original was lit still fails."""
+    w, h = 120, 90
+    mask = Image.new("L", (w, h), 255)
+    orig = Image.new("RGB", (w, h), (150, 40, 60))
+    res = Image.new("RGB", (w, h), (236, 232, 222))      # Sea Salt-ish
+    from PIL import ImageDraw
+    ImageDraw.Draw(orig).rectangle((0, 60, w, h), fill=(40, 10, 15))
+    ImageDraw.Draw(res).rectangle((0, 60, w, h), fill=(70, 68, 62))
+    sw = _swatch_bytes((236, 232, 222))
+    assert not sc.coverage_check(res, mask, sw)["ok"]
+    assert sc.coverage_check(res, mask, sw, original=orig)["ok"]
+    lit = Image.new("RGB", (w, h), (150, 40, 60))
+    assert not sc.coverage_check(res, mask, sw, original=lit)["ok"]

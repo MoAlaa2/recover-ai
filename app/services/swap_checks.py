@@ -288,13 +288,21 @@ def changed_share(original, result_image, mask,
     return round(float(((diff > threshold) & m).sum()) / float(m.sum()), 3)
 
 
-def coverage_check(result_image, mask, swatch_bytes, cells=COVERAGE_CELLS):
+def coverage_check(result_image, mask, swatch_bytes, cells=COVERAGE_CELLS,
+                   original=None):
     """Share of the item's mask (by grid cell) that looks like the fabric.
 
     Each cell of a cells×cells grid over the mask's bounding box counts
     when at least half of it is inside the mask; it is covered when its
     mean colour passes colour_match against the swatch. Unpainted
     regions (old fabric left over) fail their cells.
+
+    With the original photo, a cell also passes when its lightness
+    is off by no more than the photo's own shading there: the part of
+    a seat in shadow is as much darker than the piece's mean in the
+    original as it is after the swap (an off-white fabric under a
+    majlis seat reads 50-60 L* darker than its swatch and is still
+    that fabric). Hue and chroma must match either way.
     """
     small = _small(result_image, "RGB")
     arr = np.asarray(small).astype(np.float64) / 255.0
@@ -303,6 +311,13 @@ def coverage_check(result_image, mask, swatch_bytes, cells=COVERAGE_CELLS):
     want = swatch_lab(swatch_bytes)
     if not m.any() or want is None:
         return {"coverage": 0.0, "ok": False}
+    shade = None
+    if original is not None:
+        o_arr = np.asarray(original.convert("RGB").resize(
+            small.size, Image.BILINEAR)).astype(np.float64) / 255.0
+        o_lab = _srgb_to_lab(o_arr.reshape(-1, 3)).reshape(
+            o_arr.shape[0], o_arr.shape[1], 3)
+        shade = (o_lab[..., 0], float(o_lab[..., 0][m].mean()))
     ys, xs = np.where(m)
     y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
     ch = max(1, (y1 - y0) // cells)
@@ -315,7 +330,12 @@ def coverage_check(result_image, mask, swatch_bytes, cells=COVERAGE_CELLS):
                 continue
             got = _srgb_to_lab(arr[y:y + ch, x:x + cw][sel].mean(axis=0))
             total += 1
-            if colour_match(got, want)[2]:
+            de, dl, ok = colour_match(got, want)
+            if not ok and shade is not None and de <= COLOUR_MAX_DE:
+                offset = float(shade[0][y:y + ch, x:x + cw][sel].mean()
+                               - shade[1])
+                ok = abs(dl - offset) <= LIGHTNESS_MAX_DL
+            if ok:
                 covered += 1
     cov = covered / float(total) if total else 0.0
     return {"coverage": round(cov, 3), "ok": cov >= COVERAGE_MIN}
@@ -357,7 +377,8 @@ def mask_components(mask, work_side=320):
     return comps
 
 
-def covered_pieces(result_image, mask, swatch_bytes, pieces=None):
+def covered_pieces(result_image, mask, swatch_bytes, pieces=None,
+                   original=None):
     """Per-piece coverage for items made of separate objects (throw
     pillows): the pieces that ARE in the new fabric, as one mask, plus
     the count. pieces are the segmenter's per-object masks when known
@@ -370,7 +391,8 @@ def covered_pieces(result_image, mask, swatch_bytes, pieces=None):
     kept = np.zeros(np.asarray(mask.convert("L")).shape, dtype=np.uint8)
     covered = 0
     for comp in comps:
-        if coverage_check(result_image, comp, swatch_bytes)["ok"]:
+        if coverage_check(result_image, comp, swatch_bytes,
+                          original=original)["ok"]:
             kept = np.maximum(kept, np.asarray(comp))
             covered += 1
     return Image.fromarray(kept), covered, len(comps)
@@ -393,7 +415,8 @@ def run_checks(original, result_image, mask, swatch_bytes, base=None,
 
     Returns {delta_e, delta_l, coverage, changed, residue, ok, fail}."""
     colour = colour_check(result_image, mask, swatch_bytes)
-    cover = coverage_check(result_image, mask, swatch_bytes)
+    cover = coverage_check(result_image, mask, swatch_bytes,
+                           original=original)
     changed = changed_share(base or original, result_image, mask)
     residue = residue_check(original, result_image,
                             residue_mask or mask, swatch_bytes,
@@ -417,7 +440,8 @@ def run_checks(original, result_image, mask, swatch_bytes, base=None,
     if pieces and fail in (REASON_COLOUR, REASON_COVERAGE):
         found = covered_pieces(
             result_image, mask, swatch_bytes,
-            pieces if isinstance(pieces, (list, tuple)) else None)
+            pieces if isinstance(pieces, (list, tuple)) else None,
+            original=original)
         if found and found[1] >= 1:
             kept, n_cov, n_all = found
             sub = run_checks(original, result_image, kept, swatch_bytes,

@@ -303,6 +303,21 @@ def record_masks(records, size):
     return out
 
 
+# Targets whose coverage is judged per segmenter record when the whole
+# mask fails: throw pillows (the edit skips some) and curtains (SAM's
+# "window curtains" mask takes the sheer behind the drapes too, and the
+# editor rightly leaves the sheer white: the drapes pass on their own
+# and the sheer keeps the photo's pixels).
+PIECEWISE_TARGETS = ("cushions", "curtains")
+
+
+def piece_masks(target, records, size):
+    """Per-object masks for a piecewise target, else False."""
+    if target not in PIECEWISE_TARGETS:
+        return False
+    return record_masks(records, size)
+
+
 MIN_COMPONENT_FRAC = 0.03
 
 
@@ -865,9 +880,9 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
         except SwapError:
             sofa_recs = None
         raw_mask = separate_seats(raw_mask, sofa_recs, (width, height))
-    # Pillows are judged per piece (see swap_checks.run_checks).
-    pieces = record_masks(records, (width, height)) \
-        if target == "cushions" else False
+    # Pillows and curtain panels are judged per piece (see
+    # swap_checks.run_checks).
+    pieces = piece_masks(target, records, (width, height))
 
     out_dir = out_dir or os.path.join(UPLOAD_DIR, "swap")
     os.makedirs(out_dir, exist_ok=True)
@@ -919,7 +934,8 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
                 "checks": checks}
         if best is None or _rank(cand) > _rank(best):
             best = cand
-        if not needs_retry(checks, scores, fabric):
+        if not needs_retry(checks, scores, fabric,
+                           retry_missing=(target == "cushions")):
             break
     if not best["checks"]["ok"]:
         raise CheckFailed(best["checks"]["fail"], best["checks"], target)
@@ -967,9 +983,13 @@ def match_score(scores, fabric=None):
     return min(vals) if vals else 0
 
 
-def needs_retry(checks, scores, fabric=None):
+def needs_retry(checks, scores, fabric=None, retry_missing=True):
     """Second edit only when a deterministic check failed or Spark
     rated the motif/scale below RETRY_MIN_SCORE (see RETRY_SCORES).
+
+    retry_missing: pieces left in the old fabric call for another edit
+    (pillows); a curtain panel left alone is the sheer behind the
+    drapes, which should stay as it is.
 
     For a plain fabric the "pattern" score asks "is it plain?", and
     Spark answers 0 when patterned pillows or a rug are still in view
@@ -977,7 +997,7 @@ def needs_retry(checks, scores, fabric=None):
     is skipped there."""
     if not checks.get("ok"):
         return True
-    if pieces_missing(checks):
+    if retry_missing and pieces_missing(checks):
         return True
     keys = RETRY_SCORES
     if fabric is not None and fabric.get("plain_or_patterned") != "patterned":
@@ -1511,8 +1531,7 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                     room, cand, mask, swatch_bytes, base=base_img,
                     residue_mask=union_mask,
                     extra_swatches=job.get("extra_swatches") or (),
-                    pieces=(record_masks(records, (width, height))
-                            if target == "cushions" else False),
+                    pieces=piece_masks(target, records, (width, height)),
                     min_changed=min_changed_for(fabric))
                 kept = checks.pop("_mask", None)
                 if kept is not None:
@@ -1524,7 +1543,8 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                               "checks": checks}
                 if best is None or _rank(cand_entry) > _rank(best):
                     best = cand_entry
-                if not needs_retry(checks, scores, fabric):
+                if not needs_retry(checks, scores, fabric,
+                                   retry_missing=(target == "cushions")):
                     break
             except Exception as exc:  # noqa: BLE001 - one bad item
                 last_err = str(exc)  # must become a skip, never a 500
