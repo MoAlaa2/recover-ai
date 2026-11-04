@@ -195,3 +195,36 @@ def test_arabic_skip_phrases_recommend_now():
     # The model's own Arabic skip chip is recognised: no duplicate chip.
     opts = ["أطفال", "حيوانات أليفة", "استخدام عادي", "اعرض لي مباشرة"]
     assert c.ensure_just_show_option(opts, "ar") == opts
+
+
+def test_finished_swap_becomes_the_pick_on_the_server(monkeypatch, tmp_path):
+    """Preview Olive Grove after Camel Caravan: the quote must follow the
+    fabric on the canvas. The server records a finished swap as the pick
+    for its piece before it returns, so a chat turn that lands before the
+    client's own pick cannot echo the older one back."""
+    from fastapi.testclient import TestClient
+    from PIL import Image
+    import app.api.chat as chat_api
+    from app.main import app
+    from app.services import consultant
+
+    monkeypatch.setattr(chat_api, "UPLOAD_DIR", str(tmp_path))
+    Image.new("RGB", (8, 8)).save(str(tmp_path / "x.jpg"))
+    image_path = str(tmp_path / "x.jpg")
+
+    def fake_swap(image_path, fabric_code, target, on_step=None):
+        return {"result_url": "uploads/swap/r.jpg", "mask_url": "",
+                "scores": {}, "attempts": 1, "target": target}
+
+    monkeypatch.setattr(chat_api, "swap", fake_swap)
+    consultant.SESSIONS.pop("pick-s", None)
+    client = TestClient(app)
+    client.post("/api/session/pick-s/assignments",
+                json={"target": "sofa", "code": "FA-NL-06"})
+    resp = client.post("/api/swap", json={"session_id": "pick-s",
+                                          "image_path": image_path,
+                                          "fabric_code": "FA-NL-03",
+                                          "target": "sofa"})
+    assert resp.status_code == 200
+    assert consultant.SESSIONS["pick-s"]["assignments"]["sofa"] == "FA-NL-03"
+    assert "sofa" in consultant.SESSIONS["pick-s"]["chosen_targets"]

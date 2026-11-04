@@ -539,6 +539,21 @@ def record_preview(session_id, fabric_code, res, before_url=""):
     if session_id:
         PREVIEWS.setdefault(session_id, []).append(entry)
         del PREVIEWS[session_id][:-MAX_PREVIEWS]
+        # A finished swap IS the pick for that piece: the quote, the
+        # summary and Apply-all must follow what the client is looking
+        # at. The client posts the same pick after the result, but its
+        # follow-up chat turn can land first and echo the server's
+        # older pick back (Olive Grove on the canvas, Camel Caravan in
+        # the quote), so the server records it here, before the result
+        # is returned.
+        target = res.get("target")
+        if target:
+            session = consultant.SESSIONS.setdefault(session_id,
+                                                     {"messages": []})
+            session.setdefault("assignments", {})[target] = fabric_code
+            chosen = session.setdefault("chosen_targets", [])
+            if target not in chosen:
+                chosen.append(target)
     return entry
 
 
