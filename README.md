@@ -1,126 +1,137 @@
 # ReCover — see your own furniture in a new fabric
 
-> **"Change the look, not the furniture."**
+**"Change the look, not the furniture."**
 
-ReCover is an AI upholstery consultant: photograph your sofa, describe
-your home (kids, cats, sun, budget) in any language, and see your own
-furniture reupholstered on screen — then reupholster instead of replacing.
+ReCover is an AI upholstery consultant. Photograph your sofa, describe your home (kids, cats, sun, budget) in any of five languages, and see **your own furniture reupholstered on screen**, with metres, a price, the CO₂ you avoid, and a one-tap handoff to your upholsterer. The goal is simple: reupholster instead of replacing.
+
+Built solo for the Meta Global AI Developer Hackathon (Indie track), **100% on Meta models**: Muse Spark, Muse Image, SAM 3.1 and Muse Voice.
+
+| | |
+|---|---|
+| 🎬 **Demo video (3 min)** | `<YouTube link>` |
+| 🌐 **Live demo** | `<Modal URL>` |
+| ⚡ **Fastest way to try it** | Open `/consult`, tap any **sample room**, then tap **"Just show me"** |
+
+---
+
+## Try it in 60 seconds (for judges)
+
+1. Open the live demo.
+2. Go to **`/consult`** and pick a sample room: *Living room, Sofa & pillows, Majlis, Armchair* or *Curtains*. These are pre-analysed, so they answer in seconds.
+3. Tell the consultant something real, e.g. *"Two cats, I want something warm and durable, around $25 per metre"*, in English, العربية, हिन्दी, Français or Español, typed or spoken.
+4. Tap **See it** on a recommendation. Your piece is reupholstered and everything else stays pixel-identical. Drag the before/after slider.
+5. Select sofa + cushions + curtains and tap **Apply to all**.
+6. Ask for **the quote**. You get metres per piece, price, CO₂ avoided and a **Send to upholsterer** WhatsApp link.
+7. For designers, open **`/designer`**: upload a floor plan (PNG/JPG/PDF), assign fabrics per piece, and get a concept render plus a one-page client proposal PDF (EN/AR).
+
+> **Please expect each render to take ~40–50 s.** That is three Meta models in sequence (segment → edit → verify), plus one automatic retry if the check fails. Uploading your own iPhone photo also works; the first analysis takes a little longer.
+
+---
 
 ## The problem
 
-Most sofas are thrown out for their fabric, not their frame:
+Most sofas are thrown out for their **fabric**, not their frame:
 
-- **12.1M** tons of furniture thrown away in the US in one year
-  (US EPA, 2018); **~80%** of it ends up in landfill (US EPA, 2018).
-- **10M+** tonnes of furniture discarded each year in the EU
-  (EEB, 2017).
-- **≈52 kg of CO₂e avoided per reupholstered 3-seat sofa**
-  (sourced: EPD NEPD-1805-759, Helland Duun 3-seater, A1–A3
-  manufacturing; other pieces scale by weight class).
+- **12.1M tons** of furniture thrown away in the US in one year; **~80%** of it ends up in landfill (US EPA, 2018).
+- **10M+ tonnes** of furniture discarded each year in the EU (EEB, 2017).
+- **≈52 kg CO₂e** avoided per reupholstered 3-seat sofa (EPD NEPD-1805-759, Helland Duun 3-seater, A1–A3 manufacturing; other pieces scale by weight class).
 
-Reupholstering gives a good frame another ten years and keeps bulk
-waste down. ReCover removes the two reasons people replace instead:
-not knowing which fabric survives their home, and not being able to
-picture the result.
+Reupholstering gives a good frame another ten years. ReCover removes the two reasons people replace instead:
+
+- they don't know **which fabric survives their home**;
+- they **can't picture the result**.
 
 ## What it does
 
-- **Consultant flow** — a real multi-turn agent (never a fixed
-  questionnaire) that learns the piece, room, style, users and budget
-  one question at a time, in the customer's language.
-- **Room analysis** — upload a photo (or pick a sample room) and get
-  room type, style, light level, detected piece and a wall-color
-  palette.
-- **Grounded recommendations** — exactly 3 fabrics per turn, every code
-  validated against this turn's catalog search; receipts show what
-  matched (`✓ Pet-friendly`) and what was relaxed (`⚠ $41/m —
-  5 over budget`), with real numbers, never vague claims. If the model
-  fumbles the codes, it retries against the exact valid list; if that
-  fails, a deterministic top-3 fallback kicks in — a recommendation
-  turn never comes back empty.
-- **Voice in any language** — hold-to-talk transcription; the text
-  flows through the same chat path, so language detection is unchanged.
-- **Live language switching (5 live)** — English, العربية, हिन्दी,
-  Français, Español across chat, voice and UI, with RTL for Arabic.
-- **Part-accurate swap** — SAM 3.1 segments the piece, Muse Image
-  reupholsters only that region, the result is composited back with a
-  feathered edge (rest of the room pixel-identical), and Spark verifies
-  color/pattern/scale, retrying once below 7/10. Live per-step progress.
-- **Previews + compare** — every swap is stored per session (refresh
-  safe), with a before/after slider, match badge and side-by-side
-  compare.
-- **Sample rooms** — living room, curtains room, Saudi majlis and
-  armchair photos to try instantly (`/consult?sample=living`).
-- **Multi-object assignment** — tap a region or chip to choose sofa,
-  cushions or curtains; "Apply to all" renders every item in parallel
-  from the original photo (per-item 60 s budget, failed items retried
-  once then skipped with a note) and composites them largest-first.
-- **Meters + quote + handoff** — yardage table (137 cm width, +15% for
-  patterned repeats, curtains measured or "needs measurements"),
-  per-item quote in USD with a "preliminary estimate" label, and a
-  "Send to upholsterer" WhatsApp deep link with a public 14-day
-  HMAC-signed preview link (`/share/<token>.jpg`, exempt from the
-  demo lock, unguessable, noindex).
-- **Desktop parity** — the full mobile journey (outlines, target-named
-  Try buttons, single result bubble, summary card) works at
-  1440×900 in Chromium and WebKit.
+- **Consultant agent.** A real multi-turn tool-using agent, not a fixed questionnaire. It learns the piece, room, style, users and budget, one question at a time, in the customer's language.
+- **Room analysis.** From a photo or a sample room, it reports room type, style, light level, the detected pieces (sofa / cushions / curtains / armchair) and a wall-colour palette.
+- **Grounded recommendations.** Exactly 3 fabrics per turn. Every code is validated against this turn's catalog search, so codes are never invented.
+  - Receipts show what matched (✓ Pet-friendly) and what was relaxed (⚠ $41/m, 5 over budget).
+  - Fire-resistant requirements are never relaxed.
+  - A deterministic top-3 fallback means a recommendation turn never comes back empty.
+- **Voice in any language.** Hold-to-talk with Muse Voice, through the same chat path.
+- **5 live languages.** English, العربية, हिन्दी, Français, Español across chat, voice and UI, with full RTL for Arabic.
+- **Part-accurate swap.**
+  - SAM 3.1 segments the piece.
+  - Muse Image reupholsters only that region.
+  - The result is composited back with a feathered edge, so the rest of the room is pixel-identical.
+  - Muse Spark scores pattern and scale 0–10 (colour is decided by a deterministic ΔE gate); a score of 5 or lower triggers one corrective retry.
+  - Coverage and old-fabric-residue checks reject bad composites.
+- **Multi-object.** Sofa, cushions and curtains can each get their own fabric. **Apply to all** renders them in parallel (60 s per item) and layers them largest-first, cushions on top of the new sofa.
+- **Previews + compare.** Every swap is stored per session and survives a refresh. Each one has a before/after slider and a match badge.
+- **Metres → quote → handoff.**
+  - Yardage uses 137 cm fabric, +15% for pattern repeats, curtains at 2.2× fullness, and cushions by count.
+  - The per-item quote is in USD, labelled *preliminary estimate*.
+  - CO₂ avoided comes with its EPD source.
+  - **Send to upholsterer** opens a WhatsApp deep link with a 14-day HMAC-signed preview image.
+- **Designer mode (`/designer`).**
+  - Floor plan → detected pieces (editable boxes) → one fabric per piece → orthographic concept render.
+  - Each piece gets a colour check, and you get a plan↔render before/after compare.
+  - The output is a **one-page client proposal PDF** in English or Arabic, labelled "Concept render — not to scale".
+- **Sample library.** 5 pre-analysed rooms (living room, sofa & pillows, Saudi majlis, armchair, curtains) for instant testing.
+- **Desktop + mobile.** The full journey works on iPhone (WebKit) and on desktop (Chromium + WebKit, 1440×900).
 
 ## Meta models used
 
-| Model | Role | File |
+| Model | Role | Where |
 |---|---|---|
-| `muse-spark-1.3` | Consultant agent, room vision, swap verify, catalog verify/tagging | `app/services/consultant.py`, `scripts/verify_catalog.py`, `scripts/tag_snag_risk.py` |
-| `muse-image-1.0` | Catalog swatches, sample rooms, fabric edit in swaps | `scripts/generate_images.py`, `scripts/generate_samples.py`, `app/services/swap.py` |
-| `sam-3.1` | Piece segmentation for swaps (own lossless codec) | `app/services/sam_codec.py`, `app/services/swap.py` |
-| `muse-voice-transcribe-1.0` | Voice input transcription | `app/services/voice.py` |
-| `meta-models/muse-spark-open-1026` (Baseten) | Fallback consultant chat + off-topic scope guard, behind `SPARK_OPEN_FALLBACK=1` (needs `BASETEN_API_KEY` from the `recover-baseten` Modal secret, wired in `deploy/modal_app.py`) | `app/services/consultant.py`, `tests/test_baseten.py` |
+| `muse-spark-1.3` | Consultant agent (tools, catalog search), room vision, swap verification, catalog verify/tagging, designer piece detection | `app/services/consultant.py`, `app/services/swap.py`, `scripts/verify_catalog.py` |
+| `sam-3.1` | Piece segmentation for every swap | `app/services/sam_codec.py`, `app/services/swap.py` |
+| `muse-image-1.0` | Fabric edit in swaps, designer concept render, catalog swatches, sample rooms | `app/services/swap.py`, `scripts/generate_images.py`, `scripts/generate_samples.py` |
+| `muse-voice-transcribe-1.0` | Voice input (web + WhatsApp voice notes) | `app/services/voice.py` |
+| `meta-models/muse-spark-open-1026` (Baseten) | Fallback consultant + off-topic scope guard (`SPARK_OPEN_FALLBACK=1`) | `app/services/consultant.py` |
+
+No non-Meta models are used anywhere in the product.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    Browser["Browser<br/>(landing + consult UI)"] --> API["FastAPI<br/>app/main.py, app/api/chat.py"]
+    Browser["Browser<br/>landing · /consult · /designer"] --> API["FastAPI<br/>app/main.py + api/chat.py<br/>api/designer.py + api/whatsapp.py"]
     API --> Consultant["services/consultant.py<br/>agent + tools + receipts"]
-    API --> Catalog["services/catalog.py<br/>80-fabric specs + search"]
+    API --> Catalog["services/catalog.py<br/>specs + search"]
     API --> Swap["services/swap.py<br/>segment → edit → composite → verify"]
+    API --> DesignerSvc["services/designer.py<br/>plan → pieces → render → PDF"]
     API --> Voice["services/voice.py<br/>transcribe"]
+    API --> WA["services/whatsapp.py<br/>bot logic"]
     Consultant --> MetaAPI["Meta Model API<br/>Spark · Image · SAM 3.1 · Voice"]
     Swap --> MetaAPI
     Voice --> MetaAPI
+    Consultant -.-> Baseten["Baseten fallback<br/>muse-spark-open-1026"]
+    Swap <--> Volume["Modal Volume<br/>uploads · results · sessions"]
+    WA <--> Volume
+    WA <--> WACloud["WhatsApp Cloud API"]
 ```
 
-Two pages, no build step: `/` serves `app/static/landing.html`,
-`/consult` serves the consultant app (`app/static/index.html`).
-Streaming chat and swap progress run over SSE.
+Pages (`/`, `/consult`, `/designer`) stream chat and swap progress over SSE. Swap pipeline: SAM 3.1 mask → Muse Image edit on the masked region → feathered composite onto the original frame → Muse Spark verification → one retry if needed. Runtime files (uploads, swap results, sessions) live on a persistent Modal Volume.
+
+## Honest limitations
+
+- **Speed.** A render takes ~40–50 s; Apply-to-all with three pieces takes ~1–2 min.
+- **Large patterns.** Bold patterns (stripes, honeycomb) can render at the wrong scale. Plain and small-weave fabrics are reliable.
+- **Questions first.** The consultant asks a few questions before recommending. That is by design, but it occasionally exceeds a stated budget; the receipt line always shows by how much.
+- **Designer render.** It is a *concept*: layout and fabrics match, but proportions can drift. It is labelled "not to scale".
+- **WhatsApp bot.** It is fully implemented (see below), but going live is still pending the Meta dashboard callback + `messages` subscription. The web app's **Send to upholsterer** WhatsApp link works today.
+- **Demo catalog.** It is AI-generated (see below). In production, suppliers upload real fabric photos.
+
+## Demo catalog
+
+The 80 fabrics and their images were generated with Muse Image from structured specs, then verified and tagged by Muse Spark (material/colour/pattern match, snag risk for pet owners). A self-correcting loop rewrites and regenerates weak swatches automatically (`scripts/fix_catalog.py`). In production, suppliers upload real fabric photos and Muse Spark auto-builds the catalog; the pipeline already supports that path.
 
 ## Quality
 
-- **Unit tests** — 255 tests (`tests/`): grounding fallback,
-  receipts honesty, streaming fences, swap composite/codec, voice,
-  multi-object assignment, meterage/quote, sourced CO₂, WhatsApp
-  mapping, Baseten fallback, swap fabric meta, twin-bubble
-  coalescing/refresh, share-link volume wait, room-image retry,
-  5-language target matching + scope guard + server lines, plus
-  headless WebKit (iPhone 15 Pro, EN+AR) chat and overflow suites and
-  desktop parity (`scripts/desktop_e2e.py`, Chromium + WebKit) and
-  5-language live (`scripts/lang_e2e.py`, HI/FR/ES) drivers.
-- **Scenario eval** — `scripts/eval_scenarios.py` + `data/scenarios.json`
-  (22 scripted multi-turn scenarios incl. Arabic/Hindi/French/Spanish
-  replies, off-topic guarding, multi-object photo turns and meterage
-  questions in EN+AR). Last full run: **20/22** (2 known model-side
-  misses, 0 errors).
-- **Self-correcting catalog loop** — every swatch is vision-scored
-  against its spec; weak prompts are rewritten and regenerated
-  automatically (`scripts/fix_catalog.py`, log in `data/fix_log.json`).
-
-## Demo Catalog
-
-The 80 fabrics and their images were generated with Muse Image
-(`muse-image-1.0`) from structured specs for this hackathon, then
-verified and tagged with Muse Spark (material/color/pattern match,
-snag risk for pet owners). In production, suppliers upload real fabric
-photos and Muse Spark auto-builds the catalog — the pipeline already
-supports that path.
+- **Unit + integration tests.** 472 passing (`tests/`). They cover:
+  - grounding fallback and receipts honesty;
+  - swap composite, coverage and residue checks;
+  - voice, multi-object assignment, meterage and quote, sourced CO₂;
+  - WhatsApp mapping, Baseten fallback, designer and proposal PDF;
+  - 5-language matching.
+- **Browser suites.** Headless WebKit (iPhone 15 Pro, EN + AR) and desktop parity (Chromium + WebKit).
+- **Scenario eval.** `scripts/eval_scenarios.py` runs 22 scripted multi-turn scenarios (5 languages, off-topic guarding, multi-object, meterage). Last full run: 20/22.
+- **Security review.**
+  - Path traversal and share-token tampering are tested and rejected.
+  - Upload size is capped at 25 MB.
+  - Every response carries `noindex`.
 
 ## Run locally
 
@@ -129,9 +140,9 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt   # includes ffmpeg for voice notes
 ```
 
-Create `.env` in the repo root (never commit it) with your key:
+Create `.env` in the repo root (never commit it):
 
-```bash
+```
 MODEL_API_KEY=<your key>
 ```
 
@@ -139,52 +150,34 @@ Then:
 
 ```bash
 .venv/bin/python -m uvicorn app.main:app --port 8000
-# open http://localhost:8000/ (landing) and /consult (app)
+# open http://localhost:8000/ (landing), /consult (app), /designer
 .venv/bin/python -m pytest tests/ -q
 .venv/bin/python scripts/eval_scenarios.py
 ```
 
-## Deploy (locked demo)
+## Deploy
 
-The demo runs locked on Modal — never public:
+`deploy/modal_app.py` serves the same FastAPI app via `@modal.asgi_app`. Runtime writes go to a `modal.Volume`.
 
-- `deploy/modal_app.py` serves the same FastAPI app via
-  `@modal.asgi_app`.
-- Image: `requirements.txt` + `ffmpeg`; catalog, samples, specs and
-  UI are baked in.
-- Runtime writes (uploads, swap results) go to a persistent
-  `modal.Volume`; chat sessions stay on the warm container
-  (`min_containers=1`, swap timeout 900s).
-- Access lock (additive middleware — local dev and tests are
-  unaffected): every route requires HTTP Basic Auth when `DEMO_LOCK=1`
-  (constant-time credential compare), plus
-  `X-Robots-Tag: noindex, nofollow` on all responses.
+The demo is public: no login, just open the URL. Every response sets `X-Robots-Tag: noindex, nofollow`, and share previews stay signed (`/share/<token>.jpg`).
 
 ```bash
-modal secret create recover-secrets MODEL_API_KEY=... DEMO_USER=... DEMO_PASS=...
+modal secret create recover-secrets MODEL_API_KEY=...
 modal deploy deploy/modal_app.py
 ```
 
 ## WhatsApp
 
-The same consultant runs on the WhatsApp Cloud API — same catalog,
-swap, voice, meterage and CO₂ services, no duplicated logic:
+The same consultant runs on the WhatsApp Cloud API, using the same catalog, swap, voice, meterage and CO₂ services with no duplicated logic:
 
-- Text → consultant turn (auto language, Saudi dialect for Arabic).
-- Photo → same upload/normalize path, then room analysis + detection.
-- Voice note → ffmpeg → 16 kHz mono wav → Muse Voice transcription.
-- Chips → reply buttons (≤3) or a list; detected items → a list;
-  each fabric → its swatch image + caption, then "Try it" buttons.
-- "Try it" runs the real swap and returns the result image;
-  "apply all" runs the multi-swap; "summary" sends the forwardable
-  handoff block (items, meters, price, total, CO₂).
-- `new` / `جديد` resets, `language` shows the language list.
-- Sessions persist on the Volume (24 h TTL); Meta retries are
-  deduped by message id; replies return 200 fast and process in a
-  background thread.
+- **Text** → a consultant turn (auto language; Saudi dialect for Arabic).
+- **Photo** → room analysis + detection.
+- **Voice note** → ffmpeg → Muse Voice.
+- **Chips and buttons.** Chips become reply buttons or lists. Each fabric is sent as a swatch image with a "Try it" button. **Try it** runs the real swap and returns the result image.
+- **Commands.** `apply all` runs the multi-swap; `summary` sends the forwardable handoff block.
+- **Sessions** persist on the Volume (24 h TTL). Retries are deduped by message id, and the webhook signature is verified.
 
-Setup (Meta dashboard values in angle brackets — nothing secret goes
-in code or git):
+Setup (nothing secret goes in code or git):
 
 ```bash
 modal secret create recover-whatsapp WA_TOKEN=<token> \
@@ -192,20 +185,25 @@ modal secret create recover-whatsapp WA_TOKEN=<token> \
   WA_VERIFY_TOKEN=<any-string-you-choose>
 ```
 
-Then subscribe the app to the `messages` webhook field with callback
-URL `https://<your-modal-app-url>/webhook/whatsapp` and the same
-verify token. Local simulator (fake payloads, prints outbound, no
-real sends): `.venv/bin/python scripts/whatsapp_sim.py`.
+Subscribe the app to the `messages` webhook field with callback `https://<your-modal-app-url>/webhook/whatsapp`. To test locally without real sends: `.venv/bin/python scripts/whatsapp_sim.py`.
 
 ## Built during the hackathon (Oct 26 – Nov 4, 2026)
 
-ReCover was built end-to-end during the hackathon window: catalog +
-self-correcting verification, consultant agent with expert
-(pets/kids/fire/blackout) and scope rules, deterministic reply
-language, voice input, part-accurate fabric swap, streaming chat,
-Arabic/RTL UX, landing page with live metrics, and the eval suite —
-each part committed as it started working. Later: 5-language journey
-(EN/AR/HI/FR/ES) with full i18n parity, multi-object assignment with
-parallel swap, meterage/quote/upholsterer handoff, sourced CO₂ impact,
-public share links, desktop parity, WhatsApp bot behind a flag, and a
-Baseten Spark Open fallback behind a flag.
+ReCover was built end-to-end during the hackathon window by one developer. Each part was committed as it started working:
+
+- the catalog and its self-correcting verification;
+- the consultant agent with expert rules (pets, kids, fire, blackout) and scope guard;
+- voice input;
+- the part-accurate swap with verification;
+- streaming chat;
+- Arabic/RTL UX;
+- the 5-language journey;
+- multi-object Apply-to-all;
+- metres, quote and upholsterer handoff;
+- sourced CO₂;
+- signed share links;
+- desktop parity;
+- Designer mode with the client proposal PDF;
+- the WhatsApp bot;
+- the Baseten Spark Open fallback;
+- the eval suite.
