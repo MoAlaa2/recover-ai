@@ -8,8 +8,8 @@ Built solo for the Meta Global AI Developer Hackathon (Indie track), **100% on M
 
 | | |
 |---|---|
-| 🎬 **Demo video (3 min)** | `<YouTube link>` |
-| 🌐 **Live demo** | `<Modal URL>` |
+| 🎬 **Demo video (3 min)** | https://youtu.be/4s3Z4K4ewUc |
+| 🌐 **Live demo** | https://moalaa2--recover-ai-web.us-east.modal.run/ |
 | ⚡ **Fastest way to try it** | Open `/consult`, tap any **sample room**, then tap **"Just show me"** |
 
 ---
