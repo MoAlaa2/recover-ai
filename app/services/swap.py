@@ -318,6 +318,82 @@ def piece_masks(target, records, size):
     return record_masks(records, size)
 
 
+
+# A curtain's hem (and the corner tucked behind a plant) is routinely
+# outside SAM's record while the edit model recolours it with the rest
+# of the drape; the strict paste then leaves a band of the old fabric
+# along the bottom. The mask grows into the adjacent pixels that were
+# the old fabric in the photo and are the new fabric in the edit.
+GROW_FRAC = 0.04
+GROW_OLD_DE = 16.0      # hue/chroma distance to the piece's old colour
+GROW_NEW_DE = 12.0      # hue/chroma distance to the swatch
+GROW_MAX_LIGHTER = 10.0  # a hem sits in shadow; a sheer or wall is lighter
+GROW_PASSES = 3
+
+
+def grow_to_recoloured(original, edited, mask, swatch_bytes,
+                       frac=GROW_FRAC, work_side=512, passes=GROW_PASSES):
+    """Up to `passes` rounds of _grow_once: a hem is deeper than one
+    band."""
+    for _ in range(passes):
+        grown = _grow_once(original, edited, mask, swatch_bytes, frac,
+                           work_side)
+        if grown is mask:
+            break
+        mask = grown
+    return mask
+
+
+def _grow_once(original, edited, mask, swatch_bytes, frac, work_side):
+    """mask ∪ the pixels within frac of the long edge of it that have
+    the piece's old hue in original (as dark as the shadow makes them,
+    never lighter than the piece), the swatch's hue in edited, and
+    actually changed. Never shrinks the mask; returns it unchanged
+    when nothing qualifies or the colours cannot be told apart."""
+    full_size = mask.size
+    small_m = mask.convert("L").copy()
+    small_m.thumbnail((work_side, work_side), Image.NEAREST)
+    size = small_m.size
+    o = np.asarray(original.convert("RGB").resize(size, Image.BILINEAR)
+                   ).astype(np.float64) / 255.0
+    e = np.asarray(edited.convert("RGB").resize(size, Image.BILINEAR)
+                   ).astype(np.float64) / 255.0
+    m = np.asarray(small_m) > 127
+    if not m.any():
+        return mask
+    want = swap_checks.swatch_lab(swatch_bytes)
+    if want is None:
+        return mask
+    o_lab = swap_checks._srgb_to_lab(o.reshape(-1, 3))
+    old = o_lab[m.reshape(-1)].mean(axis=0)
+    if swap_checks.colour_match(old, want)[0] < GROW_NEW_DE:
+        return mask      # like-for-like colours: nothing to tell apart
+    k = max(3, int(max(size) * frac) | 1)
+    band = (np.asarray(small_m.filter(ImageFilter.MaxFilter(k))) > 127) & ~m
+    if not band.any():
+        return mask
+    idx = band.reshape(-1)
+    e_lab = swap_checks._srgb_to_lab(e.reshape(-1, 3)[idx])
+    # The hem and the corner behind a plant are in shadow: judge the old
+    # colour by hue/chroma, and never grow into something lighter than
+    # the piece (the sheer beside a drape, the wall).
+    eq_o = o_lab[idx].copy()
+    eq_o[:, 0] = old[0]
+    was_old = ((swap_checks._de2000_array(eq_o, old) < GROW_OLD_DE)
+               & (o_lab[idx][:, 0] <= old[0] + GROW_MAX_LIGHTER))
+    eq = e_lab.copy()
+    eq[:, 0] = want[0]
+    is_new = swap_checks._de2000_array(eq, want) < GROW_NEW_DE
+    moved = np.sqrt(((e_lab - o_lab[idx]) ** 2).sum(axis=1)) > GROW_OLD_DE
+    add = np.zeros(idx.shape, dtype=bool)
+    add[idx] = was_old & is_new & moved
+    if not add.any():
+        return mask
+    grown = Image.fromarray((add.reshape(m.shape) * 255).astype(np.uint8))
+    grown = grown.resize(full_size, Image.NEAREST)
+    return ImageChops.lighter(mask.convert("L"), grown)
+
+
 MIN_COMPONENT_FRAC = 0.03
 
 
@@ -911,6 +987,8 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
         if full_mask is not None:
             mask = pillow_guard(edited, mask, key, call_timeout(),
                                 (width, height))
+        if concept == TARGET_CONCEPTS["curtains"]:
+            mask = grow_to_recoloured(room, edited, mask, swatch_bytes)
         result = paste_strict(room, edited, mask)
         step("verify")
         need_budget("verify")
@@ -929,6 +1007,8 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
             # Only the recoloured pillows change; untouched ones keep
             # the photo's own pixels, not the model's re-render.
             mask = ImageChops.multiply(mask.convert("L"), kept.convert("L"))
+            if concept == TARGET_CONCEPTS["curtains"]:
+                mask = grow_to_recoloured(room, edited, mask, swatch_bytes)
             result = paste_strict(room, edited, mask)
         cand = {"result": result, "mask": mask, "scores": scores,
                 "checks": checks}
@@ -1516,6 +1596,9 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                 if target == "sofa":
                     mask = pillow_guard(edited, mask, key, call_timeout(),
                                         (width, height))
+                if target == "curtains":
+                    mask = grow_to_recoloured(base_img, edited, mask,
+                                              swatch_bytes)
                 cand = paste_strict(base_img, edited, mask)
                 step("verify")
                 small_cand = cand
@@ -1537,6 +1620,9 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                 if kept is not None:
                     mask = ImageChops.multiply(mask.convert("L"),
                                                kept.convert("L"))
+                    if target == "curtains":
+                        mask = grow_to_recoloured(base_img, edited, mask,
+                                                  swatch_bytes)
                     cand = paste_strict(base_img, edited, mask)
                 cand_entry = {"result": cand, "mask": mask,
                               "scores": scores, "area": area,

@@ -624,3 +624,30 @@ def test_curtains_judged_per_panel_and_no_retry_for_the_sheer(monkeypatch):
     assert s.needs_retry({"ok": False, "pieces": {"covered": 0,
                                                  "total": 3}}, good,
                          retry_missing=False)
+
+
+def test_curtain_mask_grows_into_the_recoloured_hem():
+    """SAM's drape record stops above the hem; the editor recolours the
+    hem too. The mask grows into adjacent pixels that were the old
+    fabric and are now the new one, and nowhere else (the wall the
+    editor also touched stays out; a far-away patch stays out)."""
+    w, h = 200, 150
+    sage, terracotta, wall = (120, 140, 110), (190, 100, 70), (235, 232, 225)
+    orig = Image.new("RGB", (w, h), wall)
+    from PIL import ImageDraw
+    ImageDraw.Draw(orig).rectangle((40, 10, 90, 130), fill=sage)   # drape + hem
+    ImageDraw.Draw(orig).rectangle((40, 125, 90, 130), fill=(60, 70, 55))  # hem in shadow
+    ImageDraw.Draw(orig).rectangle((150, 100, 190, 140), fill=sage)  # far patch
+    edited = Image.new("RGB", (w, h), (200, 190, 180))              # wall retouched
+    ImageDraw.Draw(edited).rectangle((40, 10, 90, 130), fill=terracotta)
+    ImageDraw.Draw(edited).rectangle((150, 100, 190, 140), fill=terracotta)
+    mask = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(mask).rectangle((40, 10, 90, 124), fill=255)      # no hem
+    buf = io.BytesIO(); Image.new("RGB", (8, 8), terracotta).save(buf, "PNG")
+    out = np.asarray(s.grow_to_recoloured(orig, edited, mask, buf.getvalue()))
+    assert out[128, 60] > 127            # hem joined
+    assert out[5, 60] == 0 and out[60, 110] == 0   # wall stays out
+    assert out[120, 170] == 0            # far patch stays out
+    same = io.BytesIO(); Image.new("RGB", (8, 8), sage).save(same, "PNG")
+    assert np.array_equal(np.asarray(s.grow_to_recoloured(
+        orig, edited, mask, same.getvalue())), np.asarray(mask))
