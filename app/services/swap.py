@@ -1138,6 +1138,7 @@ def separate_seats(mask, other_records, size):
     return cut
 SOFA_ARM_CONCEPT = "armrest"
 SOFA_LEGS_CONCEPT = "sofa legs"
+SOFA_BENCH_CONCEPT = "upholstered bench seat"
 # Opening kernel as a share of the long side (on an 800 px copy):
 # removes slivers thinner than ~1.4% of the photo, keeps arms (~3%).
 OPEN_FRAC = 0.014
@@ -1164,6 +1165,14 @@ SOFA_BACK_CONCEPT = "sofa backrest"
 # Enclosed gaps up to this share of the mask are filled (a shadow patch
 # on a back cushion); anything larger is a real opening.
 FILL_HOLE_MAX_SHARE = 0.08
+
+
+def _box_area(record):
+    try:
+        x0, y0, x1, y1 = (float(v) for v in record.get("box"))
+    except (TypeError, ValueError):
+        return 0.0
+    return max(0.0, x1 - x0) * max(0.0, y1 - y0)
 
 
 def _box_touches(record, records, margin=0.05):
@@ -1267,7 +1276,8 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
     from concurrent.futures import ThreadPoolExecutor
     concepts = [TARGET_CONCEPTS["sofa"], SOFA_CUSHIONS_CONCEPT,
                 SOFA_WOOD_CONCEPT, SOFA_ARM_CONCEPT, SOFA_BACK_CONCEPT,
-                TARGET_CONCEPTS["armchair"], SOFA_LEGS_CONCEPT]
+                TARGET_CONCEPTS["armchair"], SOFA_LEGS_CONCEPT,
+                SOFA_BENCH_CONCEPT]
     if keep_pillows:
         concepts.append(TARGET_CONCEPTS["cushions"])
 
@@ -1312,10 +1322,15 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
     # SAM's "sofa" and "cushions" records stop short of it, and the
     # patch stayed in the old fabric. "sofa backrest" names the whole
     # back cushion, stain included.
-    for part in (outs[3], outs[4]):
+    # And the bench seat of a majlis or a window seat: SAM's "sofa"
+    # record names the side seats and leaves the low bench under the
+    # window out in one render of five. A bench that touches the sofa
+    # and is no bigger than it is part of the seating.
+    for part in (outs[3], outs[4], outs[7]):
         if not part or isinstance(part, Exception):
             continue
-        near = [r for r in part if _box_touches(r, records)]
+        near = [r for r in part if _box_touches(r, records)
+                and _box_area(r) <= max(_box_area(x) for x in records)]
         if near:
             try:
                 mask = ImageChops.lighter(mask, sam_mask(near, size))
@@ -1354,7 +1369,7 @@ def sofa_full_mask(seg_bytes, size, key, timeout, keep_pillows=True):
             pass
     mask = open_mask(mask, OPEN_FRAC)
     if keep_pillows:
-        pillows = outs[7]
+        pillows = outs[8]
         if pillows and not isinstance(pillows, Exception):
             try:
                 mask = ImageChops.subtract(mask, sam_mask(pillows, size))
@@ -1411,7 +1426,7 @@ def _union_of(records, size):
 
 # Bump when mask semantics change: stale on-disk items (garbage
 # full-frame masks) must be recomputed, never composited again.
-MASK_CACHE_VERSION = 10
+MASK_CACHE_VERSION = 11
 
 
 def swap_multi(room_path, assignments, api_key=None, out_dir=None,

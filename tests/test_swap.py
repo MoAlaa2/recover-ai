@@ -651,3 +651,33 @@ def test_curtain_mask_grows_into_the_recoloured_hem():
     same = io.BytesIO(); Image.new("RGB", (8, 8), sage).save(same, "PNG")
     assert np.array_equal(np.asarray(s.grow_to_recoloured(
         orig, edited, mask, same.getvalue())), np.asarray(mask))
+
+
+def test_sofa_mask_takes_a_touching_bench_but_not_a_far_or_bigger_one(monkeypatch):
+    """A majlis: SAM's "sofa" record is the side seats; the bench under
+    the window comes back under "upholstered bench seat". A bench that
+    touches the sofa and is no bigger joins the mask; a bench across the
+    room, or one bigger than the sofa, does not."""
+    size = (200, 100)
+    def rec(box):
+        return {"box": box, "frame_size": size}
+    def fake_segment(img, concept, key=None, timeout=1):
+        if concept == s.TARGET_CONCEPTS["sofa"]:
+            return [rec((0, 40, 60, 90))]
+        if concept == s.SOFA_BENCH_CONCEPT:
+            return [rec((58, 50, 120, 90)), rec((150, 50, 199, 90)),
+                    rec((0, 0, 199, 99))]
+        return []
+    def fake_sam_mask(records, sz):
+        m = Image.new("L", sz, 0)
+        from PIL import ImageDraw
+        for r in records:
+            ImageDraw.Draw(m).rectangle(r["box"], fill=255)
+        return m
+    monkeypatch.setattr(s, "segment", fake_segment)
+    monkeypatch.setattr(s, "sam_mask", fake_sam_mask)
+    monkeypatch.setattr(s, "open_mask", lambda m, frac=0.0, **k: m)
+    _, mask = s.sofa_full_mask(b"x", size, "k", 5)
+    a = np.asarray(mask) > 127
+    assert a[70, 30] and a[70, 100]       # sofa and the touching bench
+    assert not a[70, 175] and not a[10, 100]   # far bench, whole-frame record
