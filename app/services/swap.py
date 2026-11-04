@@ -329,6 +329,10 @@ GROW_OLD_DE = 16.0      # hue/chroma distance to the piece's old colour
 GROW_NEW_DE = 12.0      # hue/chroma distance to the swatch
 GROW_MAX_LIGHTER = 10.0  # a hem sits in shadow; a sheer or wall is lighter
 GROW_PASSES = 3
+# Pieces whose mask grows into the recoloured rim: a drape's hem and a
+# throw pillow's edge (SAM's pillow is a little tighter than the photo's
+# and the old pillow's fringe showed as a pale rim around the new one).
+GROW_TARGETS = ("curtains", "cushions")
 
 
 def grow_to_recoloured(original, edited, mask, swatch_bytes,
@@ -987,7 +991,7 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
         if full_mask is not None:
             mask = pillow_guard(edited, mask, key, call_timeout(),
                                 (width, height))
-        if concept == TARGET_CONCEPTS["curtains"]:
+        if target in GROW_TARGETS:
             mask = grow_to_recoloured(room, edited, mask, swatch_bytes)
         result = paste_strict(room, edited, mask)
         step("verify")
@@ -1007,7 +1011,7 @@ def swap(room_path, fabric_code, target="sofa", api_key=None,
             # Only the recoloured pillows change; untouched ones keep
             # the photo's own pixels, not the model's re-render.
             mask = ImageChops.multiply(mask.convert("L"), kept.convert("L"))
-            if concept == TARGET_CONCEPTS["curtains"]:
+            if target in GROW_TARGETS:
                 mask = grow_to_recoloured(room, edited, mask, swatch_bytes)
             result = paste_strict(room, edited, mask)
         cand = {"result": result, "mask": mask, "scores": scores,
@@ -1407,7 +1411,7 @@ def _union_of(records, size):
 
 # Bump when mask semantics change: stale on-disk items (garbage
 # full-frame masks) must be recomputed, never composited again.
-MASK_CACHE_VERSION = 6
+MASK_CACHE_VERSION = 7
 
 
 def swap_multi(room_path, assignments, api_key=None, out_dir=None,
@@ -1596,7 +1600,7 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                 if target == "sofa":
                     mask = pillow_guard(edited, mask, key, call_timeout(),
                                         (width, height))
-                if target == "curtains":
+                if target in GROW_TARGETS:
                     mask = grow_to_recoloured(base_img, edited, mask,
                                               swatch_bytes)
                 cand = paste_strict(base_img, edited, mask)
@@ -1620,7 +1624,7 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
                 if kept is not None:
                     mask = ImageChops.multiply(mask.convert("L"),
                                                kept.convert("L"))
-                    if target == "curtains":
+                    if target in GROW_TARGETS:
                         mask = grow_to_recoloured(base_img, edited, mask,
                                                   swatch_bytes)
                     cand = paste_strict(base_img, edited, mask)
