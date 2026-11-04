@@ -356,7 +356,7 @@ class DemoLockMiddleware:
              modal.Secret.from_name("recover-baseten"),
              modal.Secret.from_name("recover-whatsapp")],
     volumes={"/root/recover/uploads": vol},
-    env={"DEMO_LOCK": "1", "SPARK_OPEN_FALLBACK": "1", "RC_BUILD": BUILD},
+    env={"DEMO_LOCK": "0", "SPARK_OPEN_FALLBACK": "1", "RC_BUILD": BUILD},
     min_containers=1,
     max_containers=1,
     timeout=900,
