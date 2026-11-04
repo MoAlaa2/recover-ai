@@ -1411,7 +1411,7 @@ def _union_of(records, size):
 
 # Bump when mask semantics change: stale on-disk items (garbage
 # full-frame masks) must be recomputed, never composited again.
-MASK_CACHE_VERSION = 9
+MASK_CACHE_VERSION = 10
 
 
 def swap_multi(room_path, assignments, api_key=None, out_dir=None,
