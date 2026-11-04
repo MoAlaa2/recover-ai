@@ -412,6 +412,64 @@ def _grow_once(original, edited, mask, swatch_bytes, frac, work_side):
     return ImageChops.lighter(mask.convert("L"), grown)
 
 
+
+# The old pillow's soft fringe: SAM's pillow mask and the editor's own
+# pillow both stop a few px short of the photo's pillow, and the pillow
+# mask is clipped to what no other piece owns, so a thin band of the
+# old photo stayed between a new pillow and a new curtain or sofa. No
+# edit repaints it, so those pixels are filled from the neighbouring
+# painted pieces. Where no painted piece is nearby (a wall, the window,
+# a pillow on an unswapped sofa) nothing changes.
+FRINGE_FRAC = 0.008
+FRINGE_UNCHANGED_DE = 6.0
+
+
+def fill_old_fringe(final, original, mask, keep_out=None,
+                    frac=FRINGE_FRAC):
+    """final with the unchanged pixels of a thin band around mask that
+    belong to no other piece filled from the other pieces (keep_out)
+    next to them. Returns final unchanged when there is nothing to do."""
+    if keep_out is None:
+        return final
+    size = final.size
+    w = max(3, int(max(size) * frac) | 1)
+    m_img = mask.convert("L").resize(size, Image.NEAREST)
+    m = np.asarray(m_img) > 127
+    if not m.any():
+        return final
+    ko = np.asarray(keep_out.convert("L").resize(size, Image.NEAREST)) > 127
+    band = (np.asarray(m_img.filter(ImageFilter.MaxFilter(2 * w + 1))) > 127) \
+        & ~m & ~ko
+    if not band.any():
+        return final
+    f = np.asarray(final.convert("RGB")).astype(np.float64) / 255.0
+    o = np.asarray(original.convert("RGB").resize(size, Image.BILINEAR)
+                   ).astype(np.float64) / 255.0
+    idx = band.reshape(-1)
+    f_lab = swap_checks._srgb_to_lab(f.reshape(-1, 3)[idx])
+    o_lab = swap_checks._srgb_to_lab(o.reshape(-1, 3)[idx])
+    unchanged = np.sqrt(((f_lab - o_lab) ** 2).sum(axis=1)) < FRINGE_UNCHANGED_DE
+    cand = np.zeros(idx.shape, dtype=bool)
+    cand[idx] = unchanged
+    cand = cand.reshape(m.shape)
+    if not cand.any():
+        return final
+    valid = ko.astype(np.float64)
+    radius = 2 * w
+    num = np.stack([np.asarray(Image.fromarray(
+        (f[..., c] * valid * 255).astype(np.uint8)).filter(
+            ImageFilter.GaussianBlur(radius))).astype(np.float64) / 255.0
+        for c in range(3)], axis=-1)
+    den = np.asarray(Image.fromarray((valid * 255).astype(np.uint8)).filter(
+        ImageFilter.GaussianBlur(radius))).astype(np.float64) / 255.0
+    ok = cand & (den > 0.05)
+    if not ok.any():
+        return final
+    out = f.copy()
+    out[ok] = num[ok] / den[ok][:, None]
+    return Image.fromarray((np.clip(out, 0, 1) * 255).astype(np.uint8))
+
+
 MIN_COMPONENT_FRAC = 0.03
 
 
@@ -1452,7 +1510,7 @@ def _union_of(records, size):
 
 # Bump when mask semantics change: stale on-disk items (garbage
 # full-frame masks) must be recomputed, never composited again.
-MASK_CACHE_VERSION = 12
+MASK_CACHE_VERSION = 13
 
 
 def swap_multi(room_path, assignments, api_key=None, out_dir=None,
@@ -1805,14 +1863,30 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
     final = room.copy()
     union = Image.new("L", room.size, 0)
     masks = [piece[1].convert("L") for piece in pieces]
-    for i, (img, mask, _, _) in enumerate(pieces):
-        others = None
+
+    def others_of(i):
+        out = None
         for j, other in enumerate(masks):
             if j != i:
-                others = other if others is None else ImageChops.lighter(
-                    others, other)
+                out = other if out is None else ImageChops.lighter(out, other)
+        return out
+
+    for i, (img, mask, _, target) in enumerate(pieces):
+        others = others_of(i)
+        if target == "cushions" and others is not None:
+            # The pillow mask is dilated so the edit covers the old
+            # pillow's fringe, and the pillow is edited on the sofa
+            # result where the curtains are still the old colour: the
+            # dilated band pasted old beige curtain over the new one.
+            # A pillow keeps only the pixels no other piece owns.
+            mask = ImageChops.subtract(mask.convert("L"), others)
+            masks[i] = mask
         final = paste_strict(final, img, mask, keep_out=others)
         union = ImageChops.lighter(union, mask.convert("L"))
+    for i, (img, mask, _, target) in enumerate(pieces):
+        if target != "cushions":
+            continue
+        final = fill_old_fringe(final, room, masks[i], keep_out=others_of(i))
     # A swap never changes the framing: outside every piece the result
     # must still be the photo. A paste only ever writes inside its own
     # mask, so anything else means a wrong-size or wrong-photo input.

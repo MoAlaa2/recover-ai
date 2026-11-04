@@ -681,3 +681,28 @@ def test_sofa_mask_takes_a_touching_bench_but_not_a_far_or_bigger_one(monkeypatc
     a = np.asarray(mask) > 127
     assert a[70, 30] and a[70, 100]       # sofa and the touching bench
     assert not a[70, 175] and not a[10, 100]   # far bench, whole-frame record
+
+
+def test_old_pillow_fringe_is_filled_from_the_neighbouring_pieces():
+    """A 3 px band of the old photo between the new teal pillow and the
+    new terracotta curtain (owned by neither mask) is filled with the
+    curtain colour. With no other piece nearby nothing changes."""
+    from PIL import ImageDraw
+    size = (200, 150)
+    terracotta, white, teal, beige = (190, 100, 70), (240, 240, 238), (20, 90, 110), (205, 190, 175)
+    orig = Image.new("RGB", size, beige)
+    ImageDraw.Draw(orig).rectangle((57, 47, 123, 103), fill=white)   # pillow + fringe
+    pillow = Image.new("L", size, 0)
+    ImageDraw.Draw(pillow).rectangle((60, 50, 120, 100), fill=255)
+    curtain = Image.new("L", size, 255)
+    ImageDraw.Draw(curtain).rectangle((54, 44, 126, 106), fill=0)   # stops 3 px short
+    final = Image.new("RGB", size, terracotta)
+    ImageDraw.Draw(final).rectangle((54, 44, 126, 106), fill=beige)
+    ImageDraw.Draw(final).rectangle((57, 47, 123, 103), fill=white)
+    ImageDraw.Draw(final).rectangle((60, 50, 120, 100), fill=teal)
+    out = s.fill_old_fringe(final, orig, pillow, keep_out=curtain)
+    r, g, b = out.getpixel((90, 48))                                   # band pixel
+    assert abs(r - 190) < 12 and abs(g - 100) < 12 and abs(b - 70) < 12
+    assert out.getpixel((90, 75)) == teal                                # pillow intact
+    assert out.getpixel((20, 20)) == terracotta                          # curtain intact
+    assert s.fill_old_fringe(final, orig, pillow) is final              # no other piece: untouched
