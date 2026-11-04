@@ -133,22 +133,36 @@ def _post_json(url, payload, api_key, timeout, stage="", model=""):
     data = json.dumps(payload).encode("utf-8")
     last_err = None
     t0 = time.time()
+    paused = 0.0
     for attempt in range(2):
+        # `timeout` is the whole call's budget, not a per-attempt cap:
+        # the retry only gets what is left of it, and is skipped when
+        # the first attempt used it up (a 75 s edit that timed out
+        # would otherwise run 75 + 2 + 75 s against a 105 s swap).
+        # The 2 s pause before the retry is slack outside the budget.
+        attempt_timeout = timeout
+        if attempt:
+            remaining = timeout - (time.time() - t0 - paused)
+            if remaining < min(5.0, timeout / 2):
+                break
+            attempt_timeout = min(timeout, remaining)
         try:
             req = urllib.request.Request(
                 url, data=data,
                 headers={"Authorization": "Bearer " + api_key,
                          "Content-Type": "application/json"},
                 method="POST")
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
+            with urllib.request.urlopen(
+                    req, timeout=attempt_timeout) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except Exception as exc:  # noqa: BLE001 - retry once, then raise
             last_err = exc
             if _is_timeout(exc):
-                _log_timeout(stage, model, timeout,
+                _log_timeout(stage, model, attempt_timeout,
                              time.time() - t0, exc)
             if attempt == 0:
                 time.sleep(2)
+                paused += 2.0
     if _is_timeout(last_err):
         raise TimeoutSwapError(
             "swap timed out in %s — please try again"

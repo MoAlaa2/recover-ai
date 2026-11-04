@@ -50,12 +50,12 @@ def test_slow_model_retried_once_then_timeout(monkeypatch):
                      model="muse-image-1.0")
     assert time.time() - t0 < 5
     assert len(calls) == 2  # one silent retry on a fresh request
-    assert all(t == 0.2 for t in calls)
+    assert all(0 < t <= 0.2 for t in calls)
     entries = read_log()
     assert len(entries) == 2
     assert all(e["stage"] == "edit" for e in entries)
     assert all(e["model"] == "muse-image-1.0" for e in entries)
-    assert all(e["timeout_s"] == 0.2 for e in entries)
+    assert all(0 < e["timeout_s"] <= 0.2 for e in entries)
 
 
 def test_nontimeout_failure_is_plain_swap_error(monkeypatch):
@@ -110,12 +110,18 @@ def test_swap_budget_guard_fires_fast(monkeypatch, tmp_path):
     assert time.time() - t0 < 5
 
 
-def test_swap_stream_marks_timeout(monkeypatch):
+def test_swap_stream_marks_timeout(monkeypatch, tmp_path):
     """SSE error events carry timeout=true for TimeoutSwapError."""
     from fastapi.testclient import TestClient
 
     import app.api.chat as chat_api
     from app.main import app
+
+    # The stream route validates image_path like /api/swap does, so the
+    # path must be a real file under the uploads dir.
+    monkeypatch.setattr(chat_api, "UPLOAD_DIR", str(tmp_path))
+    Image.new("RGB", (8, 8)).save(str(tmp_path / "x.jpg"))
+    image_path = str(tmp_path / "x.jpg")
 
     def boom(*a, **k):
         raise s.TimeoutSwapError("swap timed out in edit")
@@ -124,7 +130,7 @@ def test_swap_stream_marks_timeout(monkeypatch):
     client = TestClient(app)
     resp = client.post("/api/swap/stream",
                        json={"session_id": "s",
-                             "image_path": "uploads/x.jpg",
+                             "image_path": image_path,
                              "fabric_code": "FA-NL-02", "target": "sofa"})
     assert resp.status_code == 200
     assert '"timeout": true' in resp.text
@@ -135,7 +141,92 @@ def test_swap_stream_marks_timeout(monkeypatch):
     monkeypatch.setattr(chat_api, "swap", fail)
     resp = client.post("/api/swap/stream",
                        json={"session_id": "s",
-                             "image_path": "uploads/x.jpg",
+                             "image_path": image_path,
                              "fabric_code": "FA-NL-02", "target": "sofa"})
     assert resp.status_code == 200
     assert '"timeout": false' in resp.text
+
+
+def test_swap_stream_rejects_paths_outside_uploads(monkeypatch):
+    """/api/swap/stream fails closed on a path outside the allow-list,
+    like /api/swap, and never reaches the swap."""
+    from fastapi.testclient import TestClient
+
+    import app.api.chat as chat_api
+    from app.main import app
+
+    reached = []
+    monkeypatch.setattr(chat_api, "swap",
+                        lambda *a, **k: reached.append(a))
+    client = TestClient(app)
+    for bad in ("/etc/passwd", "uploads/../../app/main.py", ""):
+        resp = client.post("/api/swap/stream",
+                           json={"session_id": "s", "image_path": bad,
+                                 "fabric_code": "FA-NL-02",
+                                 "target": "sofa"})
+        assert resp.status_code == 400, bad
+    assert reached == []
+
+
+def test_multi_stream_input_error_is_a_clean_event(monkeypatch):
+    """Bad Apply-all input yields one SSE error event, not a 500 from
+    `exc` being read after its except block."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    client = TestClient(app)
+    resp = client.post("/api/swap/multi/stream",
+                       json={"session_id": "s", "image_path": "/etc/passwd",
+                             "assignments": []})
+    assert resp.status_code == 200
+    assert '"type": "error"' in resp.text
+    assert "image not found" in resp.text
+
+
+def test_retry_skipped_when_first_attempt_used_the_budget(monkeypatch):
+    """A timeout that ran the whole budget is not retried: the retry
+    would double the stage against the overall swap budget."""
+    calls = []
+
+    def hang_then_timeout(req, timeout=None):
+        calls.append(timeout)
+        time.sleep(timeout)
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(s.urllib.request, "urlopen", hang_then_timeout)
+    t0 = time.time()
+    with pytest.raises(s.TimeoutSwapError):
+        s._post_json("http://x", {}, "k", 0.5, stage="edit",
+                     model="muse-image-1.0")
+    assert len(calls) == 1
+    assert time.time() - t0 < 4  # 0.5 s attempt + 2 s sleep, no retry
+
+
+def test_retry_gets_only_the_remaining_budget(monkeypatch):
+    """A fast failure is retried, with the time left, not a fresh cap."""
+    calls = []
+
+    def fail_fast_then_ok(req, timeout=None):
+        calls.append(timeout)
+        if len(calls) == 1:
+            time.sleep(0.3)
+            raise ConnectionResetError("reset")
+
+        class R:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                return b'{"ok": 1}'
+        return R()
+
+    monkeypatch.setattr(s.urllib.request, "urlopen", fail_fast_then_ok)
+    assert s._post_json("http://x", {}, "k", 10.0, stage="segment") == {
+        "ok": 1}
+    assert len(calls) == 2
+    assert calls[0] == 10.0
+    # 10 s minus the 0.3 s first attempt; the 2 s pause is not charged
+    assert 9.0 <= calls[1] <= 9.8

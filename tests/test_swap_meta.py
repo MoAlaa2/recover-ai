@@ -13,10 +13,15 @@ def _events(resp):
     return out
 
 
-def test_swap_stream_done_includes_fabric_meta(monkeypatch):
+def test_swap_stream_done_includes_fabric_meta(monkeypatch, tmp_path):
+    from PIL import Image
+
     from app.main import app
     import app.api.chat as chat
 
+    # /api/swap/stream validates image_path like /api/swap.
+    monkeypatch.setattr(chat, "UPLOAD_DIR", str(tmp_path))
+    Image.new("RGB", (8, 8)).save(str(tmp_path / "x.jpg"))
     monkeypatch.setattr(
         chat, "swap",
         lambda *a, **k: {"result_url": "uploads/r.jpg",
@@ -27,7 +32,7 @@ def test_swap_stream_done_includes_fabric_meta(monkeypatch):
     client = TestClient(app)
     resp = client.post("/api/swap/stream",
                        json={"session_id": "meta-test",
-                             "image_path": "uploads/x.jpg",
+                             "image_path": str(tmp_path / "x.jpg"),
                              "fabric_code": "FA-VL-01",
                              "target": "sofa"})
     assert resp.status_code == 200, resp.text

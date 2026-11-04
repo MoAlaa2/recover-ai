@@ -322,9 +322,13 @@ def swap_multi_stream(req: SwapMultiRequest):
         _check_image(req.image_path)
         cleaned = _check_assignments(req.assignments)
     except HTTPException as exc:
+        # `exc` is unbound once the except block ends; the generator
+        # runs later, so capture the message now.
+        detail = exc.detail
+
         def err_gen():
             yield "data: %s\n\n" % json.dumps(
-                {"type": "error", "message": exc.detail},
+                {"type": "error", "message": detail},
                 ensure_ascii=False)
         return StreamingResponse(err_gen(),
                                  media_type="text/event-stream")
@@ -612,6 +616,7 @@ def swap_stream(req: SwapRequest):
     {"type": "done", "result": {...}} with the full /api/swap payload,
     or {"type": "error", ...} on failure.
     """
+    _check_image(req.image_path)
     target = _swap_target(req)
     events = queue.Queue()
     from app.services.swap import TimeoutSwapError as _TimeoutSwapError
