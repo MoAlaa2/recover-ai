@@ -802,13 +802,19 @@ def frame_changed_share(original, result, union_mask, margin=16,
     return float((diff[outside] > threshold).mean())
 
 
-def paste_strict(original, edited, mask, feather=6):
+def paste_strict(original, edited, mask, feather=6, keep_out=None):
     """Composite edited onto original strictly inside mask, feathered
     OUTWARD: the mask is dilated by 2*feather before the blur, so every
     pixel of the mask itself is pasted at full opacity and the soft
     edge falls just outside it. A blur on the bare mask mixed the
     original fabric back in along the inner edge (a ring of the old
     colour around every piece).
+
+    keep_out (L mask): pixels the soft edge must not touch, i.e. the
+    other pieces of an Apply-all. Each piece is edited from the
+    original photo, so its soft edge carries the OLD colour of its
+    neighbours; without the clip a pillow left a band of the old beige
+    curtain on top of the new terracotta one.
 
     Unlike paste_mask there is no change-map intersection: the caller
     guarantees edited differs from original only where intended. Used
@@ -828,6 +834,12 @@ def paste_strict(original, edited, mask, feather=6):
         soft = soft.filter(ImageFilter.GaussianBlur(max(0.75, feather / 4.0)))
         # Inside the mask the alpha is 1: the blur never eats inward.
         soft = ImageChops.lighter(soft, mask.convert("L"))
+    if keep_out is not None:
+        if keep_out.size != original.size:
+            keep_out = keep_out.resize(original.size, Image.NEAREST)
+        soft = ImageChops.lighter(
+            ImageChops.subtract(soft, keep_out.convert("L")),
+            mask.convert("L"))
     out = original.copy()
     out.paste(edited, (0, 0), soft)
     return out
@@ -1426,7 +1438,7 @@ def _union_of(records, size):
 
 # Bump when mask semantics change: stale on-disk items (garbage
 # full-frame masks) must be recomputed, never composited again.
-MASK_CACHE_VERSION = 11
+MASK_CACHE_VERSION = 12
 
 
 def swap_multi(room_path, assignments, api_key=None, out_dir=None,
@@ -1778,8 +1790,14 @@ def swap_multi(room_path, assignments, api_key=None, out_dir=None,
         pieces.sort(key=lambda piece: 1 if piece[3] == "cushions" else 0)
     final = room.copy()
     union = Image.new("L", room.size, 0)
-    for img, mask, _, _ in pieces:
-        final = paste_strict(final, img, mask)
+    masks = [piece[1].convert("L") for piece in pieces]
+    for i, (img, mask, _, _) in enumerate(pieces):
+        others = None
+        for j, other in enumerate(masks):
+            if j != i:
+                others = other if others is None else ImageChops.lighter(
+                    others, other)
+        final = paste_strict(final, img, mask, keep_out=others)
         union = ImageChops.lighter(union, mask.convert("L"))
     # A swap never changes the framing: outside every piece the result
     # must still be the photo. A paste only ever writes inside its own

@@ -543,7 +543,7 @@ def test_multi_rejects_a_result_that_reframed_the_photo(tmp_path, monkeypatch):
         "color": 8, "pattern": 8, "scale": 8, "isolation": 8})
     # A paste that ignores its mask and returns the edited frame whole.
     monkeypatch.setattr(s, "paste_strict",
-                        lambda original, edited, mask, feather=6: edited.resize(original.size))
+                        lambda original, edited, mask, feather=6, keep_out=None: edited.resize(original.size))
     small = Image.new("L", (100, 100), 0)
     small.paste(255, (40, 40, 60, 60))
     monkeypatch.setattr(s, "sofa_full_mask",
@@ -561,3 +561,29 @@ def test_frame_changed_share_is_zero_for_a_strict_composite():
     out = s.paste_strict(orig, edit, mask)
     assert s.frame_changed_share(orig, out, mask) == 0.0
     assert s.frame_changed_share(orig, edit, mask) > 0.5
+
+
+def test_apply_all_soft_edge_never_writes_over_another_piece():
+    """Each piece is edited from the original photo, so its soft edge
+    carries the old colour of its neighbours. With keep_out the pillow's
+    edge stops at the curtain's mask: the curtain keeps its new colour
+    right up to the pillow."""
+    from PIL import ImageDraw
+    from app.services import swap as s
+    size = (120, 80)
+    room = Image.new("RGB", size, (200, 190, 170))          # beige curtain everywhere
+    curtain_mask = Image.new("L", size, 255)
+    pillow_mask = Image.new("L", size, 0)
+    ImageDraw.Draw(pillow_mask).rectangle((40, 30, 80, 60), fill=255)
+    ImageDraw.Draw(curtain_mask).rectangle((40, 30, 80, 60), fill=0)
+    curtain_edit = Image.new("RGB", size, (190, 90, 60))     # terracotta
+    ImageDraw.Draw(curtain_edit).rectangle((40, 30, 80, 60), fill=(200, 190, 170))
+    pillow_edit = room.copy()
+    ImageDraw.Draw(pillow_edit).rectangle((40, 30, 80, 60), fill=(20, 90, 110))
+    final = s.paste_strict(room, curtain_edit, curtain_mask, keep_out=pillow_mask)
+    plain = s.paste_strict(final, pillow_edit, pillow_mask)
+    clipped = s.paste_strict(final, pillow_edit, pillow_mask, keep_out=curtain_mask)
+    above = (60, 28)                                          # curtain pixel just above the pillow
+    assert plain.getpixel(above) != (190, 90, 60)             # the old beige leaked
+    assert clipped.getpixel(above) == (190, 90, 60)           # curtain intact
+    assert clipped.getpixel((60, 45)) == (20, 90, 110)        # pillow painted
